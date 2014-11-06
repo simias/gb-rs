@@ -1,0 +1,5 @@
+[package]
+
+name = "gb-rs"
+version = "0.0.1"
+authors = ["Lionel Flandrin <lionel@svkt.org>"]
