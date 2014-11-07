@@ -233,14 +233,14 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 1, execute: xor_a_b },
+    Instruction { cycles: 1, execute: xor_a_c },
+    Instruction { cycles: 1, execute: xor_a_d },
+    Instruction { cycles: 1, execute: xor_a_e },
+    Instruction { cycles: 1, execute: xor_a_h },
+    Instruction { cycles: 1, execute: xor_a_l },
     Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 1, execute: xor_a_a },
     // Opcodes BX
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
@@ -460,7 +460,7 @@ fn jp_nn(cpu: &mut Cpu) {
 fn jp_nz_nn(cpu: &mut Cpu) {
     let addr = next_word(cpu);
 
-    if !cpu.f_z() {
+    if !cpu.zero() {
         cpu.set_pc(addr);
     }
 }
@@ -469,7 +469,7 @@ fn jp_nz_nn(cpu: &mut Cpu) {
 fn jp_z_nn(cpu: &mut Cpu) {
     let addr = next_word(cpu);
 
-    if cpu.f_z() {
+    if cpu.zero() {
         cpu.set_pc(addr);
     }
 }
@@ -478,7 +478,7 @@ fn jp_z_nn(cpu: &mut Cpu) {
 fn jp_nc_nn(cpu: &mut Cpu) {
     let addr = next_word(cpu);
 
-    if !cpu.f_c() {
+    if !cpu.carry() {
         cpu.set_pc(addr);
     }
 }
@@ -487,7 +487,111 @@ fn jp_nc_nn(cpu: &mut Cpu) {
 fn jp_c_nn(cpu: &mut Cpu) {
     let addr = next_word(cpu);
 
-    if cpu.f_c() {
+    if cpu.carry() {
         cpu.set_pc(addr);
+    }
+}
+
+/// XOR `A' with itself (set `A` to `0`)
+fn xor_a_a(cpu: &mut Cpu) {
+    cpu.set_a(0);
+
+    cpu.clear_flags();
+    cpu.set_zero(true);
+}
+
+/// XOR `B` into `A`
+fn xor_a_b(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let b = cpu.b();
+
+    let r = a ^ b;
+
+    cpu.set_a(r);
+
+    cpu.clear_flags();
+
+    if r == 0 {
+        cpu.set_zero(true);
+    }
+}
+
+/// XOR `C` into `A`
+fn xor_a_c(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let c = cpu.c();
+
+    let r = a ^ c;
+
+    cpu.set_a(r);
+
+    cpu.clear_flags();
+
+    if r == 0 {
+        cpu.set_zero(true);
+    }
+}
+
+/// XOR `D` into `A`
+fn xor_a_d(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let d = cpu.d();
+
+    let r = a ^ d;
+
+    cpu.set_a(r);
+
+    cpu.clear_flags();
+
+    if r == 0 {
+        cpu.set_zero(true);
+    }
+}
+
+/// XOR `E` into `A`
+fn xor_a_e(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let e = cpu.e();
+
+    let r = a ^ e;
+
+    cpu.set_a(r);
+
+    cpu.clear_flags();
+
+    if r == 0 {
+        cpu.set_zero(true);
+    }
+}
+
+/// XOR `H` into `A`
+fn xor_a_h(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let h = cpu.h();
+
+    let r = a ^ h;
+
+    cpu.set_a(r);
+
+    cpu.clear_flags();
+
+    if r == 0 {
+        cpu.set_zero(true);
+    }
+}
+
+/// XOR `L` into `A`
+fn xor_a_l(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let l = cpu.l();
+
+    let r = a ^ l;
+
+    cpu.set_a(r);
+
+    cpu.clear_flags();
+
+    if r == 0 {
+        cpu.set_zero(true);
     }
 }

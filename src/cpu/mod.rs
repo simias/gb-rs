@@ -93,10 +93,7 @@ impl<'a> Cpu<'a> {
         self.regs.h  = 0;
         self.regs.l  = 0;
 
-        self.flags.z = false;
-        self.flags.n = false;
-        self.flags.h = false;
-        self.flags.c = false;
+        self.clear_flags();
     }
 
     pub fn step(&mut self) {
@@ -286,13 +283,26 @@ impl<'a> Cpu<'a> {
         self.regs.l = v;
     }
 
+    /// Clear all flags
+    fn clear_flags(&mut self) {
+        self.flags.z = false;
+        self.flags.n = false;
+        self.flags.h = false;
+        self.flags.c = false;
+    }
+
     /// Get value of 'Z' flag
-    fn f_z(&self) -> bool {
+    fn zero(&self) -> bool {
         self.flags.z
     }
 
+    /// set value of 'Z' flag
+    fn set_zero(&mut self, s: bool) {
+        self.flags.z = s;
+    }
+
     /// Get value of 'C' flag
-    fn f_c(&self) -> bool {
+    fn carry(&self) -> bool {
         self.flags.c
     }
 }
