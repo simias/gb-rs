@@ -261,15 +261,15 @@ pub static OPCODES: [Instruction, ..0x100] = [
     // Opcodes CX
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 3, execute: jp_nz_nn },
+    Instruction { cycles: 3, execute: jp_nn },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 3, execute: jp_z_nn },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
@@ -278,6 +278,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     // Opcodes DX
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 3, execute: jp_nc_nn },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
@@ -285,8 +286,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 3, execute: jp_c_nn },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
@@ -447,4 +447,47 @@ fn pop_af(cpu: &mut Cpu) {
     let n = pop_word(cpu);
 
     cpu.set_af(n);
+}
+
+/// Unconditional jump to absolute address
+fn jp_nn(cpu: &mut Cpu) {
+    let addr = next_word(cpu);
+
+    cpu.set_pc(addr);
+}
+
+/// Jump to absolute address if `!Z`
+fn jp_nz_nn(cpu: &mut Cpu) {
+    let addr = next_word(cpu);
+
+    if !cpu.f_z() {
+        cpu.set_pc(addr);
+    }
+}
+
+/// Jump to absolute address if `Z`
+fn jp_z_nn(cpu: &mut Cpu) {
+    let addr = next_word(cpu);
+
+    if cpu.f_z() {
+        cpu.set_pc(addr);
+    }
+}
+
+/// Jump to absolute address if `!C`
+fn jp_nc_nn(cpu: &mut Cpu) {
+    let addr = next_word(cpu);
+
+    if !cpu.f_c() {
+        cpu.set_pc(addr);
+    }
+}
+
+/// Jump to absolute address if `C`
+fn jp_c_nn(cpu: &mut Cpu) {
+    let addr = next_word(cpu);
+
+    if cpu.f_c() {
+        cpu.set_pc(addr);
+    }
 }

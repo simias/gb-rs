@@ -108,7 +108,7 @@ impl<'a> Cpu<'a> {
         let instruction = &instructions::OPCODES[op];
 
         if instruction.cycles == 0 {
-            panic!("Unimplemented instruction {:02x}", op);
+            panic!("Unimplemented instruction [{:02X}]", op);
         }
 
         (instruction.execute)(self);
@@ -284,6 +284,16 @@ impl<'a> Cpu<'a> {
     /// Set value of the `L` register
     fn set_l(&mut self, v: u8) {
         self.regs.l = v;
+    }
+
+    /// Get value of 'Z' flag
+    fn f_z(&self) -> bool {
+        self.flags.z
+    }
+
+    /// Get value of 'C' flag
+    fn f_c(&self) -> bool {
+        self.flags.c
     }
 }
 
