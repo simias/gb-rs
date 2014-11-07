@@ -15,9 +15,11 @@ pub struct Instruction {
 fn next_byte(cpu: &mut Cpu) -> u8 {
     let pc = cpu.pc();
 
+    let b = cpu.fetch_byte(pc);
+
     cpu.set_pc(pc + 1);
 
-    42
+    b
 }
 
 /// For multi-byte instructions: return the 16bit word at `pc` and

@@ -1,14 +1,16 @@
 //! Game Boy CPU emulation
 
 use std::fmt::{Show, Formatter, FormatError};
+use io::Interconnect;
 
 mod instructions;
 
 /// CPU state. Should be considered undetermined as long as
 /// `Cpu::reset()` hasn't been called.
-pub struct Cpu {
+pub struct Cpu<'a> {
     regs:  Registers,
     flags: Flags,
+    inter: &'a Interconnect,
 }
 
 /// CPU registers. They're 16bit wide but some of them can be accessed
@@ -52,12 +54,13 @@ struct Flags {
     c: bool,
 }
 
-impl Cpu {
+impl<'a> Cpu<'a> {
     /// Create a new Cpu instance. The register's value should be
     /// treated as undetermined at that point so I fill them with
     /// garbage values.
-    pub fn new() -> Cpu {
+    pub fn new<'a> (inter: &'a Interconnect) -> Cpu<'a> {
         Cpu {
+            inter: inter,
             regs: Registers { pc: 0xbaad,
                               sp: 0xbaad,
                               a : 0x01,
@@ -97,9 +100,22 @@ impl Cpu {
     }
 
     pub fn step(&mut self) {
+
+        let op = self.fetch_byte(self.regs.pc) as uint;
+
         self.regs.pc += 1;
 
-        (instructions::OPCODES[0].execute)(self);
+        let instruction = &instructions::OPCODES[op];
+
+        if instruction.cycles == 0 {
+            panic!("Unimplemented instruction {:02x}!", op);
+        }
+
+        (instruction.execute)(self);
+    }
+
+    fn fetch_byte(&self, addr: u16) -> u8 {
+        self.inter.get_byte(addr)
     }
 
     /// Retrieve value of the `PC` register
@@ -271,7 +287,7 @@ impl Cpu {
     }
 }
 
-impl Show for Cpu {
+impl<'a> Show for Cpu<'a> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
         try!(writeln!(f, "Registers:"));
 
