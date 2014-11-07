@@ -108,7 +108,7 @@ impl<'a> Cpu<'a> {
         let instruction = &instructions::OPCODES[op];
 
         if instruction.cycles == 0 {
-            panic!("Unimplemented instruction {:02x}!", op);
+            panic!("Unimplemented instruction {:02x}", op);
         }
 
         (instruction.execute)(self);

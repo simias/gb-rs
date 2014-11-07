@@ -17,7 +17,9 @@ fn main() {
 
     cpu.reset();
 
-    cpu.step();
+    loop {
+        cpu.step();
 
-    println!("{}", cpu);
+        println!("{}", cpu);
+    }
 }

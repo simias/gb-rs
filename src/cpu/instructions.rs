@@ -22,23 +22,34 @@ fn next_byte(cpu: &mut Cpu) -> u8 {
     b
 }
 
-/// For multi-byte instructions: return the 16bit word at `pc` and
-/// increment `pc`
+/// For multi-byte instructions: return the word at `pc` and increment
+/// `pc` twice
 fn next_word(cpu: &mut Cpu) -> u16 {
-    let pc = cpu.pc();
+    let b1 = next_byte(cpu) as u16;
+    let b2 = next_byte(cpu) as u16;
 
-    cpu.set_pc(pc + 2);
+    b1 | (b2 << 8)
+}
 
-    0x4242
+
+/// Retreive one byte from the stack and increment the stack pointer
+fn pop_byte(cpu: &mut Cpu) -> u8 {
+    let sp = cpu.sp();
+
+    let b = cpu.fetch_byte(sp);
+
+    cpu.set_sp(sp + 1);
+
+    b
 }
 
 /// Retreive two bytes from the stack and increment the stack pointer
+/// twice
 fn pop_word(cpu: &mut Cpu) -> u16 {
-    let sp = cpu.sp();
+    let b1 = pop_byte(cpu) as u16;
+    let b2 = pop_byte(cpu) as u16;
 
-    cpu.set_sp(sp + 2);
-
-    0x3232
+    b1 | (b2 << 8)
 }
 
 /// Array of Instructions, the array index is the 8bit opcode.
