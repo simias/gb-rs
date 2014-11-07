@@ -108,7 +108,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     // Opcodes 3X
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 3, execute: ld_sp_nn },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 2, execute: ldd_a_mhl },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
@@ -594,4 +594,14 @@ fn xor_a_l(cpu: &mut Cpu) {
     if r == 0 {
         cpu.set_zero(true);
     }
+}
+
+/// Store `A` into `[HL]` and decrement `HL`
+fn ldd_a_mhl(cpu: &mut Cpu) {
+    let hl = cpu.hl();
+    let a  = cpu.a();
+
+    cpu.store_byte(hl, a);
+
+    cpu.set_hl(hl - 1);
 }

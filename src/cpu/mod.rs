@@ -111,8 +111,14 @@ impl<'a> Cpu<'a> {
         (instruction.execute)(self);
     }
 
+    /// Fetch byte at `addr` from the interconnect
     fn fetch_byte(&self, addr: u16) -> u8 {
         self.inter.get_byte(addr)
+    }
+
+    /// Store byte `val` at `addr` in the interconnect
+    fn store_byte(&self, addr: u16, val: u8) {
+        self.inter.set_byte(addr, val)
     }
 
     /// Retrieve value of the `PC` register
