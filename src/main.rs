@@ -9,5 +9,7 @@ fn main() {
 
     cpu.reset();
 
+    cpu.step();
+
     println!("{}", cpu);
 }
