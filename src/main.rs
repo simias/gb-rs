@@ -1,3 +1,7 @@
+#![warn(missing_doc)]
+
+//! gb-rs: Game Boy emulator
+
 mod cpu;
 
 fn main() {

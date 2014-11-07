@@ -1,5 +1,9 @@
+//! CPU emulation
+
 use std::fmt::{Show, Formatter, FormatError};
 
+/// CPU state. Should be considered undetermined as long as
+/// `Cpu::reset()` hasn't been called.
 pub struct Cpu {
     regs:  Registers,
     flags: Flags,
@@ -26,6 +30,7 @@ impl Cpu {
         }
     }
 
+    /// Reset CPU state to power up values
     pub fn reset(&mut self) {
         // Code always starts at 0x100
         self.regs.pc = 0x100;
@@ -55,53 +60,71 @@ impl Show for Cpu {
     }
 }
 
+/// CPU registers. They're 16bit wide but some of them can be accessed
+/// as high and low byte.
 struct Registers {
+    /// Program Counter
     pc: u16,
+    /// Stack Pointer
     sp: u16,
+    /// a[15:8] f[7:0] register pair
     af: u16,
+    /// b[15:8] c[7:0] register pair
     bc: u16,
+    /// d[15:8] e[7:0] register pair
     de: u16,
+    /// h[15:8] l[7:0] register pair
     hl: u16,
 }
 
 impl Registers {
+    /// Retreive the value of the `a` 8bit register
     fn a(&self) -> u8 {
         hi_byte(self.af)
     }
 
+    /// Retreive the value of the `f` 8bit register
     fn f(&self) -> u8 {
         lo_byte(self.af)
     }
 
+    /// Retreive the value of the `b` 8bit register
     fn b(&self) -> u8 {
         hi_byte(self.bc)
     }
 
+    /// Retreive the value of the `c` 8bit register
     fn c(&self) -> u8 {
         lo_byte(self.bc)
     }
 
+    /// Retreive the value of the `d` 8bit register
     fn d(&self) -> u8 {
         hi_byte(self.de)
     }
 
+    /// Retreive the value of the `e` 8bit register
     fn e(&self) -> u8 {
         lo_byte(self.de)
     }
 
+    /// Retreive the value of the `h` 8bit register
     fn h(&self) -> u8 {
         hi_byte(self.hl)
     }
 
+    /// Retreive the value of the `l` 8bit register
     fn l(&self) -> u8 {
         lo_byte(self.hl)
     }
 }
 
+/// Fetch high 8bit from a 16bit word
 fn hi_byte(v: u16) -> u8 {
     (v >> 8) as u8
 }
 
+/// Fetch low 8bit from a 16bit word
 fn lo_byte(v: u16) -> u8 {
     v as u8
 }
