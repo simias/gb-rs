@@ -3,7 +3,7 @@
 use std::fmt::{Show, Formatter, FormatError};
 use io::Interconnect;
 
-use cpu::instructions::OPCODES;
+use cpu::instructions::{next_instruction, nop};
 
 mod instructions;
 
@@ -70,7 +70,7 @@ impl<'a> Cpu<'a> {
     pub fn new<'a> (inter: &'a Interconnect) -> Cpu<'a> {
         Cpu {
             // Use NOP as default instruction.
-            current_instruction: OPCODES[0].execute,
+            current_instruction: nop,
             instruction_delay:   0,
             regs: Registers { pc: 0xbaad,
                               sp: 0xbaad,
@@ -93,7 +93,7 @@ impl<'a> Cpu<'a> {
 
     /// Reset CPU state to power up values
     pub fn reset(&mut self) {
-        self.current_instruction = OPCODES[0].execute;
+        self.current_instruction = nop;
         self.instruction_delay   = 0;
 
         // Code always starts at 0x100
@@ -125,20 +125,12 @@ impl<'a> Cpu<'a> {
         println!("{}", *self);
 
         // Now we fetch the next instruction
-        let op = self.fetch_byte(self.regs.pc) as uint;
-
-        self.regs.pc += 1;
-
-        let instruction = &OPCODES[op];
-
-        if instruction.cycles == 0 {
-            panic!("Unimplemented instruction [{:02X}]", op);
-        }
+        let (delay, instruction) = next_instruction(self);
 
         // Instruction delays are in CPU Machine Cycles. There's 4
         // Clock cycles in one Machine Cycle.
-        self.instruction_delay   = instruction.cycles * 4 - 1;
-        self.current_instruction = instruction.execute;
+        self.instruction_delay   = delay * 4 - 1;
+        self.current_instruction = instruction;
     }
 
     /// Fetch byte at `addr` from the interconnect
