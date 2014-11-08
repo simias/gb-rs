@@ -105,6 +105,7 @@ impl<'a> Cpu<'a> {
         let instruction = &instructions::OPCODES[op];
 
         if instruction.cycles == 0 {
+            println!("{}", *self);
             panic!("Unimplemented instruction [{:02X}]", op);
         }
 
@@ -310,6 +311,11 @@ impl<'a> Cpu<'a> {
     /// Get value of 'C' flag
     fn carry(&self) -> bool {
         self.flags.c
+    }
+
+    /// Set value of 'C' flag
+    fn set_carry(&mut self, s: bool) {
+        self.flags.c = s;
     }
 
     /// Set value of 'H' flag

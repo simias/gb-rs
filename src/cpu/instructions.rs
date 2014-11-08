@@ -250,14 +250,14 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 1, execute: cp_a_b },
+    Instruction { cycles: 1, execute: cp_a_c },
+    Instruction { cycles: 1, execute: cp_a_d },
+    Instruction { cycles: 1, execute: cp_a_e },
+    Instruction { cycles: 1, execute: cp_a_h },
+    Instruction { cycles: 1, execute: cp_a_l },
+    Instruction { cycles: 2, execute: cp_a_mhl },
+    Instruction { cycles: 1, execute: cp_a_a },
     // Opcodes CX
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
@@ -293,7 +293,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     // Opcodes EX
-    Instruction { cycles: 3, execute: ldh_a_n },
+    Instruction { cycles: 3, execute: ldh_a_mn },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
@@ -310,7 +310,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     // Opcodes FX
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 3, execute: ldh_mn_a },
     Instruction { cycles: 3, execute: pop_af },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 1, execute: di },
@@ -324,9 +324,21 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 2, execute: cp_a_n },
     Instruction { cycles: 0, execute: nop },
 ];
+
+/// Helper function to substract two `u8`s and update the CPU flags
+fn sub_and_set_flags(cpu: &mut Cpu, x: u8, y: u8) -> u8 {
+    let r = x - y;
+
+    cpu.set_zero(r == 0);
+    cpu.set_halfcarry((x & 0xf) < (y & 0xf));
+    cpu.set_carry(x < y);
+    cpu.set_substract(true);
+
+    r
+}
 
 /// No operation
 fn nop(_: &mut Cpu) {
@@ -694,11 +706,19 @@ fn ldd_a_mhl(cpu: &mut Cpu) {
 }
 
 /// Store `A` into `[0xff00 + n]`
-fn ldh_a_n(cpu: &mut Cpu) {
+fn ldh_a_mn(cpu: &mut Cpu) {
     let n = next_byte(cpu) as u16;
     let a = cpu.a();
 
     cpu.store_byte(0xff00 | n, a);
+}
+
+/// Load `[0xff00 + n]` into `[A]`
+fn ldh_mn_a(cpu: &mut Cpu) {
+    let n = next_byte(cpu) as u16;
+    let v = cpu.fetch_byte(0xff00 | n);
+
+    cpu.set_a(v);
 }
 
 /// Decrement `A`
@@ -804,6 +824,80 @@ fn dec_l(cpu: &mut Cpu) {
 
     cpu.set_zero(l == 0);
     cpu.set_substract(true);
+}
+
+/// Compare `A` with itself
+fn cp_a_a(cpu: &mut Cpu) {
+    let a = cpu.a();
+
+    // Let's hope LLVM is clever enough to optimize that one...
+    sub_and_set_flags(cpu, a, a);
+}
+
+/// Compare `A` with `B`
+fn cp_a_b(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let b = cpu.b();
+
+    sub_and_set_flags(cpu, a, b);
+}
+
+/// Compare `A` with `C`
+fn cp_a_c(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let c = cpu.c();
+
+    sub_and_set_flags(cpu, a, c);
+}
+
+/// Compare `A` with `D`
+fn cp_a_d(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let d = cpu.d();
+
+    sub_and_set_flags(cpu, a, d);
+}
+
+/// Compare `A` with `E`
+fn cp_a_e(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let e = cpu.e();
+
+    sub_and_set_flags(cpu, a, e);
+}
+
+/// Compare `A` with `H`
+fn cp_a_h(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let h = cpu.h();
+
+    sub_and_set_flags(cpu, a, h);
+}
+
+/// Compare `A` with `L`
+fn cp_a_l(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let l = cpu.l();
+
+    sub_and_set_flags(cpu, a, l);
+}
+
+/// Compare `A` with `[HL]`
+fn cp_a_mhl(cpu: &mut Cpu) {
+    let a  = cpu.a();
+    let hl = cpu.hl();
+
+    let n = cpu.fetch_byte(hl);
+
+    sub_and_set_flags(cpu, a, n);
+}
+
+/// Compare `A` with immediate value
+fn cp_a_n(cpu: &mut Cpu) {
+    let a  = cpu.a();
+    let n = next_byte(cpu);
+
+    sub_and_set_flags(cpu, a, n);
 }
 
 /// Disable interrupts
