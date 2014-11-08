@@ -293,7 +293,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     // Opcodes EX
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 3, execute: ldh_a_n },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
@@ -313,7 +313,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 3, execute: pop_af },
     Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 1, execute: di },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
@@ -693,6 +693,14 @@ fn ldd_a_mhl(cpu: &mut Cpu) {
     cpu.set_hl(hl - 1);
 }
 
+/// Store `A` into `[0xff00 + n]`
+fn ldh_a_n(cpu: &mut Cpu) {
+    let n = next_byte(cpu) as u16;
+    let a = cpu.a();
+
+    cpu.store_byte(0xff00 | n, a);
+}
+
 /// Decrement `A`
 fn dec_a(cpu: &mut Cpu) {
     let mut a = cpu.a();
@@ -796,4 +804,9 @@ fn dec_l(cpu: &mut Cpu) {
 
     cpu.set_zero(l == 0);
     cpu.set_substract(true);
+}
+
+/// Disable interrupts
+fn di(cpu: &mut Cpu) {
+    cpu.disable_interrupts();
 }

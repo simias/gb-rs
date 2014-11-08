@@ -2,12 +2,14 @@
 
 pub mod rom;
 pub mod ram;
+pub mod regs;
 
 /// Interconnect struct used by the CPU and GPU to access the ROM, RAM
 /// and registers
 pub struct Interconnect {
-    rom: rom::Rom,
-    ram: ram::Ram,
+    rom:  rom::Rom,
+    ram:  ram::Ram,
+    regs: regs::Regs,
 }
 
 impl Interconnect {
@@ -15,8 +17,10 @@ impl Interconnect {
     pub fn new(rom: rom::Rom) -> Interconnect {
         // 8kB video RAM  + 2 banks RAM
         let ram = ram::Ram::new(3 * 8 * 1024);
+        // IO mapped registers
+        let regs = regs::Regs::new();
 
-        Interconnect { rom: rom, ram: ram }
+        Interconnect { rom: rom, ram: ram, regs: regs }
     }
 
     /// Get byte from peripheral mapped at `addr`
@@ -41,8 +45,10 @@ impl Interconnect {
             (&self.rom, addr - 0x0000)
         } else if addr < 0xe000 {
             (&self.ram, addr - 0x8000)
+        } else if addr < 0xff00 {
+            (&UNMAPPED, addr)
         } else {
-            panic!("Unimplemented interconnect access at 0x{:04x}", addr);
+            (&self.regs, addr - 0xff00)
         }
     }
 }
@@ -59,5 +65,19 @@ trait Addressable {
         // TODO(lionel) there should be a better way to handle that
         // type of errors. It should probably bubble up.
         println!("Writing to read-only memory [0x{:04x}]: 0x{:02x}", offset, val);
+    }
+}
+
+struct Unmapped;
+
+static UNMAPPED: Unmapped = Unmapped;
+
+impl Addressable for Unmapped {
+    fn get_byte(&self, offset: u16) -> u8 {
+        panic!("Read from unmapped memory at 0x{:04x}", offset);
+    }
+
+    fn set_byte(&self, offset: u16, val: u8) {
+        panic!("Write to unmapped memory at 0x{:04x}: 0x{:02x}", offset, val);
     }
 }

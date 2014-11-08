@@ -321,6 +321,11 @@ impl<'a> Cpu<'a> {
     fn set_substract(&mut self, s: bool) {
         self.flags.n = s;
     }
+
+    /// Disable Interrupts
+    fn disable_interrupts(&mut self) {
+        // TODO
+    }
 }
 
 impl<'a> Show for Cpu<'a> {
