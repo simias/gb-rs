@@ -57,7 +57,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     // Opcodes 0X
     Instruction { cycles: 1, execute: nop },
     Instruction { cycles: 3, execute: ld_bc_nn },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 2, execute: ld_mbc_a },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 1, execute: dec_b },
@@ -74,7 +74,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     // Opcodes 1X
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 3, execute: ld_de_nn },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 2, execute: ld_mde_a },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 1, execute: dec_d },
@@ -130,6 +130,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 1, execute: ld_b_a },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
@@ -137,8 +138,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 1, execute: ld_c_a },
     // Opcodes 5X
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
@@ -147,6 +147,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 1, execute: ld_d_a },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
@@ -154,8 +155,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 1, execute: ld_e_a },
     // Opcodes 6X
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
@@ -164,6 +164,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 1, execute: ld_h_a },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
@@ -171,8 +172,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 1, execute: ld_l_a },
     // Opcodes 7X
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
@@ -181,7 +181,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 2, execute: ld_mhl_a },
     Instruction { cycles: 1, execute: ld_a_b },
     Instruction { cycles: 1, execute: ld_a_c },
     Instruction { cycles: 1, execute: ld_a_d },
@@ -303,7 +303,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 4, execute: ld_mnn_a },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
@@ -468,6 +468,80 @@ fn ld_a_mnn(cpu: &mut Cpu) {
     cpu.set_a(v);
 }
 
+/// Load `A` into `B`
+fn ld_b_a(cpu: &mut Cpu) {
+    let a = cpu.a();
+
+    cpu.set_b(a);
+}
+
+/// Load `A` into `C`
+fn ld_c_a(cpu: &mut Cpu) {
+    let a = cpu.a();
+
+    cpu.set_c(a);
+}
+
+/// Load `A` into `D`
+fn ld_d_a(cpu: &mut Cpu) {
+    let a = cpu.a();
+
+    cpu.set_d(a);
+}
+
+/// Load `A` into `E`
+fn ld_e_a(cpu: &mut Cpu) {
+    let a = cpu.a();
+
+    cpu.set_e(a);
+}
+
+/// Load `A` into `H`
+fn ld_h_a(cpu: &mut Cpu) {
+    let a = cpu.a();
+
+    cpu.set_h(a);
+}
+
+/// Load `A` into `L`
+fn ld_l_a(cpu: &mut Cpu) {
+    let a = cpu.a();
+
+    cpu.set_l(a);
+}
+
+/// Load `A` into `[BC]`
+fn ld_mbc_a(cpu: &mut Cpu) {
+    let a  = cpu.a();
+    let bc = cpu.bc();
+
+    cpu.store_byte(bc, a);
+}
+
+/// Load `A` into `[DE]`
+fn ld_mde_a(cpu: &mut Cpu) {
+    let a  = cpu.a();
+    let de = cpu.de();
+
+    cpu.store_byte(de, a);
+}
+
+/// Load `A` into `[HL]`
+fn ld_mhl_a(cpu: &mut Cpu) {
+    let a  = cpu.a();
+    let hl = cpu.hl();
+
+    cpu.store_byte(hl, a);
+}
+
+/// Load `A` into `[NN]`
+fn ld_mnn_a(cpu: &mut Cpu) {
+    let a  = cpu.a();
+    let n = next_word(cpu);
+
+    cpu.store_byte(n, a);
+}
+
 /// Load 16bits immediate value into `BC`
 fn ld_bc_nn(cpu: &mut Cpu) {
     let n = next_word(cpu);
@@ -609,7 +683,7 @@ fn jr_c_n(cpu: &mut Cpu) {
     }
 }
 
-/// XOR `A' with itself (set `A` to `0`)
+/// XOR `A` with itself (set `A` to `0`)
 fn xor_a_a(cpu: &mut Cpu) {
     cpu.set_a(0);
 

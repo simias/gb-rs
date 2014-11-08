@@ -116,6 +116,8 @@ impl<'a> Cpu<'a> {
             return;
         }
 
+        println!("{}", *self);
+
         // The instruction should have finished executed, update CPU state
         (self.current_instruction)(self);
 
@@ -127,7 +129,6 @@ impl<'a> Cpu<'a> {
         let instruction = &OPCODES[op];
 
         if instruction.cycles == 0 {
-            println!("{}", *self);
             panic!("Unimplemented instruction [{:02X}]", op);
         }
 
