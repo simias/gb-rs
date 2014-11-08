@@ -93,6 +93,9 @@ impl<'a> Cpu<'a> {
 
     /// Reset CPU state to power up values
     pub fn reset(&mut self) {
+        self.current_instruction = OPCODES[0].execute;
+        self.instruction_delay   = 0;
+
         // Code always starts at 0x100
         self.regs.pc = 0x100;
         // Stack pointer default value
@@ -116,10 +119,10 @@ impl<'a> Cpu<'a> {
             return;
         }
 
-        println!("{}", *self);
-
         // The instruction should have finished executed, update CPU state
         (self.current_instruction)(self);
+
+        println!("{}", *self);
 
         // Now we fetch the next instruction
         let op = self.fetch_byte(self.regs.pc) as uint;

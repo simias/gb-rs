@@ -31,6 +31,22 @@ fn next_word(cpu: &mut Cpu) -> u16 {
     b1 | (b2 << 8)
 }
 
+/// Push one byte onto the stack and decrement the stack pointer
+fn push_byte(cpu: &mut Cpu, val: u8){
+    let mut sp = cpu.sp();
+
+    sp -= 1;
+
+    cpu.set_sp(sp);
+    cpu.store_byte(sp, val);
+}
+
+/// Push two bytes onto the stack and decrement the stack pointer
+/// twice
+fn push_word(cpu: &mut Cpu, val: u16){
+    push_byte(cpu, (val >> 8) as u8);
+    push_byte(cpu, val as u8)
+}
 
 /// Retreive one byte from the stack and increment the stack pointer
 fn pop_byte(cpu: &mut Cpu) -> u8 {
@@ -46,10 +62,10 @@ fn pop_byte(cpu: &mut Cpu) -> u8 {
 /// Retreive two bytes from the stack and increment the stack pointer
 /// twice
 fn pop_word(cpu: &mut Cpu) -> u16 {
-    let b1 = pop_byte(cpu) as u16;
-    let b2 = pop_byte(cpu) as u16;
+    let lo = pop_byte(cpu) as u16;
+    let hi = pop_byte(cpu) as u16;
 
-    b1 | (b2 << 8)
+    (hi << 8) | lo
 }
 
 /// Array of Instructions, the array index is the 8bit opcode.
@@ -272,7 +288,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 3, execute: jp_z_nn },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 3, execute: call },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     // Opcodes DX
@@ -681,6 +697,16 @@ fn jr_c_n(cpu: &mut Cpu) {
 
         cpu.set_pc(pc as u16);
     }
+}
+
+/// Push return address on stack and jump to immediate address
+fn call(cpu: &mut Cpu) {
+    let addr = next_word(cpu);
+    let pc = cpu.pc();
+
+    push_word(cpu, pc);
+
+    cpu.set_pc(addr);
 }
 
 /// XOR `A` with itself (set `A` to `0`)
