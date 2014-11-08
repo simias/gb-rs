@@ -3,14 +3,23 @@
 use std::fmt::{Show, Formatter, FormatError};
 use io::Interconnect;
 
+use cpu::instructions::OPCODES;
+
 mod instructions;
 
 /// CPU state. Should be considered undetermined as long as
 /// `Cpu::reset()` hasn't been called.
 pub struct Cpu<'a> {
-    regs:  Registers,
-    flags: Flags,
-    inter: &'a Interconnect,
+    // Instruction currently being executed
+    current_instruction: fn (&mut Cpu),
+    // Time remaining for the instruction to finish
+    instruction_delay:   u32,
+    // CPU registers (except for `F` register)
+    regs:                Registers,
+    // CPU flags (`F` register)
+    flags:               Flags,
+    // Interconnect to access external ressources (RAM, ROM, peripherals...)
+    inter:               &'a Interconnect,
 }
 
 /// CPU registers. They're 16bit wide but some of them can be accessed
@@ -60,7 +69,9 @@ impl<'a> Cpu<'a> {
     /// garbage values.
     pub fn new<'a> (inter: &'a Interconnect) -> Cpu<'a> {
         Cpu {
-            inter: inter,
+            // Use NOP as default instruction.
+            current_instruction: OPCODES[0].execute,
+            instruction_delay:   0,
             regs: Registers { pc: 0xbaad,
                               sp: 0xbaad,
                               a : 0x01,
@@ -75,7 +86,8 @@ impl<'a> Cpu<'a> {
                            n: false,
                            h: false,
                            c: false,
-            }
+            },
+            inter: inter,
         }
     }
 
@@ -97,19 +109,32 @@ impl<'a> Cpu<'a> {
     }
 
     pub fn step(&mut self) {
+        // Are we done running the current instruction?
+        if self.instruction_delay > 0 {
+            // Nope, wait for the next cycle
+            self.instruction_delay -= 1;
+            return;
+        }
 
+        // The instruction should have finished executed, update CPU state
+        (self.current_instruction)(self);
+
+        // Now we fetch the next instruction
         let op = self.fetch_byte(self.regs.pc) as uint;
 
         self.regs.pc += 1;
 
-        let instruction = &instructions::OPCODES[op];
+        let instruction = &OPCODES[op];
 
         if instruction.cycles == 0 {
             println!("{}", *self);
             panic!("Unimplemented instruction [{:02X}]", op);
         }
 
-        (instruction.execute)(self);
+        // Instruction delays are in CPU Machine Cycles. There's 4
+        // Clock cycles in one Machine Cycle.
+        self.instruction_delay   = instruction.cycles * 4 - 1;
+        self.current_instruction = instruction.execute;
     }
 
     /// Fetch byte at `addr` from the interconnect
