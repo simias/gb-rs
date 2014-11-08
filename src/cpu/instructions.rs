@@ -1,8 +1,10 @@
  //! Game Boy CPU instructions
 
-use super::Cpu;
+use cpu::Cpu;
 
-/// Return a tuple `(delay, instruction)` as described in `OPCODES`
+/// Retrieve the next instruction to be executed.
+///
+/// Returns a tuple `(delay, instruction)` as described in `OPCODES`
 pub fn next_instruction(cpu: &mut Cpu) -> (u32, fn (&mut Cpu)) {
     let pc = cpu.pc();
 
@@ -10,7 +12,13 @@ pub fn next_instruction(cpu: &mut Cpu) -> (u32, fn (&mut Cpu)) {
 
     let op = cpu.fetch_byte(pc);
 
-    let (delay, instruction) = OPCODES[op as uint];
+    let (delay, instruction) =
+        if op != 0xcb {
+            OPCODES[op as uint]
+        } else {
+            // 0xCB introduces a two-byte opcode
+            cb::next_instruction(cpu)
+        };
 
     if delay == 0 {
         panic!("Unimplemented instruction [{:02X}]", op);
@@ -243,7 +251,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (0, nop),
     (0, nop),
     (3, jp_z_nn),
-    (0, nop),
+    (0, nop), // See CB opcode map
     (0, nop),
     (3, call),
     (0, nop),
@@ -1017,4 +1025,357 @@ fn cp_a_n(cpu: &mut Cpu) {
 /// Disable interrupts
 fn di(cpu: &mut Cpu) {
     cpu.disable_interrupts();
+}
+
+mod cb {
+    //! Emulation of instructions prefixed by 0xCB
+
+    use super::nop;
+    use cpu::Cpu;
+
+    /// Return the 0xCB instruction to be executed
+    pub fn next_instruction(cpu: &mut Cpu) -> (u32, fn (&mut Cpu)) {
+        let pc = cpu.pc();
+
+        cpu.set_pc(pc + 1);
+
+        let op = cpu.fetch_byte(pc);
+
+        let (delay, instruction) = OPCODES[op as uint];
+
+        if delay == 0 {
+            panic!("Unimplemented CB instruction [{:02X}]", op);
+        }
+
+        (delay, instruction)
+    }
+
+    /// Array similar to the one above, this time for CB-prefixed
+    /// instructions
+    pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
+        // Opcodes CB 0X
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        // Opcodes CB 1X
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        // Opcodes CB 2X
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        // Opcodes CB 3X
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        // Opcodes CB 4X
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        // Opcodes CB 5X
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        // Opcodes CB 6X
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        // Opcodes CB 7X
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        // Opcodes CB 8X
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (2, res_a_0),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (2, res_a_1),
+        // Opcodes CB 9X
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (2, res_a_2),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (2, res_a_3),
+        // Opcodes CB AX
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (2, res_a_4),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (2, res_a_5),
+        // Opcodes CB BX
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (2, res_a_6),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (2, res_a_7),
+        // Opcodes CB CX
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        // Opcodes CB DX
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        // Opcodes CB EX
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        // Opcodes CB FX
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+        (0, nop),
+    ];
+
+    /// Helper function to clear one bit in a u8
+    fn res(val: u8, bit: u8) -> u8 {
+        val & !(1u8 << (bit as uint))
+    }
+
+    /// Helper function to clear bits in `A`
+    fn res_a(cpu: &mut Cpu, bit: u8) {
+        let a = cpu.a();
+
+        cpu.set_a(res(a, bit));
+    }
+
+    /// Clear `A` bit 0
+    fn res_a_0(cpu: &mut Cpu) {
+        res_a(cpu, 0);
+    }
+
+    /// Clear `A` bit 1
+    fn res_a_1(cpu: &mut Cpu) {
+        res_a(cpu, 1);
+    }
+
+    /// Clear `A` bit 2
+    fn res_a_2(cpu: &mut Cpu) {
+        res_a(cpu, 2);
+    }
+
+    /// Clear `A` bit 3
+    fn res_a_3(cpu: &mut Cpu) {
+        res_a(cpu, 3);
+    }
+
+    /// Clear `A` bit 4
+    fn res_a_4(cpu: &mut Cpu) {
+        res_a(cpu, 4);
+    }
+
+    /// Clear `A` bit 5
+    fn res_a_5(cpu: &mut Cpu) {
+        res_a(cpu, 5);
+    }
+
+    /// Clear `A` bit 6
+    fn res_a_6(cpu: &mut Cpu) {
+        res_a(cpu, 6);
+    }
+
+    /// Clear `A` bit 7
+    fn res_a_7(cpu: &mut Cpu) {
+        res_a(cpu, 7);
+    }
 }

@@ -122,7 +122,7 @@ impl<'a> Cpu<'a> {
         // The instruction should have finished executed, update CPU state
         (self.current_instruction)(self);
 
-        println!("{}", *self);
+        //println!("{}", *self);
 
         // Now we fetch the next instruction
         let (delay, instruction) = next_instruction(self);
