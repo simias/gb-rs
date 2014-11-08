@@ -65,7 +65,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 2, execute: ld_a_mbc },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 1, execute: dec_c },
@@ -82,7 +82,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 2, execute: jr_n },
     Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 2, execute: ld_a_mde },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 1, execute: dec_e },
@@ -120,7 +120,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 1, execute: dec_a },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 2, execute: ld_a_n },
     Instruction { cycles: 0, execute: nop },
     // Opcodes 4X
     Instruction { cycles: 0, execute: nop },
@@ -188,7 +188,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 1, execute: ld_a_e },
     Instruction { cycles: 1, execute: ld_a_h },
     Instruction { cycles: 1, execute: ld_a_l },
-    Instruction { cycles: 1, execute: nop },
+    Instruction { cycles: 2, execute: ld_a_mhl },
     Instruction { cycles: 1, execute: ld_a_a },
     // Opcodes 8X
     Instruction { cycles: 0, execute: nop },
@@ -320,7 +320,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 2, execute: ld_a_mnn },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
@@ -330,6 +330,12 @@ pub static OPCODES: [Instruction, ..0x100] = [
 
 /// No operation
 fn nop(_: &mut Cpu) {
+}
+
+/// Load 8 bit immediate value into `A`
+fn ld_a_n(cpu: &mut Cpu) {
+    let n = next_byte(cpu);
+    cpu.set_a(n);
 }
 
 /// Load 8 bit immediate value into `B`
@@ -410,6 +416,42 @@ fn ld_a_h(cpu: &mut Cpu) {
 /// Load `L` into `A`
 fn ld_a_l(cpu: &mut Cpu) {
     let v = cpu.l();
+
+    cpu.set_a(v);
+}
+
+/// Load `[BC]` into `A`
+fn ld_a_mbc(cpu: &mut Cpu) {
+    let bc = cpu.bc();
+
+    let v = cpu.fetch_byte(bc);
+
+    cpu.set_a(v);
+}
+
+/// Load `[DE]` into `A`
+fn ld_a_mde(cpu: &mut Cpu) {
+    let de = cpu.de();
+
+    let v = cpu.fetch_byte(de);
+
+    cpu.set_a(v);
+}
+
+/// Load `[HL]` into `A`
+fn ld_a_mhl(cpu: &mut Cpu) {
+    let hl = cpu.hl();
+
+    let v = cpu.fetch_byte(hl);
+
+    cpu.set_a(v);
+}
+
+/// Load `[nn]` into `A`
+fn ld_a_mnn(cpu: &mut Cpu) {
+    let n = next_word(cpu);
+
+    let v = cpu.fetch_byte(n);
 
     cpu.set_a(v);
 }
