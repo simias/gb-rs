@@ -311,13 +311,24 @@ impl<'a> Cpu<'a> {
     fn carry(&self) -> bool {
         self.flags.c
     }
+
+    /// Set value of 'H' flag
+    fn set_halfcarry(&mut self, s: bool) {
+        self.flags.h = s;
+    }
+
+    /// Set value of 'N' flag
+    fn set_substract(&mut self, s: bool) {
+        self.flags.n = s;
+    }
 }
 
 impl<'a> Show for Cpu<'a> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
         try!(writeln!(f, "Registers:"));
 
-        try!(writeln!(f, "  pc: 0x{:04x}", self.pc()));
+        try!(writeln!(f, "  pc: 0x{:04x} [{:02X}]",
+                      self.pc(), self.fetch_byte(self.pc())));
         try!(writeln!(f, "  sp: 0x{:04x}", self.sp()));
         try!(writeln!(f, "  af: 0x{:04x}    a: {:3u}    f: {:3u}",
                       self.af(), self.a(), self.f()));

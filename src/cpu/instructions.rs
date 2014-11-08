@@ -60,7 +60,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 1, execute: dec_b },
     Instruction { cycles: 2, execute: ld_b_n },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
@@ -68,7 +68,7 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 1, execute: dec_c },
     Instruction { cycles: 2, execute: ld_c_n },
     Instruction { cycles: 0, execute: nop },
     // Opcodes 1X
@@ -77,36 +77,36 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 1, execute: dec_d },
     Instruction { cycles: 2, execute: ld_d_n },
     Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 2, execute: jr_n },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 1, execute: dec_e },
     Instruction { cycles: 2, execute: ld_e_n },
     Instruction { cycles: 0, execute: nop },
     // Opcodes 2X
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 2, execute: jr_nz_n },
     Instruction { cycles: 3, execute: ld_hl_nn },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 1, execute: dec_h },
     Instruction { cycles: 2, execute: ld_h_n },
     Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 2, execute: jr_z_n },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 1, execute: dec_l },
     Instruction { cycles: 2, execute: ld_l_n },
     Instruction { cycles: 0, execute: nop },
     // Opcodes 3X
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 2, execute: jr_nc_n },
     Instruction { cycles: 3, execute: ld_sp_nn },
     Instruction { cycles: 2, execute: ldd_a_mhl },
     Instruction { cycles: 0, execute: nop },
@@ -114,12 +114,12 @@ pub static OPCODES: [Instruction, ..0x100] = [
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 2, execute: jr_c_n },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
-    Instruction { cycles: 0, execute: nop },
+    Instruction { cycles: 1, execute: dec_a },
     Instruction { cycles: 0, execute: nop },
     Instruction { cycles: 0, execute: nop },
     // Opcodes 4X
@@ -492,6 +492,69 @@ fn jp_c_nn(cpu: &mut Cpu) {
     }
 }
 
+/// Unconditional jump to relative address
+fn jr_n(cpu: &mut Cpu) {
+    let off = next_byte(cpu) as i8;
+
+    let mut pc = cpu.pc() as i16;
+
+    pc += off as i16;
+
+    cpu.set_pc(pc as u16);
+}
+
+/// Jump to relative address if `!Z`
+fn jr_nz_n(cpu: &mut Cpu) {
+    let off = next_byte(cpu) as i8;
+
+    if !cpu.zero() {
+        let mut pc = cpu.pc() as i16;
+
+        pc += off as i16;
+
+        cpu.set_pc(pc as u16);
+    }
+}
+
+/// Jump to relative address if `Z`
+fn jr_z_n(cpu: &mut Cpu) {
+    let off = next_byte(cpu) as i8;
+
+    if cpu.zero() {
+        let mut pc = cpu.pc() as i16;
+
+        pc += off as i16;
+
+        cpu.set_pc(pc as u16);
+    }
+}
+
+/// Jump to relative address if `!C`
+fn jr_nc_n(cpu: &mut Cpu) {
+    let off = next_byte(cpu) as i8;
+
+    if !cpu.carry() {
+        let mut pc = cpu.pc() as i16;
+
+        pc += off as i16;
+
+        cpu.set_pc(pc as u16);
+    }
+}
+
+/// Jump to relative address if `C`
+fn jr_c_n(cpu: &mut Cpu) {
+    let off = next_byte(cpu) as i8;
+
+    if cpu.carry() {
+        let mut pc = cpu.pc() as i16;
+
+        pc += off as i16;
+
+        cpu.set_pc(pc as u16);
+    }
+}
+
 /// XOR `A' with itself (set `A` to `0`)
 fn xor_a_a(cpu: &mut Cpu) {
     cpu.set_a(0);
@@ -510,10 +573,7 @@ fn xor_a_b(cpu: &mut Cpu) {
     cpu.set_a(r);
 
     cpu.clear_flags();
-
-    if r == 0 {
-        cpu.set_zero(true);
-    }
+    cpu.set_zero(r == 0);
 }
 
 /// XOR `C` into `A`
@@ -526,10 +586,7 @@ fn xor_a_c(cpu: &mut Cpu) {
     cpu.set_a(r);
 
     cpu.clear_flags();
-
-    if r == 0 {
-        cpu.set_zero(true);
-    }
+    cpu.set_zero(r == 0);
 }
 
 /// XOR `D` into `A`
@@ -542,10 +599,7 @@ fn xor_a_d(cpu: &mut Cpu) {
     cpu.set_a(r);
 
     cpu.clear_flags();
-
-    if r == 0 {
-        cpu.set_zero(true);
-    }
+    cpu.set_zero(r == 0);
 }
 
 /// XOR `E` into `A`
@@ -558,10 +612,7 @@ fn xor_a_e(cpu: &mut Cpu) {
     cpu.set_a(r);
 
     cpu.clear_flags();
-
-    if r == 0 {
-        cpu.set_zero(true);
-    }
+    cpu.set_zero(r == 0);
 }
 
 /// XOR `H` into `A`
@@ -574,10 +625,7 @@ fn xor_a_h(cpu: &mut Cpu) {
     cpu.set_a(r);
 
     cpu.clear_flags();
-
-    if r == 0 {
-        cpu.set_zero(true);
-    }
+    cpu.set_zero(r == 0);
 }
 
 /// XOR `L` into `A`
@@ -590,10 +638,7 @@ fn xor_a_l(cpu: &mut Cpu) {
     cpu.set_a(r);
 
     cpu.clear_flags();
-
-    if r == 0 {
-        cpu.set_zero(true);
-    }
+    cpu.set_zero(r == 0);
 }
 
 /// Store `A` into `[HL]` and decrement `HL`
@@ -604,4 +649,109 @@ fn ldd_a_mhl(cpu: &mut Cpu) {
     cpu.store_byte(hl, a);
 
     cpu.set_hl(hl - 1);
+}
+
+/// Decrement `A`
+fn dec_a(cpu: &mut Cpu) {
+    let mut a = cpu.a();
+
+    // bit will carry over if the low nibble is 0
+    cpu.set_halfcarry(a & 0xf == 0);
+
+    a -= 1;
+
+    cpu.set_a(a);
+
+    cpu.set_zero(a == 0);
+    cpu.set_substract(true);
+}
+
+/// Decrement `B`
+fn dec_b(cpu: &mut Cpu) {
+    let mut b = cpu.b();
+
+    // bit will carry over if the low nibble is 0
+    cpu.set_halfcarry(b & 0xf == 0);
+
+    b -= 1;
+
+    cpu.set_b(b);
+
+    cpu.set_zero(b == 0);
+    cpu.set_substract(true);
+}
+
+/// Decrement `C`
+fn dec_c(cpu: &mut Cpu) {
+    let mut c = cpu.c();
+
+    // bit will carry over if the low nibble is 0
+    cpu.set_halfcarry(c & 0xf == 0);
+
+    c -= 1;
+
+    cpu.set_c(c);
+
+    cpu.set_zero(c == 0);
+    cpu.set_substract(true);
+}
+
+/// Decrement `D`
+fn dec_d(cpu: &mut Cpu) {
+    let mut d = cpu.d();
+
+    // bit will carry over if the low nibble is 0
+    cpu.set_halfcarry(d & 0xf == 0);
+
+    d -= 1;
+
+    cpu.set_d(d);
+
+    cpu.set_zero(d == 0);
+    cpu.set_substract(true);
+}
+
+/// Decrement `E`
+fn dec_e(cpu: &mut Cpu) {
+    let mut e = cpu.e();
+
+    // bit will carry over if the low nibble is 0
+    cpu.set_halfcarry(e & 0xf == 0);
+
+    e -= 1;
+
+    cpu.set_e(e);
+
+    cpu.set_zero(e == 0);
+    cpu.set_substract(true);
+}
+
+/// Decrement `H`
+fn dec_h(cpu: &mut Cpu) {
+    let mut h = cpu.h();
+
+    // bit will carry over if the low nibble is 0
+    cpu.set_halfcarry(h & 0xf == 0);
+
+    h -= 1;
+
+    cpu.set_h(h);
+
+    cpu.set_zero(h == 0);
+    cpu.set_substract(true);
+}
+
+/// Decrement `L`
+fn dec_l(cpu: &mut Cpu) {
+    let mut l = cpu.l();
+
+    // bit will carry over if the low nibble is 0
+    cpu.set_halfcarry(l & 0xf == 0);
+
+    l -= 1;
+
+    cpu.set_l(l);
+
+    cpu.set_zero(l == 0);
+    cpu.set_substract(true);
 }
