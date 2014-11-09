@@ -1,6 +1,9 @@
 //! Game Boy GPU emulation
 
+use std::cell::Cell;
 use std::fmt::{Show, Formatter, FormatError};
+
+use io::Addressable;
 
 /// GPU state.
 pub struct Gpu {
@@ -8,6 +11,8 @@ pub struct Gpu {
     line: u8,
     /// Position on the current line.
     col:  u16,
+    /// Object attritube memory
+    oam:  [Cell<u8>, ..0xa0],
 }
 
 /// Current GPU mode
@@ -28,13 +33,14 @@ pub enum Mode {
 impl Gpu {
     /// Create a new Gpu instance.
     pub fn new() -> Gpu {
-        Gpu { line: 0, col: 0 }
+        Gpu { line: 0, col: 0, oam: [Cell::new(0xca), ..0xa0] }
     }
 
     /// Reset the GPU state to power up values
     pub fn reset(&mut self) {
         self.line = 0;
         self.col  = 0;
+        self.oam  = [Cell::new(0xca), ..0xa0];
     }
 
     /// Called at each tick of the system clock. Move the emulated
@@ -73,6 +79,25 @@ impl Gpu {
     pub fn get_line(&self) -> u8 {
         self.line
     }
+}
+
+impl Addressable for Gpu {
+    fn get_byte(&self, addr: u16) -> u8 {
+        if addr >= 0xfe00 {
+            self.oam[(addr & 0xff) as uint].get()
+        } else {
+            panic!("Unexpected GPU access at {:04x}", addr);
+        }
+    }
+
+    fn set_byte(&self, addr: u16, val: u8) {
+        if addr >= 0xfe00 {
+            self.oam[(addr & 0xff) as uint].set(val)
+        } else {
+            panic!("Unexpected GPU write at {:04x}: {:02x}", addr, val);
+        }
+    }
+
 }
 
 impl Show for Gpu {

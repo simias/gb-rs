@@ -64,8 +64,13 @@ impl Interconnect {
             (&self.rom, addr - 0x0000)
         } else if addr < 0xe000 {
             (&self.ram, addr - 0x8000)
-        } else if addr < 0xff00 {
+        } else if addr < 0xfe00 {
             (&UNMAPPED, addr)
+        } else if addr < 0xfea0 {
+            // OAM
+            (&self.gpu, addr)
+        } else if addr < 0xff00 {
+            (&EMPTY, addr)
         } else {
             // Handle IO memory ourselves
             (self, addr - 0xff00)
@@ -74,7 +79,7 @@ impl Interconnect {
 }
 
 /// Common trait for all I/O ressources (ROM, RAM, registers...)
-trait Addressable {
+pub trait Addressable {
     /// Return byte at `offset`
     fn get_byte(&self, offset: u16) -> u8;
 
@@ -127,5 +132,20 @@ impl Addressable for Unmapped {
 
     fn set_byte(&self, offset: u16, val: u8) {
         panic!("Write to unmapped memory at 0x{:04x}: 0x{:02x}", offset, val);
+    }
+}
+
+struct Empty;
+
+static EMPTY: Empty = Empty;
+
+impl Addressable for Empty {
+    fn get_byte(&self, offset: u16) -> u8 {
+        println!("Read from empty memory at 0x{:04x}", offset);
+        0
+    }
+
+    fn set_byte(&self, offset: u16, val: u8) {
+        println!("Write to empty memory at 0x{:04x}: 0x{:02x}", offset, val);
     }
 }
