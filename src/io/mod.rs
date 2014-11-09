@@ -1,15 +1,19 @@
 //! Input/Output abstraction for memory, ROM and I/O mapped registers
 
+use std::cell::Cell;
+
+use gpu::Gpu;
+
 pub mod rom;
 pub mod ram;
-pub mod regs;
 
 /// Interconnect struct used by the CPU and GPU to access the ROM, RAM
 /// and registers
 pub struct Interconnect {
     rom:  rom::Rom,
     ram:  ram::Ram,
-    regs: regs::Regs,
+    gpu:  Gpu,
+    io:   Vec<Cell<u8>>,
 }
 
 impl Interconnect {
@@ -18,9 +22,24 @@ impl Interconnect {
         // 8kB video RAM  + 2 banks RAM
         let ram = ram::Ram::new(3 * 8 * 1024);
         // IO mapped registers
-        let regs = regs::Regs::new();
+        let io = Vec::from_elem(0x100, Cell::new(0));
+        // GPU instance
+        let gpu = Gpu::new();
 
-        Interconnect { rom: rom, ram: ram, regs: regs }
+        Interconnect { rom: rom, ram: ram, gpu: gpu, io: io }
+    }
+
+    pub fn reset(&mut self) {
+        self.ram.reset();
+        self.gpu.reset();
+
+        for c in self.io.iter() {
+            c.set(0);
+        }
+    }
+
+    pub fn step(&mut self) {
+        self.gpu.step();
     }
 
     /// Get byte from peripheral mapped at `addr`
@@ -48,7 +67,8 @@ impl Interconnect {
         } else if addr < 0xff00 {
             (&UNMAPPED, addr)
         } else {
-            (&self.regs, addr - 0xff00)
+            // Handle IO memory ourselves
+            (self, addr - 0xff00)
         }
     }
 }
@@ -65,6 +85,34 @@ trait Addressable {
         // TODO(lionel) there should be a better way to handle that
         // type of errors. It should probably bubble up.
         println!("Writing to read-only memory [0x{:04x}]: 0x{:02x}", offset, val);
+    }
+}
+
+/// IO register handling (0xff00 - 0xffff)
+impl Addressable for Interconnect {
+    fn get_byte(&self, offset: u16) -> u8 {
+        match offset {
+            0x44 => {
+                // LY register
+                self.gpu.get_line()
+            }
+            _ => {
+                println!("Unhandled IO read from 0x{:02x}", offset);
+                self.io[offset as uint].get()
+            }
+        }
+    }
+
+    fn set_byte(&self, offset: u16, val: u8) {
+        match offset {
+            0x44 => {
+                panic!("Unhandled write to LY register");
+            }
+            _ => {
+                println!("Unhandled IO write to 0x{:02x}: 0x{:02x}", offset, val)
+                    self.io[offset as uint].set(val);
+            }
+        }
     }
 }
 

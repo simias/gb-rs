@@ -9,7 +9,7 @@ mod instructions;
 
 /// CPU state. Should be considered undetermined as long as
 /// `Cpu::reset()` hasn't been called.
-pub struct Cpu<'a> {
+pub struct Cpu {
     // Instruction currently being executed
     current_instruction: fn (&mut Cpu),
     // Time remaining for the instruction to finish
@@ -19,7 +19,7 @@ pub struct Cpu<'a> {
     // CPU flags (`F` register)
     flags:               Flags,
     // Interconnect to access external ressources (RAM, ROM, peripherals...)
-    inter:               &'a Interconnect,
+    inter:               Interconnect,
 }
 
 /// CPU registers. They're 16bit wide but some of them can be accessed
@@ -63,11 +63,11 @@ struct Flags {
     c: bool,
 }
 
-impl<'a> Cpu<'a> {
+impl Cpu {
     /// Create a new Cpu instance. The register's value should be
     /// treated as undetermined at that point so I fill them with
     /// garbage values.
-    pub fn new<'a> (inter: &'a Interconnect) -> Cpu<'a> {
+    pub fn new (rom: ::io::rom::Rom) -> Cpu {
         Cpu {
             // Use NOP as default instruction.
             current_instruction: nop,
@@ -87,12 +87,14 @@ impl<'a> Cpu<'a> {
                            h: false,
                            c: false,
             },
-            inter: inter,
+            inter: Interconnect::new(rom),
         }
     }
 
     /// Reset CPU state to power up values
     pub fn reset(&mut self) {
+        self.inter.reset();
+
         self.current_instruction = nop;
         self.instruction_delay   = 0;
 
@@ -111,7 +113,11 @@ impl<'a> Cpu<'a> {
         self.clear_flags();
     }
 
+    /// Called at each tick of the system clock. Move the emulated
+    /// state one step forward.
     pub fn step(&mut self) {
+        self.inter.step();
+
         // Are we done running the current instruction?
         if self.instruction_delay > 0 {
             // Nope, wait for the next cycle
@@ -122,7 +128,7 @@ impl<'a> Cpu<'a> {
         // The instruction should have finished executed, update CPU state
         (self.current_instruction)(self);
 
-        //println!("{}", *self);
+        println!("{}", *self);
 
         // Now we fetch the next instruction
         let (delay, instruction) = next_instruction(self);
@@ -355,7 +361,7 @@ impl<'a> Cpu<'a> {
     }
 }
 
-impl<'a> Show for Cpu<'a> {
+impl Show for Cpu {
     fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
         try!(writeln!(f, "Registers:"));
 

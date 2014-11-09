@@ -6,7 +6,7 @@ use super::Addressable;
 
 /// Register state
 pub struct Regs {
-    regs: Vec<Cell<u8>>,
+    
 }
 
 impl Regs {
@@ -15,6 +15,13 @@ impl Regs {
         let regs = Vec::from_elem(0x100, Cell::new(0));
 
         Regs { regs: regs }
+    }
+
+    /// Reset all registers to 0
+    pub fn reset(&mut self) {
+        for c in self.regs.iter() {
+            c.set(0);
+        }
     }
 }
 

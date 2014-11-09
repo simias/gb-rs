@@ -4,6 +4,7 @@
 
 mod cpu;
 mod io;
+mod gpu;
 
 fn main() {
     let argv = std::os::args();
@@ -20,9 +21,9 @@ fn main() {
         Err(e) => panic!("Failed to load ROM: {}", e),
     };
 
-    let inter = io::Interconnect::new(rom);
+    println!("Loaded ROM {}", rom);
 
-    let mut cpu = cpu::Cpu::new(&inter);
+    let mut cpu = cpu::Cpu::new(rom);
 
     cpu.reset();
 
