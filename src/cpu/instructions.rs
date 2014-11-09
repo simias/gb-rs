@@ -93,7 +93,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (0, nop),
     (0, nop),
     (0, nop),
-    (0, nop),
+    (3, ld_mhl_n),
     (0, nop),
     (2, jr_c_n),
     (0, nop),
@@ -104,63 +104,63 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (2, ld_a_n),
     (0, nop),
     // Opcodes 4X
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
+    (1, ld_b_b),
+    (1, ld_b_c),
+    (1, ld_b_d),
+    (1, ld_b_e),
+    (1, ld_b_h),
+    (1, ld_b_l),
+    (2, ld_b_mhl),
     (1, ld_b_a),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
+    (1, ld_c_b),
+    (1, ld_c_c),
+    (1, ld_c_d),
+    (1, ld_c_e),
+    (1, ld_c_h),
+    (1, ld_c_l),
+    (2, ld_c_mhl),
     (1, ld_c_a),
     // Opcodes 5X
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
+    (1, ld_d_b),
+    (1, ld_d_c),
+    (1, ld_d_d),
+    (1, ld_d_e),
+    (1, ld_d_h),
+    (1, ld_d_l),
+    (2, ld_d_mhl),
     (1, ld_d_a),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
+    (1, ld_e_b),
+    (1, ld_e_c),
+    (1, ld_e_d),
+    (1, ld_e_e),
+    (1, ld_e_h),
+    (1, ld_e_l),
+    (2, ld_e_mhl),
     (1, ld_e_a),
     // Opcodes 6X
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
+    (1, ld_h_b),
+    (1, ld_h_c),
+    (1, ld_h_d),
+    (1, ld_h_e),
+    (1, ld_h_h),
+    (1, ld_h_l),
+    (2, ld_h_mhl),
     (1, ld_h_a),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
+    (1, ld_l_b),
+    (1, ld_l_c),
+    (1, ld_l_d),
+    (1, ld_l_e),
+    (1, ld_l_h),
+    (1, ld_l_l),
+    (2, ld_l_mhl),
     (1, ld_l_a),
     // Opcodes 7X
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
+    (2, ld_mhl_b),
+    (2, ld_mhl_c),
+    (2, ld_mhl_d),
+    (2, ld_mhl_e),
+    (2, ld_mhl_h),
+    (2, ld_mhl_l),
     (0, nop),
     (2, ld_mhl_a),
     (1, ld_a_b),
@@ -428,6 +428,30 @@ fn ld_l_n(cpu: &mut Cpu) {
 fn ld_a_a(_: &mut Cpu) {
 }
 
+/// Load `B` into `B` (NOP)
+fn ld_b_b(_: &mut Cpu) {
+}
+
+/// Load `C` into `C` (NOP)
+fn ld_c_c(_: &mut Cpu) {
+}
+
+/// Load `D` into `D` (NOP)
+fn ld_d_d(_: &mut Cpu) {
+}
+
+/// Load `E` into `E` (NOP)
+fn ld_e_e(_: &mut Cpu) {
+}
+
+/// Load `H` into `H` (NOP)
+fn ld_h_h(_: &mut Cpu) {
+}
+
+/// Load `L` into `L` (NOP)
+fn ld_l_l(_: &mut Cpu) {
+}
+
 /// Load `B` into `A`
 fn ld_a_b(cpu: &mut Cpu) {
     let v = cpu.b();
@@ -497,6 +521,60 @@ fn ld_a_mhl(cpu: &mut Cpu) {
     cpu.set_a(v);
 }
 
+/// Load `[HL]` into `B`
+fn ld_b_mhl(cpu: &mut Cpu) {
+    let hl = cpu.hl();
+
+    let v = cpu.fetch_byte(hl);
+
+    cpu.set_b(v);
+}
+
+/// Load `[HL]` into `C`
+fn ld_c_mhl(cpu: &mut Cpu) {
+    let hl = cpu.hl();
+
+    let v = cpu.fetch_byte(hl);
+
+    cpu.set_c(v);
+}
+
+/// Load `[HL]` into `D`
+fn ld_d_mhl(cpu: &mut Cpu) {
+    let hl = cpu.hl();
+
+    let v = cpu.fetch_byte(hl);
+
+    cpu.set_d(v);
+}
+
+/// Load `[HL]` into `E`
+fn ld_e_mhl(cpu: &mut Cpu) {
+    let hl = cpu.hl();
+
+    let v = cpu.fetch_byte(hl);
+
+    cpu.set_e(v);
+}
+
+/// Load `[HL]` into `H`
+fn ld_h_mhl(cpu: &mut Cpu) {
+    let hl = cpu.hl();
+
+    let v = cpu.fetch_byte(hl);
+
+    cpu.set_h(v);
+}
+
+/// Load `[HL]` into `L`
+fn ld_l_mhl(cpu: &mut Cpu) {
+    let hl = cpu.hl();
+
+    let v = cpu.fetch_byte(hl);
+
+    cpu.set_l(v);
+}
+
 /// Load `[nn]` into `A`
 fn ld_a_mnn(cpu: &mut Cpu) {
     let n = next_word(cpu);
@@ -548,7 +626,7 @@ fn ld_l_a(cpu: &mut Cpu) {
     cpu.set_l(a);
 }
 
-/// Load `A` into `[BC]`
+/// Store `A` into `[BC]`
 fn ld_mbc_a(cpu: &mut Cpu) {
     let a  = cpu.a();
     let bc = cpu.bc();
@@ -556,7 +634,7 @@ fn ld_mbc_a(cpu: &mut Cpu) {
     cpu.store_byte(bc, a);
 }
 
-/// Load `A` into `[DE]`
+/// Store `A` into `[DE]`
 fn ld_mde_a(cpu: &mut Cpu) {
     let a  = cpu.a();
     let de = cpu.de();
@@ -564,7 +642,7 @@ fn ld_mde_a(cpu: &mut Cpu) {
     cpu.store_byte(de, a);
 }
 
-/// Load `A` into `[HL]`
+/// Store `A` into `[HL]`
 fn ld_mhl_a(cpu: &mut Cpu) {
     let a  = cpu.a();
     let hl = cpu.hl();
@@ -572,7 +650,63 @@ fn ld_mhl_a(cpu: &mut Cpu) {
     cpu.store_byte(hl, a);
 }
 
-/// Load `A` into `[NN]`
+/// Store `B` into `[HL]`
+fn ld_mhl_b(cpu: &mut Cpu) {
+    let b  = cpu.b();
+    let hl = cpu.hl();
+
+    cpu.store_byte(hl, b);
+}
+
+/// Store `C` into `[HL]`
+fn ld_mhl_c(cpu: &mut Cpu) {
+    let c  = cpu.c();
+    let hl = cpu.hl();
+
+    cpu.store_byte(hl, c);
+}
+
+/// Store `D` into `[HL]`
+fn ld_mhl_d(cpu: &mut Cpu) {
+    let d  = cpu.d();
+    let hl = cpu.hl();
+
+    cpu.store_byte(hl, d);
+}
+
+/// Store `E` into `[HL]`
+fn ld_mhl_e(cpu: &mut Cpu) {
+    let e  = cpu.e();
+    let hl = cpu.hl();
+
+    cpu.store_byte(hl, e);
+}
+
+/// Store `H` into `[HL]`
+fn ld_mhl_h(cpu: &mut Cpu) {
+    let h  = cpu.h();
+    let hl = cpu.hl();
+
+    cpu.store_byte(hl, h);
+}
+
+/// Store `L` into `[HL]`
+fn ld_mhl_l(cpu: &mut Cpu) {
+    let l  = cpu.l();
+    let hl = cpu.hl();
+
+    cpu.store_byte(hl, l);
+}
+
+/// Store `N` into `[HL]
+fn ld_mhl_n(cpu: &mut Cpu) {
+    let n  = next_byte(cpu);
+    let hl = cpu.hl();
+
+    cpu.store_byte(hl, n);
+}
+
+/// Store `A` into `[NN]`
 fn ld_mnn_a(cpu: &mut Cpu) {
     let a  = cpu.a();
     let n = next_word(cpu);
@@ -606,6 +740,217 @@ fn ld_sp_nn(cpu: &mut Cpu) {
     let n = next_word(cpu);
 
     cpu.set_sp(n);
+}
+
+/// Load `C` into `B`
+fn ld_b_c(cpu: &mut Cpu) {
+    let c = cpu.c();
+
+    cpu.set_b(c);
+}
+
+/// Load `D` into `B`
+fn ld_b_d(cpu: &mut Cpu) {
+    let d = cpu.d();
+
+    cpu.set_b(d);
+}
+
+/// Load `E` into `B`
+fn ld_b_e(cpu: &mut Cpu) {
+    let e = cpu.e();
+
+    cpu.set_b(e);
+}
+
+/// Load `H` into `B`
+fn ld_b_h(cpu: &mut Cpu) {
+    let h = cpu.h();
+
+    cpu.set_b(h);
+}
+
+/// Load `L` into `B`
+fn ld_b_l(cpu: &mut Cpu) {
+    let l = cpu.l();
+
+    cpu.set_b(l);
+}
+
+/// Load `B` into `C`
+fn ld_c_b(cpu: &mut Cpu) {
+    let b = cpu.b();
+
+    cpu.set_c(b);
+}
+
+/// Load `D` into `C`
+fn ld_c_d(cpu: &mut Cpu) {
+    let d = cpu.d();
+
+    cpu.set_c(d);
+}
+
+/// Load `E` into `C`
+fn ld_c_e(cpu: &mut Cpu) {
+    let e = cpu.e();
+
+    cpu.set_c(e);
+}
+
+/// Load `H` into `C`
+fn ld_c_h(cpu: &mut Cpu) {
+    let h = cpu.h();
+
+    cpu.set_c(h);
+}
+
+/// Load `L` into `C`
+fn ld_c_l(cpu: &mut Cpu) {
+    let l = cpu.l();
+
+    cpu.set_c(l);
+}
+
+/// Load `B` into `D`
+fn ld_d_b(cpu: &mut Cpu) {
+    let b = cpu.b();
+
+    cpu.set_d(b);
+}
+
+/// Load `C` into `D`
+fn ld_d_c(cpu: &mut Cpu) {
+    let c = cpu.c();
+
+    cpu.set_d(c);
+}
+
+/// Load `E` into `D`
+fn ld_d_e(cpu: &mut Cpu) {
+    let e = cpu.e();
+
+    cpu.set_d(e);
+}
+
+/// Load `H` into `D`
+fn ld_d_h(cpu: &mut Cpu) {
+    let h = cpu.h();
+
+    cpu.set_d(h);
+}
+
+/// Load `L` into `D`
+fn ld_d_l(cpu: &mut Cpu) {
+    let l = cpu.l();
+
+    cpu.set_d(l);
+}
+
+/// Load `B` into `E`
+fn ld_e_b(cpu: &mut Cpu) {
+    let b = cpu.b();
+
+    cpu.set_e(b);
+}
+
+/// Load `C` into `E`
+fn ld_e_c(cpu: &mut Cpu) {
+    let c = cpu.c();
+
+    cpu.set_e(c);
+}
+
+/// Load `D` into `E`
+fn ld_e_d(cpu: &mut Cpu) {
+    let d = cpu.d();
+
+    cpu.set_e(d);
+}
+
+/// Load `H` into `E`
+fn ld_e_h(cpu: &mut Cpu) {
+    let h = cpu.h();
+
+    cpu.set_e(h);
+}
+
+/// Load `L` into `E`
+fn ld_e_l(cpu: &mut Cpu) {
+    let l = cpu.l();
+
+    cpu.set_e(l);
+}
+
+/// Load `B` into `H`
+fn ld_h_b(cpu: &mut Cpu) {
+    let b = cpu.b();
+
+    cpu.set_h(b);
+}
+
+/// Load `C` into `H`
+fn ld_h_c(cpu: &mut Cpu) {
+    let c = cpu.c();
+
+    cpu.set_h(c);
+}
+
+/// Load `D` into `H`
+fn ld_h_d(cpu: &mut Cpu) {
+    let d = cpu.d();
+
+    cpu.set_h(d);
+}
+
+/// Load `E` into `H`
+fn ld_h_e(cpu: &mut Cpu) {
+    let e = cpu.e();
+
+    cpu.set_h(e);
+}
+
+/// Load `B` into `L`
+fn ld_l_b(cpu: &mut Cpu) {
+    let b = cpu.b();
+
+    cpu.set_l(b);
+}
+
+/// Load `C` into `L`
+fn ld_l_c(cpu: &mut Cpu) {
+    let c = cpu.c();
+
+    cpu.set_l(c);
+}
+
+/// Load `D` into `L`
+fn ld_l_d(cpu: &mut Cpu) {
+    let d = cpu.d();
+
+    cpu.set_l(d);
+}
+
+/// Load `E` into `L`
+fn ld_l_e(cpu: &mut Cpu) {
+    let e = cpu.e();
+
+    cpu.set_l(e);
+}
+
+/// Load `H` into `L`
+fn ld_l_h(cpu: &mut Cpu) {
+    let h = cpu.h();
+
+    cpu.set_l(h);
+}
+
+
+/// Load `L` into `H`
+fn ld_h_l(cpu: &mut Cpu) {
+    let l = cpu.l();
+
+    cpu.set_h(l);
 }
 
 /// Pop `AF` from the stack
