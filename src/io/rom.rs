@@ -41,7 +41,7 @@ impl Rom {
             }
 
             // Only uppercase ASCII is valid
-            if !c.is_uppercase() {
+            if !(c.is_uppercase() || c.is_blank() || c.is_punctuation()) {
                 return None;
             }
 
@@ -61,7 +61,7 @@ impl Addressable for Rom {
 
 impl Show for Rom {
     fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
-        try!(write!(f, "ROM title: {}", match self.get_name() {
+        try!(write!(f, "'{}'", match self.get_name() {
             Some(s) => s,
             None    => "<INVALID>".to_string(),
         }));
