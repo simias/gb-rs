@@ -39,16 +39,16 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (1, nop),
     (3, ld_bc_nn),
     (2, ld_mbc_a),
-    (0, nop),
-    (0, nop),
+    (2, inc_bc),
+    (1, inc_b),
     (1, dec_b),
     (2, ld_b_n),
     (0, nop),
     (0, nop),
-    (0, nop),
+    (2, add_hl_bc),
     (2, ld_a_mbc),
-    (0, nop),
-    (0, nop),
+    (2, dec_bc),
+    (1, inc_c),
     (1, dec_c),
     (2, ld_c_n),
     (0, nop),
@@ -56,16 +56,16 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (0, nop),
     (3, ld_de_nn),
     (2, ld_mde_a),
-    (0, nop),
-    (0, nop),
+    (2, inc_de),
+    (1, inc_d),
     (1, dec_d),
     (2, ld_d_n),
     (0, nop),
     (2, jr_n),
-    (0, nop),
+    (2, add_hl_de),
     (2, ld_a_mde),
-    (0, nop),
-    (0, nop),
+    (2, dec_de),
+    (1, inc_e),
     (1, dec_e),
     (2, ld_e_n),
     (0, nop),
@@ -73,16 +73,16 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (2, jr_nz_n),
     (3, ld_hl_nn),
     (2, ldi_mhl_a),
-    (0, nop),
-    (0, nop),
+    (2, inc_hl),
+    (1, inc_h),
     (1, dec_h),
     (2, ld_h_n),
     (0, nop),
     (2, jr_z_n),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
+    (2, add_hl_hl),
+    (2, ldi_a_mhl),
+    (2, dec_hl),
+    (1, inc_l),
     (1, dec_l),
     (2, ld_l_n),
     (0, nop),
@@ -90,16 +90,16 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (2, jr_nc_n),
     (3, ld_sp_nn),
     (2, ldd_mhl_a),
-    (0, nop),
-    (0, nop),
+    (2, inc_sp),
+    (3, inc_mhl),
     (0, nop),
     (3, ld_mhl_n),
     (0, nop),
     (2, jr_c_n),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
+    (2, add_hl_sp),
+    (2, ldd_a_mhl),
+    (2, dec_sp),
+    (1, inc_a),
     (1, dec_a),
     (2, ld_a_n),
     (0, nop),
@@ -223,14 +223,14 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (0, nop),
     (1, xor_a_a),
     // Opcodes BX
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
+    (1, or_a_b),
+    (1, or_a_c),
+    (1, or_a_d),
+    (1, or_a_e),
+    (1, or_a_h),
+    (1, or_a_l),
+    (2, or_a_mhl),
+    (1, or_a_a),
     (1, cp_a_b),
     (1, cp_a_c),
     (1, cp_a_d),
@@ -241,15 +241,15 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (1, cp_a_a),
     // Opcodes CX
     (0, nop),
-    (0, nop),
+    (3, pop_bc),
     (3, jp_nz_nn),
     (3, jp_nn),
     (0, nop),
+    (4, push_bc),
     (0, nop),
     (0, nop),
     (0, nop),
-    (0, nop),
-    (0, nop),
+    (2, ret),
     (3, jp_z_nn),
     (0, nop), // See CB opcode map
     (0, nop),
@@ -258,11 +258,11 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (0, nop),
     // Opcodes DX
     (0, nop),
-    (0, nop),
+    (3, pop_de),
     (3, jp_nc_nn),
     (0, nop),
     (0, nop),
-    (0, nop),
+    (4, push_de),
     (2, sub_a_n),
     (0, nop),
     (0, nop),
@@ -275,11 +275,11 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (0, nop),
     // Opcodes EX
     (3, ldh_mn_a),
+    (3, pop_hl),
+    (2, ldh_mc_a),
     (0, nop),
     (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
+    (4, push_hl),
     (2, and_a_n),
     (0, nop),
     (0, nop),
@@ -293,16 +293,16 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     // Opcodes FX
     (3, ldh_a_mn),
     (3, pop_af),
-    (0, nop),
+    (0, ldh_a_mc),
     (1, di),
     (0, nop),
-    (0, nop),
-    (0, nop),
+    (4, push_af),
+    (2, or_a_n),
     (0, nop),
     (0, nop),
     (0, nop),
     (2, ld_a_mnn),
-    (0, nop),
+    (1, ei),
     (0, nop),
     (0, nop),
     (2, cp_a_n),
@@ -376,6 +376,21 @@ fn sub_and_set_flags(cpu: &mut Cpu, x: u8, y: u8) -> u8 {
     cpu.set_substract(true);
 
     r
+}
+
+/// Helper function to add two `u16` and update the CPU flags
+fn add_word_and_set_flags(cpu: &mut Cpu, x: u16, y: u16) -> u16 {
+    // Check for overflow using 32bit arithmetics
+    let x = x as u32;
+    let y = y as u32;
+    let r = x + y;
+
+    cpu.set_substract(false);
+    cpu.set_carry(r > 0xffff);
+    cpu.set_halfcarry((x & 0xfff) + (y & 0xfff) > 0xfff);
+    // zero flag is untouched.
+
+    r as u16
 }
 
 /// No operation
@@ -960,6 +975,55 @@ fn pop_af(cpu: &mut Cpu) {
     cpu.set_af(n);
 }
 
+/// Pop `BC` from the stack
+fn pop_bc(cpu: &mut Cpu) {
+    let n = pop_word(cpu);
+
+    cpu.set_bc(n);
+}
+
+/// Pop `DE` from the stack
+fn pop_de(cpu: &mut Cpu) {
+    let n = pop_word(cpu);
+
+    cpu.set_de(n);
+}
+
+/// Pop `HL` from the stack
+fn pop_hl(cpu: &mut Cpu) {
+    let n = pop_word(cpu);
+
+    cpu.set_hl(n);
+}
+
+/// Push `AF` on the stack
+fn push_af(cpu: &mut Cpu) {
+    let af = cpu.af();
+
+    push_word(cpu, af);
+}
+
+/// Push `BC` on the stack
+fn push_bc(cpu: &mut Cpu) {
+    let bc = cpu.bc();
+
+    push_word(cpu, bc);
+}
+
+/// Push `DE` on the stack
+fn push_de(cpu: &mut Cpu) {
+    let de = cpu.de();
+
+    push_word(cpu, de);
+}
+
+/// Push `HL` on the stack
+fn push_hl(cpu: &mut Cpu) {
+    let hl = cpu.hl();
+
+    push_word(cpu, hl);
+}
+
 /// Unconditional jump to absolute address
 fn jp_nn(cpu: &mut Cpu) {
     let addr = next_word(cpu);
@@ -1076,90 +1140,11 @@ fn call(cpu: &mut Cpu) {
     cpu.set_pc(addr);
 }
 
-/// XOR `A` with itself (set `A` to `0`)
-fn xor_a_a(cpu: &mut Cpu) {
-    cpu.set_a(0);
+/// Pop rutern address from stack and jump to it
+fn ret(cpu: &mut Cpu) {
+    let addr = pop_word(cpu);
 
-    cpu.clear_flags();
-    cpu.set_zero(true);
-}
-
-/// XOR `B` into `A`
-fn xor_a_b(cpu: &mut Cpu) {
-    let a = cpu.a();
-    let b = cpu.b();
-
-    let r = a ^ b;
-
-    cpu.set_a(r);
-
-    cpu.clear_flags();
-    cpu.set_zero(r == 0);
-}
-
-/// XOR `C` into `A`
-fn xor_a_c(cpu: &mut Cpu) {
-    let a = cpu.a();
-    let c = cpu.c();
-
-    let r = a ^ c;
-
-    cpu.set_a(r);
-
-    cpu.clear_flags();
-    cpu.set_zero(r == 0);
-}
-
-/// XOR `D` into `A`
-fn xor_a_d(cpu: &mut Cpu) {
-    let a = cpu.a();
-    let d = cpu.d();
-
-    let r = a ^ d;
-
-    cpu.set_a(r);
-
-    cpu.clear_flags();
-    cpu.set_zero(r == 0);
-}
-
-/// XOR `E` into `A`
-fn xor_a_e(cpu: &mut Cpu) {
-    let a = cpu.a();
-    let e = cpu.e();
-
-    let r = a ^ e;
-
-    cpu.set_a(r);
-
-    cpu.clear_flags();
-    cpu.set_zero(r == 0);
-}
-
-/// XOR `H` into `A`
-fn xor_a_h(cpu: &mut Cpu) {
-    let a = cpu.a();
-    let h = cpu.h();
-
-    let r = a ^ h;
-
-    cpu.set_a(r);
-
-    cpu.clear_flags();
-    cpu.set_zero(r == 0);
-}
-
-/// XOR `L` into `A`
-fn xor_a_l(cpu: &mut Cpu) {
-    let a = cpu.a();
-    let l = cpu.l();
-
-    let r = a ^ l;
-
-    cpu.set_a(r);
-
-    cpu.clear_flags();
-    cpu.set_zero(r == 0);
+    cpu.set_pc(addr);
 }
 
 /// Store `A` into `[HL]` and decrement `HL`
@@ -1169,6 +1154,16 @@ fn ldd_mhl_a(cpu: &mut Cpu) {
 
     cpu.store_byte(hl, a);
 
+    cpu.set_hl(hl - 1);
+}
+
+/// Load `[HL]` into `A` and decrement `HL`
+fn ldd_a_mhl(cpu: &mut Cpu) {
+    let hl = cpu.hl();
+
+    let a = cpu.fetch_byte(hl);
+
+    cpu.set_a(a);
     cpu.set_hl(hl - 1);
 }
 
@@ -1182,21 +1177,49 @@ fn ldi_mhl_a(cpu: &mut Cpu) {
     cpu.set_hl(hl + 1);
 }
 
-/// Store `A` into `[0xff00 + n]`
+/// Load `[HL]` into `A` and increment `HL`
+fn ldi_a_mhl(cpu: &mut Cpu) {
+    let hl = cpu.hl();
+
+    let a = cpu.fetch_byte(hl);
+
+    cpu.set_a(a);
+    cpu.set_hl(hl + 1);
+}
+
+/// Store `A` into `[0xff00 + N]`
 fn ldh_mn_a(cpu: &mut Cpu) {
-    let n = next_byte(cpu) as u16;
     let a = cpu.a();
+    let n = next_byte(cpu) as u16;
 
     cpu.store_byte(0xff00 | n, a);
 }
 
-/// Load `[0xff00 + n]` into `[A]`
+/// Store `A` into `[0xff00 + C]`
+fn ldh_mc_a(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let c = cpu.c() as u16;
+
+    cpu.store_byte(0xff00 | c, a);
+}
+
+/// Load `[0xff00 + N]` into `[A]`
 fn ldh_a_mn(cpu: &mut Cpu) {
     let n = next_byte(cpu) as u16;
     let v = cpu.fetch_byte(0xff00 | n);
 
     cpu.set_a(v);
 }
+
+/// Load `[0xff00 + C]` into `[A]`
+fn ldh_a_mc(cpu: &mut Cpu) {
+    let c = cpu.c() as u16;
+
+    let v = cpu.fetch_byte(0xff00 | c);
+
+    cpu.set_a(v);
+}
+
 
 /// Decrement `A`
 fn dec_a(cpu: &mut Cpu) {
@@ -1301,6 +1324,168 @@ fn dec_l(cpu: &mut Cpu) {
 
     cpu.set_zero(l == 0);
     cpu.set_substract(true);
+}
+
+/// Increment `A`
+fn inc_a(cpu: &mut Cpu) {
+    let a = cpu.a();
+
+    let r = a + 1;
+
+    cpu.set_substract(false);
+    cpu.set_zero(r == 0);
+    cpu.set_halfcarry(a & 0xf == 0xf);
+
+    cpu.set_a(r);
+}
+
+/// Increment `B`
+fn inc_b(cpu: &mut Cpu) {
+    let b = cpu.b();
+
+    let r = b + 1;
+
+    cpu.set_substract(false);
+    cpu.set_zero(r == 0);
+    cpu.set_halfcarry(b & 0xf == 0xf);
+
+    cpu.set_b(r);
+}
+
+/// Increment `C`
+fn inc_c(cpu: &mut Cpu) {
+    let c = cpu.c();
+
+    let r = c + 1;
+
+    cpu.set_substract(false);
+    cpu.set_zero(r == 0);
+    cpu.set_halfcarry(c & 0xf == 0xf);
+
+    cpu.set_c(r);
+}
+
+/// Increment `D`
+fn inc_d(cpu: &mut Cpu) {
+    let d = cpu.d();
+
+    let r = d + 1;
+
+    cpu.set_substract(false);
+    cpu.set_zero(r == 0);
+    cpu.set_halfcarry(d & 0xf == 0xf);
+
+    cpu.set_d(r);
+}
+
+/// Increment `E`
+fn inc_e(cpu: &mut Cpu) {
+    let e = cpu.e();
+
+    let r = e + 1;
+
+    cpu.set_substract(false);
+    cpu.set_zero(r == 0);
+    cpu.set_halfcarry(e & 0xf == 0xf);
+
+    cpu.set_e(r);
+}
+
+/// Increment `H`
+fn inc_h(cpu: &mut Cpu) {
+    let h = cpu.h();
+
+    let r = h + 1;
+
+    cpu.set_substract(false);
+    cpu.set_zero(r == 0);
+    cpu.set_halfcarry(h & 0xf == 0xf);
+
+    cpu.set_h(r);
+}
+
+/// Increment `L`
+fn inc_l(cpu: &mut Cpu) {
+    let l = cpu.l();
+
+    let r = l + 1;
+
+    cpu.set_substract(false);
+    cpu.set_zero(r == 0);
+    cpu.set_halfcarry(l & 0xf == 0xf);
+
+    cpu.set_l(r);
+}
+
+/// Increment `[HL]`
+fn inc_mhl(cpu: &mut Cpu) {
+    let hl = cpu.hl();
+
+    let n = cpu.fetch_byte(hl);
+
+    let r = n + 1;
+
+    cpu.set_substract(false);
+    cpu.set_zero(r == 0);
+    cpu.set_halfcarry(n & 0xf == 0xf);
+
+    cpu.store_byte(hl, r);
+}
+
+/// Increment `BC`
+fn inc_bc(cpu: &mut Cpu) {
+    let bc = cpu.bc();
+
+    cpu.set_bc(bc + 1);
+}
+
+/// Increment `DE`
+fn inc_de(cpu: &mut Cpu) {
+    let de = cpu.de();
+
+    cpu.set_de(de + 1);
+}
+
+/// Increment `HL`
+fn inc_hl(cpu: &mut Cpu) {
+    let hl = cpu.hl();
+
+    cpu.set_hl(hl + 1);
+}
+
+/// Increment `SP`
+fn inc_sp(cpu: &mut Cpu) {
+    let sp = cpu.sp();
+
+    cpu.set_sp(sp + 1);
+}
+
+/// Decrement `BC`
+fn dec_bc(cpu: &mut Cpu) {
+    let bc = cpu.bc();
+
+    cpu.set_bc(bc - 1);
+}
+
+/// Decrement `DE`
+fn dec_de(cpu: &mut Cpu) {
+    let de = cpu.de();
+
+    cpu.set_de(de - 1);
+}
+
+/// Decrement `HL`
+fn dec_hl(cpu: &mut Cpu) {
+    let hl = cpu.hl();
+
+    cpu.set_hl(hl - 1);
+}
+
+/// Decrement `SP`
+fn dec_sp(cpu: &mut Cpu) {
+    let sp = cpu.sp();
+
+    cpu.set_sp(sp - 1);
 }
 
 /// Compare `A` with itself
@@ -1469,6 +1654,45 @@ fn sub_a_n(cpu: &mut Cpu) {
     cpu.set_a(r);
 }
 
+/// Add `BC` to `HL`
+fn add_hl_bc(cpu: &mut Cpu) {
+    let hl = cpu.hl();
+    let bc = cpu.bc();
+
+    let r = add_word_and_set_flags(cpu, hl, bc);
+
+    cpu.set_hl(r);
+}
+
+/// Add `DE` to `HL`
+fn add_hl_de(cpu: &mut Cpu) {
+    let hl = cpu.hl();
+    let de = cpu.de();
+
+    let r = add_word_and_set_flags(cpu, hl, de);
+
+    cpu.set_hl(r);
+}
+
+/// Add `HL` to `HL`
+fn add_hl_hl(cpu: &mut Cpu) {
+    let hl = cpu.hl();
+
+    let r = add_word_and_set_flags(cpu, hl, hl);
+
+    cpu.set_hl(r);
+}
+
+/// Add `SP` to `HL`
+fn add_hl_sp(cpu: &mut Cpu) {
+    let hl = cpu.hl();
+    let sp = cpu.sp();
+
+    let r = add_word_and_set_flags(cpu, hl, sp);
+
+    cpu.set_hl(r);
+}
+
 /// AND `A` with `A`
 fn and_a_a(cpu: &mut Cpu) {
     let a = cpu.a();
@@ -1601,10 +1825,235 @@ fn and_a_n(cpu: &mut Cpu) {
     cpu.set_a(r);
 }
 
+/// OR `A` with `A`
+fn or_a_a(cpu: &mut Cpu) {
+    let a = cpu.a();
+
+    cpu.set_zero(a == 0);
+    cpu.set_substract(false);
+    cpu.set_halfcarry(false);
+    cpu.set_carry(false);
+}
+
+/// OR `B` with `A`
+fn or_a_b(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let b = cpu.b();
+
+    let r = a | b;
+
+    cpu.set_zero(r == 0);
+    cpu.set_substract(false);
+    cpu.set_halfcarry(false);
+    cpu.set_carry(false);
+
+    cpu.set_a(r);
+}
+
+/// OR `C` with `A`
+fn or_a_c(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let c = cpu.c();
+
+    let r = a | c;
+
+    cpu.set_zero(r == 0);
+    cpu.set_substract(false);
+    cpu.set_halfcarry(false);
+    cpu.set_carry(false);
+
+    cpu.set_a(r);
+}
+
+/// OR `D` with `A`
+fn or_a_d(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let d = cpu.d();
+
+    let r = a | d;
+
+    cpu.set_zero(r == 0);
+    cpu.set_substract(false);
+    cpu.set_halfcarry(false);
+    cpu.set_carry(false);
+
+    cpu.set_a(r);
+}
+
+/// OR `E` with `A`
+fn or_a_e(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let e = cpu.e();
+
+    let r = a | e;
+
+    cpu.set_zero(r == 0);
+    cpu.set_substract(false);
+    cpu.set_halfcarry(false);
+    cpu.set_carry(false);
+
+    cpu.set_a(r);
+}
+
+/// OR `H` with `A`
+fn or_a_h(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let h = cpu.h();
+
+    let r = a | h;
+
+    cpu.set_zero(r == 0);
+    cpu.set_substract(false);
+    cpu.set_halfcarry(false);
+    cpu.set_carry(false);
+
+    cpu.set_a(r);
+}
+
+/// OR `[HL]` with `A`
+fn or_a_mhl(cpu: &mut Cpu) {
+    let a  = cpu.a();
+    let hl = cpu.hl();
+
+    let n = cpu.fetch_byte(hl);
+
+    let r = a | n;
+
+    cpu.set_zero(r == 0);
+    cpu.set_substract(false);
+    cpu.set_halfcarry(false);
+    cpu.set_carry(false);
+
+    cpu.set_a(r);
+}
+
+/// OR `N` with `A`
+fn or_a_n(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let n = next_byte(cpu);
+
+    let r = a | n;
+
+    cpu.set_zero(r == 0);
+    cpu.set_substract(false);
+    cpu.set_halfcarry(false);
+    cpu.set_carry(false);
+
+    cpu.set_a(r);
+}
+
+/// XOR `A` with itself (set `A` to `0`)
+fn xor_a_a(cpu: &mut Cpu) {
+    cpu.set_a(0);
+
+    cpu.clear_flags();
+    cpu.set_zero(true);
+}
+
+/// XOR `B` into `A`
+fn xor_a_b(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let b = cpu.b();
+
+    let r = a ^ b;
+
+    cpu.set_a(r);
+
+    cpu.clear_flags();
+    cpu.set_zero(r == 0);
+}
+
+/// XOR `C` into `A`
+fn xor_a_c(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let c = cpu.c();
+
+    let r = a ^ c;
+
+    cpu.set_a(r);
+
+    cpu.clear_flags();
+    cpu.set_zero(r == 0);
+}
+
+/// XOR `D` into `A`
+fn xor_a_d(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let d = cpu.d();
+
+    let r = a ^ d;
+
+    cpu.set_a(r);
+
+    cpu.clear_flags();
+    cpu.set_zero(r == 0);
+}
+
+/// XOR `E` into `A`
+fn xor_a_e(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let e = cpu.e();
+
+    let r = a ^ e;
+
+    cpu.set_a(r);
+
+    cpu.clear_flags();
+    cpu.set_zero(r == 0);
+}
+
+/// XOR `H` into `A`
+fn xor_a_h(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let h = cpu.h();
+
+    let r = a ^ h;
+
+    cpu.set_a(r);
+
+    cpu.clear_flags();
+    cpu.set_zero(r == 0);
+}
+
+/// XOR `L` into `A`
+fn xor_a_l(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let l = cpu.l();
+
+    let r = a ^ l;
+
+    cpu.set_a(r);
+
+    cpu.clear_flags();
+    cpu.set_zero(r == 0);
+}
+
+/// OR `L` with `A`
+fn or_a_l(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let l = cpu.l();
+
+    let r = a | l;
+
+    cpu.set_zero(r == 0);
+    cpu.set_substract(false);
+    cpu.set_halfcarry(false);
+    cpu.set_carry(false);
+
+    cpu.set_a(r);
+}
+
 /// Disable interrupts
 fn di(cpu: &mut Cpu) {
     cpu.disable_interrupts();
 }
+
+
+/// Enable interrupts
+fn ei(cpu: &mut Cpu) {
+    cpu.enable_interrupts();
+}
+
 
 mod cb {
     //! Emulation of instructions prefixed by 0xCB

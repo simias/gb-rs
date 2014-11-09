@@ -359,6 +359,11 @@ impl Cpu {
     fn disable_interrupts(&mut self) {
         // TODO
     }
+
+    /// Enable Interrupts
+    fn enable_interrupts(&mut self) {
+        // TODO
+    }
 }
 
 impl Show for Cpu {
