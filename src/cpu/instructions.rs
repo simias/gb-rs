@@ -72,7 +72,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     // Opcodes 2X
     (2, jr_nz_n),
     (3, ld_hl_nn),
-    (0, nop),
+    (2, ldi_mhl_a),
     (0, nop),
     (0, nop),
     (1, dec_h),
@@ -89,7 +89,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     // Opcodes 3X
     (2, jr_nc_n),
     (3, ld_sp_nn),
-    (2, ldd_a_mhl),
+    (2, ldd_mhl_a),
     (0, nop),
     (0, nop),
     (0, nop),
@@ -189,14 +189,14 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (0, nop),
     (0, nop),
     // Opcodes 9X
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
+    (1, sub_a_b),
+    (1, sub_a_c),
+    (1, sub_a_d),
+    (1, sub_a_e),
+    (1, sub_a_h),
+    (1, sub_a_l),
+    (2, sub_a_mhl),
+    (1, sub_a_a),
     (0, nop),
     (0, nop),
     (0, nop),
@@ -206,14 +206,14 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (0, nop),
     (0, nop),
     // Opcodes AX
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
+    (1, and_a_b),
+    (1, and_a_c),
+    (1, and_a_d),
+    (1, and_a_e),
+    (1, and_a_h),
+    (1, and_a_l),
+    (2, and_a_mhl),
+    (1, and_a_a),
     (1, xor_a_b),
     (1, xor_a_c),
     (1, xor_a_d),
@@ -263,7 +263,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (0, nop),
     (0, nop),
     (0, nop),
-    (0, nop),
+    (2, sub_a_n),
     (0, nop),
     (0, nop),
     (0, nop),
@@ -274,13 +274,13 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (0, nop),
     (0, nop),
     // Opcodes EX
-    (3, ldh_a_mn),
+    (3, ldh_mn_a),
     (0, nop),
     (0, nop),
     (0, nop),
     (0, nop),
     (0, nop),
-    (0, nop),
+    (2, and_a_n),
     (0, nop),
     (0, nop),
     (0, nop),
@@ -291,7 +291,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (0, nop),
     (0, nop),
     // Opcodes FX
-    (3, ldh_mn_a),
+    (3, ldh_a_mn),
     (3, pop_af),
     (0, nop),
     (1, di),
@@ -1163,7 +1163,7 @@ fn xor_a_l(cpu: &mut Cpu) {
 }
 
 /// Store `A` into `[HL]` and decrement `HL`
-fn ldd_a_mhl(cpu: &mut Cpu) {
+fn ldd_mhl_a(cpu: &mut Cpu) {
     let hl = cpu.hl();
     let a  = cpu.a();
 
@@ -1172,8 +1172,18 @@ fn ldd_a_mhl(cpu: &mut Cpu) {
     cpu.set_hl(hl - 1);
 }
 
+/// Store `A` into `[HL]` and increment `HL`
+fn ldi_mhl_a(cpu: &mut Cpu) {
+    let hl = cpu.hl();
+    let a  = cpu.a();
+
+    cpu.store_byte(hl, a);
+
+    cpu.set_hl(hl + 1);
+}
+
 /// Store `A` into `[0xff00 + n]`
-fn ldh_a_mn(cpu: &mut Cpu) {
+fn ldh_mn_a(cpu: &mut Cpu) {
     let n = next_byte(cpu) as u16;
     let a = cpu.a();
 
@@ -1181,7 +1191,7 @@ fn ldh_a_mn(cpu: &mut Cpu) {
 }
 
 /// Load `[0xff00 + n]` into `[A]`
-fn ldh_mn_a(cpu: &mut Cpu) {
+fn ldh_a_mn(cpu: &mut Cpu) {
     let n = next_byte(cpu) as u16;
     let v = cpu.fetch_byte(0xff00 | n);
 
@@ -1365,6 +1375,230 @@ fn cp_a_n(cpu: &mut Cpu) {
     let n = next_byte(cpu);
 
     sub_and_set_flags(cpu, a, n);
+}
+
+/// Substract `A` from `A`
+fn sub_a_a(cpu: &mut Cpu) {
+    cpu.set_zero(true);
+    cpu.set_substract(true);
+    cpu.set_carry(false);
+    cpu.set_halfcarry(false);
+
+    cpu.set_a(0);
+}
+
+/// Substract `B` from `A`
+fn sub_a_b(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let b = cpu.b();
+
+    let r = sub_and_set_flags(cpu, a, b);
+
+    cpu.set_a(r);
+}
+
+/// Substract `C` from `A`
+fn sub_a_c(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let c = cpu.c();
+
+    let r = sub_and_set_flags(cpu, a, c);
+
+    cpu.set_a(r);
+}
+
+/// Substract `D` from `A`
+fn sub_a_d(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let d = cpu.d();
+
+    let r = sub_and_set_flags(cpu, a, d);
+
+    cpu.set_a(r);
+}
+
+/// Substract `E` from `A`
+fn sub_a_e(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let e = cpu.e();
+
+    let r = sub_and_set_flags(cpu, a, e);
+
+    cpu.set_a(r);
+}
+
+/// Substract `H` from `A`
+fn sub_a_h(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let h = cpu.h();
+
+    let r = sub_and_set_flags(cpu, a, h);
+
+    cpu.set_a(r);
+}
+
+/// Substract `L` from `A`
+fn sub_a_l(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let l = cpu.l();
+
+    let r = sub_and_set_flags(cpu, a, l);
+
+    cpu.set_a(r);
+}
+
+/// Substract `[HL]` from `A`
+fn sub_a_mhl(cpu: &mut Cpu) {
+    let a  = cpu.a();
+    let hl = cpu.hl();
+
+    let n = cpu.fetch_byte(hl);
+
+    let r = sub_and_set_flags(cpu, a, n);
+
+    cpu.set_a(r);
+}
+
+/// Substract `N` from `A`
+fn sub_a_n(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let n = next_byte(cpu);
+
+    let r = sub_and_set_flags(cpu, a, n);
+
+    cpu.set_a(r);
+}
+
+/// AND `A` with `A`
+fn and_a_a(cpu: &mut Cpu) {
+    let a = cpu.a();
+
+    cpu.set_zero(a == 0);
+    cpu.set_substract(false);
+    cpu.set_halfcarry(true);
+    cpu.set_carry(false);
+}
+
+/// AND `B` with `A`
+fn and_a_b(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let b = cpu.b();
+
+    let r = a & b;
+
+    cpu.set_zero(r == 0);
+    cpu.set_substract(false);
+    cpu.set_halfcarry(true);
+    cpu.set_carry(false);
+
+    cpu.set_a(r);
+}
+
+/// AND `C` with `A`
+fn and_a_c(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let c = cpu.c();
+
+    let r = a & c;
+
+    cpu.set_zero(r == 0);
+    cpu.set_substract(false);
+    cpu.set_halfcarry(true);
+    cpu.set_carry(false);
+
+    cpu.set_a(r);
+}
+
+/// AND `D` with `A`
+fn and_a_d(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let d = cpu.d();
+
+    let r = a & d;
+
+    cpu.set_zero(r == 0);
+    cpu.set_substract(false);
+    cpu.set_halfcarry(true);
+    cpu.set_carry(false);
+
+    cpu.set_a(r);
+}
+
+/// AND `E` with `A`
+fn and_a_e(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let e = cpu.e();
+
+    let r = a & e;
+
+    cpu.set_zero(r == 0);
+    cpu.set_substract(false);
+    cpu.set_halfcarry(true);
+    cpu.set_carry(false);
+
+    cpu.set_a(r);
+}
+
+/// AND `H` with `A`
+fn and_a_h(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let h = cpu.h();
+
+    let r = a & h;
+
+    cpu.set_zero(r == 0);
+    cpu.set_substract(false);
+    cpu.set_halfcarry(true);
+    cpu.set_carry(false);
+
+    cpu.set_a(r);
+}
+
+/// AND `L` with `A`
+fn and_a_l(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let l = cpu.l();
+
+    let r = a & l;
+
+    cpu.set_zero(r == 0);
+    cpu.set_substract(false);
+    cpu.set_halfcarry(true);
+    cpu.set_carry(false);
+
+    cpu.set_a(r);
+}
+
+/// AND `[HL]` with `A`
+fn and_a_mhl(cpu: &mut Cpu) {
+    let a  = cpu.a();
+    let hl = cpu.hl();
+
+    let n = cpu.fetch_byte(hl);
+
+    let r = a & n;
+
+    cpu.set_zero(r == 0);
+    cpu.set_substract(false);
+    cpu.set_halfcarry(true);
+    cpu.set_carry(false);
+
+    cpu.set_a(r);
+}
+
+/// AND `N` with `A`
+fn and_a_n(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let n = next_byte(cpu);
+
+    let r = a & n;
+
+    cpu.set_zero(r == 0);
+    cpu.set_substract(false);
+    cpu.set_halfcarry(true);
+    cpu.set_carry(false);
+
+    cpu.set_a(r);
 }
 
 /// Disable interrupts

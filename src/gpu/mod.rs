@@ -84,7 +84,10 @@ impl Gpu {
 impl Addressable for Gpu {
     fn get_byte(&self, addr: u16) -> u8 {
         if addr >= 0xfe00 {
-            self.oam[(addr & 0xff) as uint].get()
+            match self.get_mode() {
+                Prelude | Active => panic!("OAM access while in use {:04x}", addr),
+                _                => self.oam[(addr & 0xff) as uint].get()
+            }
         } else {
             panic!("Unexpected GPU access at {:04x}", addr);
         }
@@ -92,7 +95,10 @@ impl Addressable for Gpu {
 
     fn set_byte(&self, addr: u16, val: u8) {
         if addr >= 0xfe00 {
-            self.oam[(addr & 0xff) as uint].set(val)
+            match self.get_mode() {
+                Prelude | Active => panic!("OAM access while in use {:04x}", addr),
+                _                => self.oam[(addr & 0xff) as uint].set(val)
+            }
         } else {
             panic!("Unexpected GPU write at {:04x}: {:02x}", addr, val);
         }
