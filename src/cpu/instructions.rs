@@ -43,7 +43,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (1, inc_b),
     (1, dec_b),
     (2, ld_b_n),
-    (0, nop),
+    (1, rlca),
     (0, nop),
     (2, add_hl_bc),
     (2, ld_a_mbc),
@@ -51,7 +51,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (1, inc_c),
     (1, dec_c),
     (2, ld_c_n),
-    (0, nop),
+    (1, rrca),
     // Opcodes 1X
     (0, nop),
     (3, ld_de_nn),
@@ -60,7 +60,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (1, inc_d),
     (1, dec_d),
     (2, ld_d_n),
-    (0, nop),
+    (1, rla),
     (2, jr_n),
     (2, add_hl_de),
     (2, ld_a_mde),
@@ -68,7 +68,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (1, inc_e),
     (1, dec_e),
     (2, ld_e_n),
-    (0, nop),
+    (1, rra),
     // Opcodes 2X
     (2, jr_nz_n),
     (3, ld_hl_nn),
@@ -395,6 +395,67 @@ fn add_word_and_set_flags(cpu: &mut Cpu, x: u16, y: u16) -> u16 {
 
 /// No operation
 pub fn nop(_: &mut Cpu) {
+}
+
+/// Rotate `A` left
+fn rlca(cpu: &mut Cpu) {
+    let a = cpu.a();
+
+    let c = a >> 7;
+
+    cpu.set_a((a << 1) | c);
+
+    // Not sure about whether or not to set the Z flag and looking at
+    // other emulators I'm not the only one.
+    //
+    // The Z80 doc says Z is untouched, the unofficial "Game Boy CPU
+    // manual" says it's set if the result is 0, unset otherwise.
+    //
+    // http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html on
+    // the other hand says it's set to 0 along with N and H.
+    //
+    // VisualBoyAdvance follows the Z80 doc and doesn't touch any flag
+    // except for C, I'm going to assume they know what they're doing
+    // and do the same.
+    cpu.set_carry(c != 0);
+}
+
+/// Rotate `A` left through carry
+fn rla(cpu: &mut Cpu) {
+    let a = cpu.a();
+
+    let newcarry = (a >> 7) != 0;
+    let oldcarry = cpu.carry() as u8;
+
+    cpu.set_a((a << 1) | oldcarry);
+
+    // Same remark as RLCA regarding other flags
+    cpu.set_carry(newcarry);
+}
+
+/// Rotate `A` right
+fn rrca(cpu: &mut Cpu) {
+    let a = cpu.a();
+
+    let c = a & 1;
+
+    cpu.set_a((a >> 1) | (c << 7));
+
+    // Same remark as RLCA regarding other flags
+    cpu.set_carry(c != 0);
+}
+
+/// Rotate `A` right through carry
+fn rra(cpu: &mut Cpu) {
+    let a = cpu.a();
+
+    let newcarry = (a & 1) != 0;
+    let oldcarry = cpu.carry() as u8;
+
+    cpu.set_a((a >> 1) | (oldcarry << 7));
+
+    // Same remark as RLCA regarding other flags
+    cpu.set_carry(newcarry);
 }
 
 /// Load 8 bit immediate value into `A`
@@ -1219,7 +1280,6 @@ fn ldh_a_mc(cpu: &mut Cpu) {
 
     cpu.set_a(v);
 }
-
 
 /// Decrement `A`
 fn dec_a(cpu: &mut Cpu) {
