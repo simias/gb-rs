@@ -173,14 +173,14 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (2, ld_a_mhl),
     (1, ld_a_a),
     // Opcodes 8X
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
+    (1, add_a_b),
+    (1, add_a_c),
+    (1, add_a_d),
+    (1, add_a_e),
+    (1, add_a_h),
+    (1, add_a_l),
+    (2, add_a_mhl),
+    (2, add_a_a),
     (0, nop),
     (0, nop),
     (0, nop),
@@ -247,7 +247,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (3, jp_nn),
     (0, nop),
     (4, push_bc),
-    (0, nop),
+    (2, add_a_n),
     (0, nop),
     (0, nop),
     (2, ret),
@@ -365,33 +365,6 @@ fn pop_word(cpu: &mut Cpu) -> u16 {
     let hi = pop_byte(cpu) as u16;
 
     (hi << 8) | lo
-}
-
-/// Helper function to substract two `u8`s and update the CPU flags
-fn sub_and_set_flags(cpu: &mut Cpu, x: u8, y: u8) -> u8 {
-    let r = x - y;
-
-    cpu.set_zero(r == 0);
-    cpu.set_halfcarry((x & 0xf) < (y & 0xf));
-    cpu.set_carry(x < y);
-    cpu.set_substract(true);
-
-    r
-}
-
-/// Helper function to add two `u16` and update the CPU flags
-fn add_word_and_set_flags(cpu: &mut Cpu, x: u16, y: u16) -> u16 {
-    // Check for overflow using 32bit arithmetics
-    let x = x as u32;
-    let y = y as u32;
-    let r = x + y;
-
-    cpu.set_substract(false);
-    cpu.set_carry(r > 0xffff);
-    cpu.set_halfcarry((x & 0xfff) + (y & 0xfff) > 0xfff);
-    // zero flag is untouched.
-
-    r as u16
 }
 
 /// No operation
@@ -1549,6 +1522,18 @@ fn dec_sp(cpu: &mut Cpu) {
     cpu.set_sp(sp - 1);
 }
 
+/// Helper function to substract two `u8`s and update the CPU flags
+fn sub_and_set_flags(cpu: &mut Cpu, x: u8, y: u8) -> u8 {
+    let r = x - y;
+
+    cpu.set_zero(r == 0);
+    cpu.set_halfcarry((x ^ y ^ r) & 0x10 != 0);
+    cpu.set_carry(x < y);
+    cpu.set_substract(true);
+
+    r
+}
+
 /// Compare `A` with itself
 fn cp_a_a(cpu: &mut Cpu) {
     let a = cpu.a();
@@ -1713,6 +1698,128 @@ fn sub_a_n(cpu: &mut Cpu) {
     let r = sub_and_set_flags(cpu, a, n);
 
     cpu.set_a(r);
+}
+
+/// Helper function to add two `u8`s and update the CPU flags
+fn add_and_set_flags(cpu: &mut Cpu, x: u8, y: u8) -> u8 {
+    // Check for carry using 32bit arithmetics
+    let x = x as u32;
+    let y = y as u32;
+
+    let r = x + y;
+
+    cpu.set_zero(r == 0);
+    cpu.set_halfcarry((x ^ y ^ r) & 0x10 != 0);
+    cpu.set_carry(r & 0x100 != 0);
+    cpu.set_substract(false);
+
+    r as u8
+}
+
+/// Add `A` to `A`
+fn add_a_a(cpu: &mut Cpu) {
+    let a = cpu.a();
+
+    let r = add_and_set_flags(cpu, a, a);
+
+    cpu.set_a(r);
+}
+
+/// Add `B` to `A`
+fn add_a_b(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let b = cpu.b();
+
+    let r = add_and_set_flags(cpu, a, b);
+
+    cpu.set_a(r);
+}
+
+/// Add `C` to `A`
+fn add_a_c(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let c = cpu.c();
+
+    let r = add_and_set_flags(cpu, a, c);
+
+    cpu.set_a(r);
+}
+
+/// Add `D` to `A`
+fn add_a_d(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let d = cpu.d();
+
+    let r = add_and_set_flags(cpu, a, d);
+
+    cpu.set_a(r);
+}
+
+/// Add `E` to `A`
+fn add_a_e(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let e = cpu.e();
+
+    let r = add_and_set_flags(cpu, a, e);
+
+    cpu.set_a(r);
+}
+
+/// Add `H` to `A`
+fn add_a_h(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let h = cpu.h();
+
+    let r = add_and_set_flags(cpu, a, h);
+
+    cpu.set_a(r);
+}
+
+/// Add `L` to `A`
+fn add_a_l(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let l = cpu.l();
+
+    let r = add_and_set_flags(cpu, a, l);
+
+    cpu.set_a(r);
+}
+
+/// Add `[HL]` to `A`
+fn add_a_mhl(cpu: &mut Cpu) {
+    let a  = cpu.a();
+    let hl = cpu.hl();
+
+    let n = cpu.fetch_byte(hl);
+
+    let r = add_and_set_flags(cpu, a, n);
+
+    cpu.set_a(r);
+}
+
+/// Add `N` to `A`
+fn add_a_n(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let n = next_byte(cpu);
+
+    let r = add_and_set_flags(cpu, a, n);
+
+    cpu.set_a(r);
+}
+
+/// Helper function to add two `u16` and update the CPU flags
+fn add_word_and_set_flags(cpu: &mut Cpu, x: u16, y: u16) -> u16 {
+    // Check for carry using 32bit arithmetics
+    let x = x as u32;
+    let y = y as u32;
+    let r = x + y;
+
+    cpu.set_substract(false);
+    cpu.set_carry(r & 0x10000 != 0);
+    cpu.set_halfcarry((x ^ y ^ r) & 0x1000 != 0);
+    // zero flag is untouched.
+
+    r as u16
 }
 
 /// Add `BC` to `HL`
