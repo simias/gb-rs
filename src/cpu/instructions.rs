@@ -2288,73 +2288,73 @@ mod bitops {
         (4, res_mhl_7),
         (2, res_a_7),
         // Opcodes CB CX
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
+        (2, set_b_0),
+        (2, set_c_0),
+        (2, set_d_0),
+        (2, set_e_0),
+        (2, set_h_0),
+        (2, set_l_0),
+        (4, set_mhl_0),
+        (2, set_a_0),
+        (2, set_b_1),
+        (2, set_c_1),
+        (2, set_d_1),
+        (2, set_e_1),
+        (2, set_h_1),
+        (2, set_l_1),
+        (4, set_mhl_1),
+        (2, set_a_1),
         // Opcodes CB DX
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
+        (2, set_b_2),
+        (2, set_c_2),
+        (2, set_d_2),
+        (2, set_e_2),
+        (2, set_h_2),
+        (2, set_l_2),
+        (4, set_mhl_2),
+        (2, set_a_2),
+        (2, set_b_3),
+        (2, set_c_3),
+        (2, set_d_3),
+        (2, set_e_3),
+        (2, set_h_3),
+        (2, set_l_3),
+        (4, set_mhl_3),
+        (2, set_a_3),
         // Opcodes CB EX
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
+        (2, set_b_4),
+        (2, set_c_4),
+        (2, set_d_4),
+        (2, set_e_4),
+        (2, set_h_4),
+        (2, set_l_4),
+        (4, set_mhl_4),
+        (2, set_a_4),
+        (2, set_b_5),
+        (2, set_c_5),
+        (2, set_d_5),
+        (2, set_e_5),
+        (2, set_h_5),
+        (2, set_l_5),
+        (4, set_mhl_5),
+        (2, set_a_5),
         // Opcodes CB FX
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
+        (2, set_b_6),
+        (2, set_c_6),
+        (2, set_d_6),
+        (2, set_e_6),
+        (2, set_h_6),
+        (2, set_l_6),
+        (4, set_mhl_6),
+        (2, set_a_6),
+        (2, set_b_7),
+        (2, set_c_7),
+        (2, set_d_7),
+        (2, set_e_7),
+        (2, set_h_7),
+        (2, set_l_7),
+        (4, set_mhl_7),
+        (2, set_a_7),
     ];
 
     /// Helper function to clear one bit in a u8
@@ -2739,4 +2739,388 @@ mod bitops {
     fn res_mhl_7(cpu: &mut Cpu) {
         res_mhl(cpu, 7);
     }
+
+    /// Helper function to set one bit in a u8
+    fn set(val: u8, bit: u8) -> u8 {
+        val | (1u8 << (bit as uint))
+    }
+
+    /// Helper function to set bits in `A`
+    fn set_a(cpu: &mut Cpu, bit: u8) {
+        let a = cpu.a();
+
+        cpu.set_a(set(a, bit));
+    }
+
+    /// Set `A` bit 0
+    fn set_a_0(cpu: &mut Cpu) {
+        set_a(cpu, 0);
+    }
+
+    /// Set `A` bit 1
+    fn set_a_1(cpu: &mut Cpu) {
+        set_a(cpu, 1);
+    }
+
+    /// Set `A` bit 2
+    fn set_a_2(cpu: &mut Cpu) {
+        set_a(cpu, 2);
+    }
+
+    /// Set `A` bit 3
+    fn set_a_3(cpu: &mut Cpu) {
+        set_a(cpu, 3);
+    }
+
+    /// Set `A` bit 4
+    fn set_a_4(cpu: &mut Cpu) {
+        set_a(cpu, 4);
+    }
+
+    /// Set `A` bit 5
+    fn set_a_5(cpu: &mut Cpu) {
+        set_a(cpu, 5);
+    }
+
+    /// Set `A` bit 6
+    fn set_a_6(cpu: &mut Cpu) {
+        set_a(cpu, 6);
+    }
+
+    /// Set `A` bit 7
+    fn set_a_7(cpu: &mut Cpu) {
+        set_a(cpu, 7);
+    }
+
+    /// Helper function to set bits in `B`
+    fn set_b(cpu: &mut Cpu, bit: u8) {
+        let b = cpu.b();
+
+        cpu.set_b(set(b, bit));
+    }
+
+    /// Set `B` bit 0
+    fn set_b_0(cpu: &mut Cpu) {
+        set_b(cpu, 0);
+    }
+
+    /// Set `B` bit 1
+    fn set_b_1(cpu: &mut Cpu) {
+        set_b(cpu, 1);
+    }
+
+    /// Set `B` bit 2
+    fn set_b_2(cpu: &mut Cpu) {
+        set_b(cpu, 2);
+    }
+
+    /// Set `B` bit 3
+    fn set_b_3(cpu: &mut Cpu) {
+        set_b(cpu, 3);
+    }
+
+    /// Set `B` bit 4
+    fn set_b_4(cpu: &mut Cpu) {
+        set_b(cpu, 4);
+    }
+
+    /// Set `B` bit 5
+    fn set_b_5(cpu: &mut Cpu) {
+        set_b(cpu, 5);
+    }
+
+    /// Set `B` bit 6
+    fn set_b_6(cpu: &mut Cpu) {
+        set_b(cpu, 6);
+    }
+
+    /// Set `B` bit 7
+    fn set_b_7(cpu: &mut Cpu) {
+        set_b(cpu, 7);
+    }
+
+    /// Helper function to set bits in `C`
+    fn set_c(cpu: &mut Cpu, bit: u8) {
+        let c = cpu.c();
+
+        cpu.set_c(set(c, bit));
+    }
+
+    /// Set `C` bit 0
+    fn set_c_0(cpu: &mut Cpu) {
+        set_c(cpu, 0);
+    }
+
+    /// Set `C` bit 1
+    fn set_c_1(cpu: &mut Cpu) {
+        set_c(cpu, 1);
+    }
+
+    /// Set `C` bit 2
+    fn set_c_2(cpu: &mut Cpu) {
+        set_c(cpu, 2);
+    }
+
+    /// Set `C` bit 3
+    fn set_c_3(cpu: &mut Cpu) {
+        set_c(cpu, 3);
+    }
+
+    /// Set `C` bit 4
+    fn set_c_4(cpu: &mut Cpu) {
+        set_c(cpu, 4);
+    }
+
+    /// Set `C` bit 5
+    fn set_c_5(cpu: &mut Cpu) {
+        set_c(cpu, 5);
+    }
+
+    /// Set `C` bit 6
+    fn set_c_6(cpu: &mut Cpu) {
+        set_c(cpu, 6);
+    }
+
+    /// Set `C` bit 7
+    fn set_c_7(cpu: &mut Cpu) {
+        set_c(cpu, 7);
+    }
+
+    /// Helper function to set bits in `D`
+    fn set_d(cpu: &mut Cpu, bit: u8) {
+        let d = cpu.d();
+
+        cpu.set_d(set(d, bit));
+    }
+
+    /// Set `D` bit 0
+    fn set_d_0(cpu: &mut Cpu) {
+        set_d(cpu, 0);
+    }
+
+    /// Set `D` bit 1
+    fn set_d_1(cpu: &mut Cpu) {
+        set_d(cpu, 1);
+    }
+
+    /// Set `D` bit 2
+    fn set_d_2(cpu: &mut Cpu) {
+        set_d(cpu, 2);
+    }
+
+    /// Set `D` bit 3
+    fn set_d_3(cpu: &mut Cpu) {
+        set_d(cpu, 3);
+    }
+
+    /// Set `D` bit 4
+    fn set_d_4(cpu: &mut Cpu) {
+        set_d(cpu, 4);
+    }
+
+    /// Set `D` bit 5
+    fn set_d_5(cpu: &mut Cpu) {
+        set_d(cpu, 5);
+    }
+
+    /// Set `D` bit 6
+    fn set_d_6(cpu: &mut Cpu) {
+        set_d(cpu, 6);
+    }
+
+    /// Set `D` bit 7
+    fn set_d_7(cpu: &mut Cpu) {
+        set_d(cpu, 7);
+    }
+
+    /// Helper function to set bits in `E`
+    fn set_e(cpu: &mut Cpu, bit: u8) {
+        let e = cpu.e();
+
+        cpu.set_e(set(e, bit));
+    }
+
+    /// Set `E` bit 0
+    fn set_e_0(cpu: &mut Cpu) {
+        set_e(cpu, 0);
+    }
+
+    /// Set `E` bit 1
+    fn set_e_1(cpu: &mut Cpu) {
+        set_e(cpu, 1);
+    }
+
+    /// Set `E` bit 2
+    fn set_e_2(cpu: &mut Cpu) {
+        set_e(cpu, 2);
+    }
+
+    /// Set `E` bit 3
+    fn set_e_3(cpu: &mut Cpu) {
+        set_e(cpu, 3);
+    }
+
+    /// Set `E` bit 4
+    fn set_e_4(cpu: &mut Cpu) {
+        set_e(cpu, 4);
+    }
+
+    /// Set `E` bit 5
+    fn set_e_5(cpu: &mut Cpu) {
+        set_e(cpu, 5);
+    }
+
+    /// Set `E` bit 6
+    fn set_e_6(cpu: &mut Cpu) {
+        set_e(cpu, 6);
+    }
+
+    /// Set `E` bit 7
+    fn set_e_7(cpu: &mut Cpu) {
+        set_e(cpu, 7);
+    }
+
+    /// Helper function to set bits in `H`
+    fn set_h(cpu: &mut Cpu, bit: u8) {
+        let h = cpu.h();
+
+        cpu.set_h(set(h, bit));
+    }
+
+    /// Set `H` bit 0
+    fn set_h_0(cpu: &mut Cpu) {
+        set_h(cpu, 0);
+    }
+
+    /// Set `H` bit 1
+    fn set_h_1(cpu: &mut Cpu) {
+        set_h(cpu, 1);
+    }
+
+    /// Set `H` bit 2
+    fn set_h_2(cpu: &mut Cpu) {
+        set_h(cpu, 2);
+    }
+
+    /// Set `H` bit 3
+    fn set_h_3(cpu: &mut Cpu) {
+        set_h(cpu, 3);
+    }
+
+    /// Set `H` bit 4
+    fn set_h_4(cpu: &mut Cpu) {
+        set_h(cpu, 4);
+    }
+
+    /// Set `H` bit 5
+    fn set_h_5(cpu: &mut Cpu) {
+        set_h(cpu, 5);
+    }
+
+    /// Set `H` bit 6
+    fn set_h_6(cpu: &mut Cpu) {
+        set_h(cpu, 6);
+    }
+
+    /// Set `H` bit 7
+    fn set_h_7(cpu: &mut Cpu) {
+        set_h(cpu, 7);
+    }
+
+    /// Helper function to set bits in `L`
+    fn set_l(cpu: &mut Cpu, bit: u8) {
+        let l = cpu.l();
+
+        cpu.set_l(set(l, bit));
+    }
+
+    /// Set `L` bit 0
+    fn set_l_0(cpu: &mut Cpu) {
+        set_l(cpu, 0);
+    }
+
+    /// Set `L` bit 1
+    fn set_l_1(cpu: &mut Cpu) {
+        set_l(cpu, 1);
+    }
+
+    /// Set `L` bit 2
+    fn set_l_2(cpu: &mut Cpu) {
+        set_l(cpu, 2);
+    }
+
+    /// Set `L` bit 3
+    fn set_l_3(cpu: &mut Cpu) {
+        set_l(cpu, 3);
+    }
+
+    /// Set `L` bit 4
+    fn set_l_4(cpu: &mut Cpu) {
+        set_l(cpu, 4);
+    }
+
+    /// Set `L` bit 5
+    fn set_l_5(cpu: &mut Cpu) {
+        set_l(cpu, 5);
+    }
+
+    /// Set `L` bit 6
+    fn set_l_6(cpu: &mut Cpu) {
+        set_l(cpu, 6);
+    }
+
+    /// Set `L` bit 7
+    fn set_l_7(cpu: &mut Cpu) {
+        set_l(cpu, 7);
+    }
+
+    /// Helper function to set bits in `[HL]`
+    fn set_mhl(cpu: &mut Cpu, bit: u8) {
+        let hl = cpu.hl();
+
+        let n = cpu.fetch_byte(hl);
+
+        cpu.store_byte(hl, set(n, bit))
+    }
+
+    /// Set `[HL]` bit 0
+    fn set_mhl_0(cpu: &mut Cpu) {
+        set_mhl(cpu, 0);
+    }
+
+    /// Set `[HL]` bit 1
+    fn set_mhl_1(cpu: &mut Cpu) {
+        set_mhl(cpu, 1);
+    }
+
+    /// Set `[HL]` bit 2
+    fn set_mhl_2(cpu: &mut Cpu) {
+        set_mhl(cpu, 2);
+    }
+
+    /// Set `[HL]` bit 3
+    fn set_mhl_3(cpu: &mut Cpu) {
+        set_mhl(cpu, 3);
+    }
+
+    /// Set `[HL]` bit 4
+    fn set_mhl_4(cpu: &mut Cpu) {
+        set_mhl(cpu, 4);
+    }
+
+    /// Set `[HL]` bit 5
+    fn set_mhl_5(cpu: &mut Cpu) {
+        set_mhl(cpu, 5);
+    }
+
+    /// Set `[HL]` bit 6
+    fn set_mhl_6(cpu: &mut Cpu) {
+        set_mhl(cpu, 6);
+    }
+
+    /// Set `[HL]` bit 7
+    fn set_mhl_7(cpu: &mut Cpu) {
+        set_mhl(cpu, 7);
+    }
+
 }
