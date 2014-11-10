@@ -1,6 +1,10 @@
-#![warn(missing_docs)]
-
 //! gb-rs: Game Boy emulator
+//! Ressources:
+//!
+//! Opcode map: http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
+//! JS emulator: http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-The-CPU
+
+#![warn(missing_docs)]
 
 mod cpu;
 mod io;

@@ -16,8 +16,8 @@ pub fn next_instruction(cpu: &mut Cpu) -> (u32, fn (&mut Cpu)) {
         if op != 0xcb {
             OPCODES[op as uint]
         } else {
-            // 0xCB introduces a two-byte opcode
-            cb::next_instruction(cpu)
+            // 0xCB introduces a two-byte bitops opcode
+            bitops::next_instruction(cpu)
         };
 
     if delay == 0 {
@@ -251,7 +251,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (0, nop),
     (2, ret),
     (3, jp_z_nn),
-    (0, nop), // See CB opcode map
+    (0, nop), // See bitops opcode map
     (0, nop),
     (3, call),
     (0, nop),
@@ -2055,8 +2055,10 @@ fn ei(cpu: &mut Cpu) {
 }
 
 
-mod cb {
-    //! Emulation of instructions prefixed by 0xCB
+mod bitops {
+    //! Emulation of instructions prefixed by 0xCB. They are all
+    //! operations dealing with bit manipulation (rotations, shifts,
+    //! bit set, bit clear...)
 
     use super::nop;
     use cpu::Cpu;
@@ -2218,72 +2220,72 @@ mod cb {
         (0, nop),
         (0, nop),
         // Opcodes CB 8X
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
+        (2, res_b_0),
+        (2, res_c_0),
+        (2, res_d_0),
+        (2, res_e_0),
+        (2, res_h_0),
+        (2, res_l_0),
+        (4, res_mhl_0),
         (2, res_a_0),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
+        (2, res_b_1),
+        (2, res_c_1),
+        (2, res_d_1),
+        (2, res_e_1),
+        (2, res_h_1),
+        (2, res_l_1),
+        (4, res_mhl_1),
         (2, res_a_1),
         // Opcodes CB 9X
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
+        (2, res_b_2),
+        (2, res_c_2),
+        (2, res_d_2),
+        (2, res_e_2),
+        (2, res_h_2),
+        (2, res_l_2),
+        (4, res_mhl_2),
         (2, res_a_2),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
+        (2, res_b_3),
+        (2, res_c_3),
+        (2, res_d_3),
+        (2, res_e_3),
+        (2, res_h_3),
+        (2, res_l_3),
+        (4, res_mhl_3),
         (2, res_a_3),
         // Opcodes CB AX
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
+        (2, res_b_4),
+        (2, res_c_4),
+        (2, res_d_4),
+        (2, res_e_4),
+        (2, res_h_4),
+        (2, res_l_4),
+        (4, res_mhl_4),
         (2, res_a_4),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
+        (2, res_b_5),
+        (2, res_c_5),
+        (2, res_d_5),
+        (2, res_e_5),
+        (2, res_h_5),
+        (2, res_l_5),
+        (4, res_mhl_5),
         (2, res_a_5),
         // Opcodes CB BX
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
+        (2, res_b_6),
+        (2, res_c_6),
+        (2, res_d_6),
+        (2, res_e_6),
+        (2, res_h_6),
+        (2, res_l_6),
+        (4, res_mhl_6),
         (2, res_a_6),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
+        (2, res_b_7),
+        (2, res_c_7),
+        (2, res_d_7),
+        (2, res_e_7),
+        (2, res_h_7),
+        (2, res_l_7),
+        (4, res_mhl_7),
         (2, res_a_7),
         // Opcodes CB CX
         (0, nop),
@@ -2405,5 +2407,336 @@ mod cb {
     /// Clear `A` bit 7
     fn res_a_7(cpu: &mut Cpu) {
         res_a(cpu, 7);
+    }
+
+    /// Helper function to clear bits in `B`
+    fn res_b(cpu: &mut Cpu, bit: u8) {
+        let b = cpu.b();
+
+        cpu.set_b(res(b, bit));
+    }
+
+    /// Clear `B` bit 0
+    fn res_b_0(cpu: &mut Cpu) {
+        res_b(cpu, 0);
+    }
+
+    /// Clear `B` bit 1
+    fn res_b_1(cpu: &mut Cpu) {
+        res_b(cpu, 1);
+    }
+
+    /// Clear `B` bit 2
+    fn res_b_2(cpu: &mut Cpu) {
+        res_b(cpu, 2);
+    }
+
+    /// Clear `B` bit 3
+    fn res_b_3(cpu: &mut Cpu) {
+        res_b(cpu, 3);
+    }
+
+    /// Clear `B` bit 4
+    fn res_b_4(cpu: &mut Cpu) {
+        res_b(cpu, 4);
+    }
+
+    /// Clear `B` bit 5
+    fn res_b_5(cpu: &mut Cpu) {
+        res_b(cpu, 5);
+    }
+
+    /// Clear `B` bit 6
+    fn res_b_6(cpu: &mut Cpu) {
+        res_b(cpu, 6);
+    }
+
+    /// Clear `B` bit 7
+    fn res_b_7(cpu: &mut Cpu) {
+        res_b(cpu, 7);
+    }
+
+    /// Helper function to clear bits in `C`
+    fn res_c(cpu: &mut Cpu, bit: u8) {
+        let c = cpu.c();
+
+        cpu.set_c(res(c, bit));
+    }
+
+    /// Clear `C` bit 0
+    fn res_c_0(cpu: &mut Cpu) {
+        res_c(cpu, 0);
+    }
+
+    /// Clear `C` bit 1
+    fn res_c_1(cpu: &mut Cpu) {
+        res_c(cpu, 1);
+    }
+
+    /// Clear `C` bit 2
+    fn res_c_2(cpu: &mut Cpu) {
+        res_c(cpu, 2);
+    }
+
+    /// Clear `C` bit 3
+    fn res_c_3(cpu: &mut Cpu) {
+        res_c(cpu, 3);
+    }
+
+    /// Clear `C` bit 4
+    fn res_c_4(cpu: &mut Cpu) {
+        res_c(cpu, 4);
+    }
+
+    /// Clear `C` bit 5
+    fn res_c_5(cpu: &mut Cpu) {
+        res_c(cpu, 5);
+    }
+
+    /// Clear `C` bit 6
+    fn res_c_6(cpu: &mut Cpu) {
+        res_c(cpu, 6);
+    }
+
+    /// Clear `C` bit 7
+    fn res_c_7(cpu: &mut Cpu) {
+        res_c(cpu, 7);
+    }
+
+    /// Helper function to clear bits in `D`
+    fn res_d(cpu: &mut Cpu, bit: u8) {
+        let d = cpu.d();
+
+        cpu.set_d(res(d, bit));
+    }
+
+    /// Clear `D` bit 0
+    fn res_d_0(cpu: &mut Cpu) {
+        res_d(cpu, 0);
+    }
+
+    /// Clear `D` bit 1
+    fn res_d_1(cpu: &mut Cpu) {
+        res_d(cpu, 1);
+    }
+
+    /// Clear `D` bit 2
+    fn res_d_2(cpu: &mut Cpu) {
+        res_d(cpu, 2);
+    }
+
+    /// Clear `D` bit 3
+    fn res_d_3(cpu: &mut Cpu) {
+        res_d(cpu, 3);
+    }
+
+    /// Clear `D` bit 4
+    fn res_d_4(cpu: &mut Cpu) {
+        res_d(cpu, 4);
+    }
+
+    /// Clear `D` bit 5
+    fn res_d_5(cpu: &mut Cpu) {
+        res_d(cpu, 5);
+    }
+
+    /// Clear `D` bit 6
+    fn res_d_6(cpu: &mut Cpu) {
+        res_d(cpu, 6);
+    }
+
+    /// Clear `D` bit 7
+    fn res_d_7(cpu: &mut Cpu) {
+        res_d(cpu, 7);
+    }
+
+    /// Helper function to clear bits in `E`
+    fn res_e(cpu: &mut Cpu, bit: u8) {
+        let e = cpu.e();
+
+        cpu.set_e(res(e, bit));
+    }
+
+    /// Clear `E` bit 0
+    fn res_e_0(cpu: &mut Cpu) {
+        res_e(cpu, 0);
+    }
+
+    /// Clear `E` bit 1
+    fn res_e_1(cpu: &mut Cpu) {
+        res_e(cpu, 1);
+    }
+
+    /// Clear `E` bit 2
+    fn res_e_2(cpu: &mut Cpu) {
+        res_e(cpu, 2);
+    }
+
+    /// Clear `E` bit 3
+    fn res_e_3(cpu: &mut Cpu) {
+        res_e(cpu, 3);
+    }
+
+    /// Clear `E` bit 4
+    fn res_e_4(cpu: &mut Cpu) {
+        res_e(cpu, 4);
+    }
+
+    /// Clear `E` bit 5
+    fn res_e_5(cpu: &mut Cpu) {
+        res_e(cpu, 5);
+    }
+
+    /// Clear `E` bit 6
+    fn res_e_6(cpu: &mut Cpu) {
+        res_e(cpu, 6);
+    }
+
+    /// Clear `E` bit 7
+    fn res_e_7(cpu: &mut Cpu) {
+        res_e(cpu, 7);
+    }
+
+    /// Helper function to clear bits in `H`
+    fn res_h(cpu: &mut Cpu, bit: u8) {
+        let h = cpu.h();
+
+        cpu.set_h(res(h, bit));
+    }
+
+    /// Clear `H` bit 0
+    fn res_h_0(cpu: &mut Cpu) {
+        res_h(cpu, 0);
+    }
+
+    /// Clear `H` bit 1
+    fn res_h_1(cpu: &mut Cpu) {
+        res_h(cpu, 1);
+    }
+
+    /// Clear `H` bit 2
+    fn res_h_2(cpu: &mut Cpu) {
+        res_h(cpu, 2);
+    }
+
+    /// Clear `H` bit 3
+    fn res_h_3(cpu: &mut Cpu) {
+        res_h(cpu, 3);
+    }
+
+    /// Clear `H` bit 4
+    fn res_h_4(cpu: &mut Cpu) {
+        res_h(cpu, 4);
+    }
+
+    /// Clear `H` bit 5
+    fn res_h_5(cpu: &mut Cpu) {
+        res_h(cpu, 5);
+    }
+
+    /// Clear `H` bit 6
+    fn res_h_6(cpu: &mut Cpu) {
+        res_h(cpu, 6);
+    }
+
+    /// Clear `H` bit 7
+    fn res_h_7(cpu: &mut Cpu) {
+        res_h(cpu, 7);
+    }
+
+    /// Helper function to clear bits in `L`
+    fn res_l(cpu: &mut Cpu, bit: u8) {
+        let l = cpu.l();
+
+        cpu.set_l(res(l, bit));
+    }
+
+    /// Clear `L` bit 0
+    fn res_l_0(cpu: &mut Cpu) {
+        res_l(cpu, 0);
+    }
+
+    /// Clear `L` bit 1
+    fn res_l_1(cpu: &mut Cpu) {
+        res_l(cpu, 1);
+    }
+
+    /// Clear `L` bit 2
+    fn res_l_2(cpu: &mut Cpu) {
+        res_l(cpu, 2);
+    }
+
+    /// Clear `L` bit 3
+    fn res_l_3(cpu: &mut Cpu) {
+        res_l(cpu, 3);
+    }
+
+    /// Clear `L` bit 4
+    fn res_l_4(cpu: &mut Cpu) {
+        res_l(cpu, 4);
+    }
+
+    /// Clear `L` bit 5
+    fn res_l_5(cpu: &mut Cpu) {
+        res_l(cpu, 5);
+    }
+
+    /// Clear `L` bit 6
+    fn res_l_6(cpu: &mut Cpu) {
+        res_l(cpu, 6);
+    }
+
+    /// Clear `L` bit 7
+    fn res_l_7(cpu: &mut Cpu) {
+        res_l(cpu, 7);
+    }
+
+    /// Helper function to clear bits in `[HL]`
+    fn res_mhl(cpu: &mut Cpu, bit: u8) {
+        let hl = cpu.hl();
+
+        let n = cpu.fetch_byte(hl);
+
+        cpu.store_byte(hl, res(n, bit))
+    }
+
+    /// Clear `[HL]` bit 0
+    fn res_mhl_0(cpu: &mut Cpu) {
+        res_mhl(cpu, 0);
+    }
+
+    /// Clear `[HL]` bit 1
+    fn res_mhl_1(cpu: &mut Cpu) {
+        res_mhl(cpu, 1);
+    }
+
+    /// Clear `[HL]` bit 2
+    fn res_mhl_2(cpu: &mut Cpu) {
+        res_mhl(cpu, 2);
+    }
+
+    /// Clear `[HL]` bit 3
+    fn res_mhl_3(cpu: &mut Cpu) {
+        res_mhl(cpu, 3);
+    }
+
+    /// Clear `[HL]` bit 4
+    fn res_mhl_4(cpu: &mut Cpu) {
+        res_mhl(cpu, 4);
+    }
+
+    /// Clear `[HL]` bit 5
+    fn res_mhl_5(cpu: &mut Cpu) {
+        res_mhl(cpu, 5);
+    }
+
+    /// Clear `[HL]` bit 6
+    fn res_mhl_6(cpu: &mut Cpu) {
+        res_mhl(cpu, 6);
+    }
+
+    /// Clear `[HL]` bit 7
+    fn res_mhl_7(cpu: &mut Cpu) {
+        res_mhl(cpu, 7);
     }
 }

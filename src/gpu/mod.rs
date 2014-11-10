@@ -47,7 +47,7 @@ impl Gpu {
     /// state one step forward.
     pub fn step(&mut self) {
 
-        println!("{}", *self);
+        //println!("{}", *self);
 
         if self.col < 456 {
             self.col += 1;
