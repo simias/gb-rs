@@ -62,7 +62,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (1, dec_d),
     (2, ld_d_n),
     (1, rla),
-    (2, jr_n),
+    (3, jr_n),
     (2, add_hl_de),
     (2, ld_a_mde),
     (2, dec_de),
@@ -86,7 +86,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (1, inc_l),
     (1, dec_l),
     (2, ld_l_n),
-    (0, nop),
+    (1, cpl),
     // Opcodes 3X
     (2, jr_nc_n),
     (3, ld_sp_nn),
@@ -241,36 +241,36 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (2, cp_a_mhl),
     (1, cp_a_a),
     // Opcodes CX
-    (0, nop),
+    (2, ret_nz),
     (3, pop_bc),
     (3, jp_nz_nn),
     (3, jp_nn),
-    (0, nop),
+    (3, call_nz_nn),
     (4, push_bc),
     (2, add_a_n),
     (0, nop),
-    (0, nop),
-    (2, ret),
+    (2, ret_z),
+    (4, ret),
     (3, jp_z_nn),
     (0, nop), // See bitops opcode map
-    (0, nop),
-    (3, call),
+    (3, call_z_nn),
+    (6, call_nn),
     (0, nop),
     (0, nop),
     // Opcodes DX
-    (0, nop),
+    (2, ret_nc),
     (3, pop_de),
     (3, jp_nc_nn),
     (0, nop),
-    (0, nop),
+    (3, call_nc_nn),
     (4, push_de),
     (2, sub_a_n),
     (0, nop),
-    (0, nop),
-    (0, nop),
+    (2, ret_c),
+    (4, reti),
     (3, jp_c_nn),
     (0, nop),
-    (0, nop),
+    (3, call_c_nn),
     (0, nop),
     (0, nop),
     (0, nop),
@@ -368,7 +368,7 @@ fn pop_word(cpu: &mut Cpu) -> u16 {
 }
 
 /// No operation
-pub fn nop(_: &mut Cpu) {
+fn nop(_: &mut Cpu) {
 }
 
 /// Rotate `A` left
@@ -430,6 +430,16 @@ fn rra(cpu: &mut Cpu) {
 
     // Same remark as RLCA regarding other flags
     cpu.set_carry(newcarry);
+}
+
+/// Complement `A`
+fn cpl(cpu: &mut Cpu) {
+    let a = cpu.a();
+
+    cpu.set_a(!a);
+
+    cpu.set_substract(true);
+    cpu.set_halfcarry(true);
 }
 
 /// Load 8 bit immediate value into `A`
@@ -1123,6 +1133,8 @@ fn jr_nz_n(cpu: &mut Cpu) {
         pc += off as i16;
 
         cpu.set_pc(pc as u16);
+
+        cpu.additional_delay(1);
     }
 }
 
@@ -1136,6 +1148,8 @@ fn jr_z_n(cpu: &mut Cpu) {
         pc += off as i16;
 
         cpu.set_pc(pc as u16);
+
+        cpu.additional_delay(1);
     }
 }
 
@@ -1149,6 +1163,8 @@ fn jr_nc_n(cpu: &mut Cpu) {
         pc += off as i16;
 
         cpu.set_pc(pc as u16);
+
+        cpu.additional_delay(1);
     }
 }
 
@@ -1162,11 +1178,13 @@ fn jr_c_n(cpu: &mut Cpu) {
         pc += off as i16;
 
         cpu.set_pc(pc as u16);
+
+        cpu.additional_delay(1);
     }
 }
 
 /// Push return address on stack and jump to immediate address
-fn call(cpu: &mut Cpu) {
+fn call_nn(cpu: &mut Cpu) {
     let addr = next_word(cpu);
     let pc = cpu.pc();
 
@@ -1175,11 +1193,125 @@ fn call(cpu: &mut Cpu) {
     cpu.set_pc(addr);
 }
 
-/// Pop rutern address from stack and jump to it
+/// If !Z Push return address on stack and jump to immediate address
+fn call_nz_nn(cpu: &mut Cpu) {
+    let addr = next_word(cpu);
+
+    if !cpu.zero() {
+        let pc = cpu.pc();
+
+        push_word(cpu, pc);
+
+        cpu.set_pc(addr);
+
+        cpu.additional_delay(3);
+    }
+}
+
+/// If Z Push return address on stack and jump to immediate address
+fn call_z_nn(cpu: &mut Cpu) {
+    let addr = next_word(cpu);
+
+    if cpu.zero() {
+        let pc = cpu.pc();
+
+        push_word(cpu, pc);
+
+        cpu.set_pc(addr);
+
+        cpu.additional_delay(3);
+    }
+}
+
+/// If !C Push return address on stack and jump to immediate address
+fn call_nc_nn(cpu: &mut Cpu) {
+    let addr = next_word(cpu);
+
+    if !cpu.carry() {
+        let pc = cpu.pc();
+
+        push_word(cpu, pc);
+
+        cpu.set_pc(addr);
+
+        cpu.additional_delay(3);
+    }
+}
+
+/// If C Push return address on stack and jump to immediate address
+fn call_c_nn(cpu: &mut Cpu) {
+    let addr = next_word(cpu);
+
+    if cpu.carry() {
+        let pc = cpu.pc();
+
+        push_word(cpu, pc);
+
+        cpu.set_pc(addr);
+
+        cpu.additional_delay(3);
+    }
+}
+
+/// Pop return address from stack and jump to it
 fn ret(cpu: &mut Cpu) {
     let addr = pop_word(cpu);
 
     cpu.set_pc(addr);
+}
+
+/// Pop return address from stack and jump to it then enable
+/// interrupts.
+fn reti(cpu: &mut Cpu) {
+    let addr = pop_word(cpu);
+
+    cpu.set_pc(addr);
+
+    cpu.enable_interrupts();
+}
+
+/// If !Z pop return address from stack and jump to it
+fn ret_nz(cpu: &mut Cpu) {
+    if !cpu.zero() {
+        let addr = pop_word(cpu);
+
+        cpu.set_pc(addr);
+
+        cpu.additional_delay(3);
+    }
+}
+
+/// If Z pop return address from stack and jump to it
+fn ret_z(cpu: &mut Cpu) {
+    if cpu.zero() {
+        let addr = pop_word(cpu);
+
+        cpu.set_pc(addr);
+
+        cpu.additional_delay(3);
+    }
+}
+
+/// If !C pop return address from stack and jump to it
+fn ret_nc(cpu: &mut Cpu) {
+    if !cpu.carry() {
+        let addr = pop_word(cpu);
+
+        cpu.set_pc(addr);
+
+        cpu.additional_delay(3);
+    }
+}
+
+/// If C pop return address from stack and jump to it
+fn ret_c(cpu: &mut Cpu) {
+    if cpu.carry() {
+        let addr = pop_word(cpu);
+
+        cpu.set_pc(addr);
+
+        cpu.additional_delay(3);
+    }
 }
 
 /// Store `A` into `[HL]` and decrement `HL`

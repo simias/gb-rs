@@ -3,16 +3,14 @@
 use std::fmt::{Show, Formatter, FormatError};
 use io::Interconnect;
 
-use cpu::instructions::{next_instruction, nop};
+use cpu::instructions::next_instruction;
 
 mod instructions;
 
 /// CPU state. Should be considered undetermined as long as
 /// `Cpu::reset()` hasn't been called.
 pub struct Cpu {
-    // Instruction currently being executed
-    current_instruction: fn (&mut Cpu),
-    // Time remaining for the instruction to finish
+    // Time remaining for the current instruction to finish
     instruction_delay:   u32,
     // CPU registers (except for `F` register)
     regs:                Registers,
@@ -69,8 +67,6 @@ impl Cpu {
     /// garbage values.
     pub fn new (rom: ::io::rom::Rom) -> Cpu {
         Cpu {
-            // Use NOP as default instruction.
-            current_instruction: nop,
             instruction_delay:   0,
             regs: Registers { pc: 0xbaad,
                               sp: 0xbaad,
@@ -95,8 +91,7 @@ impl Cpu {
     pub fn reset(&mut self) {
         self.inter.reset();
 
-        self.current_instruction = nop;
-        self.instruction_delay   = 0;
+        self.instruction_delay = 0;
 
         // Code always starts at 0x100
         self.regs.pc = 0x100;
@@ -125,18 +120,16 @@ impl Cpu {
             return;
         }
 
-        // The instruction should have finished executed, update CPU state
-        (self.current_instruction)(self);
-
         //println!("{}", *self);
 
         // Now we fetch the next instruction
         let (delay, instruction) = next_instruction(self);
 
-        // Instruction delays are in CPU Machine Cycles. There's 4
-        // Clock cycles in one Machine Cycle.
-        self.instruction_delay   = delay * 4 - 1;
-        self.current_instruction = instruction;
+        // Instruction delays are in CPU Machine cycles. There's 4
+        // Clock cycles in one Machine cycle.
+        self.instruction_delay = delay * 4 - 1;
+        // Run the next instruction
+        (instruction)(self);
     }
 
     /// Fetch byte at `addr` from the interconnect
@@ -147,6 +140,14 @@ impl Cpu {
     /// Store byte `val` at `addr` in the interconnect
     fn store_byte(&self, addr: u16, val: u8) {
         self.inter.set_byte(addr, val)
+    }
+
+    /// Certain instructions take a different amount of time to
+    /// execute depending on the cpu state (conditional jumps and
+    /// calls). `delay` is expressed in CPU Machine cycle, there's 4
+    /// Clock cycles in one Machine cycle.
+    fn additional_delay(&mut self, delay: u32) {
+        self.instruction_delay += delay * 4;
     }
 
     /// Retrieve value of the `PC` register
