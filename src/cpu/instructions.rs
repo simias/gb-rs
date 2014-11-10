@@ -21,6 +21,7 @@ pub fn next_instruction(cpu: &mut Cpu) -> (u32, fn (&mut Cpu)) {
         };
 
     if delay == 0 {
+        println!("{}", cpu);
         panic!("Unimplemented instruction [{:02X}]", op);
     }
 
@@ -2195,14 +2196,14 @@ mod bitops {
         (0, nop),
         (0, nop),
         // Opcodes CB 3X
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
+        (2, swap_b),
+        (2, swap_c),
+        (2, swap_d),
+        (2, swap_e),
+        (2, swap_h),
+        (2, swap_l),
+        (4, swap_mhl),
+        (2, swap_a),
         (0, nop),
         (0, nop),
         (0, nop),
@@ -2416,6 +2417,87 @@ mod bitops {
         (4, set_mhl_7),
         (2, set_a_7),
     ];
+
+    /// Helper function to swap the two nibbles in a `u8` and update
+    /// cpu flags.
+    fn swap(cpu: &mut Cpu, v: u8) -> u8 {
+        cpu.set_zero(v == 0);
+
+        (v << 4) | (v >> 4)
+    }
+
+    /// Swap low and high nibbles of `A`
+    fn swap_a(cpu: &mut Cpu) {
+        let a = cpu.a();
+
+        let r = swap(cpu, a);
+
+        cpu.set_a(r);
+    }
+
+    /// Swap low and high nibbles of `B`
+    fn swap_b(cpu: &mut Cpu) {
+        let b = cpu.b();
+
+        let r = swap(cpu, b);
+
+        cpu.set_b(r);
+    }
+
+    /// Swap low and high nibbles of `C`
+    fn swap_c(cpu: &mut Cpu) {
+        let c = cpu.c();
+
+        let r = swap(cpu, c);
+
+        cpu.set_c(r);
+    }
+
+    /// Swap low and high nibbles of `D`
+    fn swap_d(cpu: &mut Cpu) {
+        let d = cpu.d();
+
+        let r = swap(cpu, d);
+
+        cpu.set_d(r);
+    }
+
+    /// Swap low and high nibbles of `E`
+    fn swap_e(cpu: &mut Cpu) {
+        let e = cpu.e();
+
+        let r = swap(cpu, e);
+
+        cpu.set_e(r);
+    }
+
+    /// Swap low and high nibbles of `H`
+    fn swap_h(cpu: &mut Cpu) {
+        let h = cpu.h();
+
+        let r = swap(cpu, h);
+
+        cpu.set_h(r);
+    }
+
+    /// Swap low and high nibbles of `L`
+    fn swap_l(cpu: &mut Cpu) {
+        let l = cpu.l();
+
+        let r = swap(cpu, l);
+
+        cpu.set_l(r);
+    }
+
+    /// Swap low and high nibbles of `[HL]`
+    fn swap_mhl(cpu: &mut Cpu) {
+        let hl = cpu.hl();
+        let n  = cpu.fetch_byte(hl);
+
+        let r = swap(cpu, n);
+
+        cpu.store_byte(hl, r);
+    }
 
     /// Helper function to test one bit in a u8. Return true if bit is
     /// 0.
