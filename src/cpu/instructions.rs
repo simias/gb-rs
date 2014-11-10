@@ -2152,73 +2152,73 @@ mod bitops {
         (0, nop),
         (0, nop),
         // Opcodes CB 4X
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
+        (2, bit_b_0),
+        (2, bit_c_0),
+        (2, bit_d_0),
+        (2, bit_e_0),
+        (2, bit_h_0),
+        (2, bit_l_0),
+        (4, bit_mhl_0),
+        (2, bit_a_0),
+        (2, bit_b_1),
+        (2, bit_c_1),
+        (2, bit_d_1),
+        (2, bit_e_1),
+        (2, bit_h_1),
+        (2, bit_l_1),
+        (4, bit_mhl_1),
+        (2, bit_a_1),
         // Opcodes CB 5X
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
+        (2, bit_b_2),
+        (2, bit_c_2),
+        (2, bit_d_2),
+        (2, bit_e_2),
+        (2, bit_h_2),
+        (2, bit_l_2),
+        (4, bit_mhl_2),
+        (2, bit_a_2),
+        (2, bit_b_3),
+        (2, bit_c_3),
+        (2, bit_d_3),
+        (2, bit_e_3),
+        (2, bit_h_3),
+        (2, bit_l_3),
+        (4, bit_mhl_3),
+        (2, bit_a_3),
         // Opcodes CB 6X
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
+        (2, bit_b_4),
+        (2, bit_c_4),
+        (2, bit_d_4),
+        (2, bit_e_4),
+        (2, bit_h_4),
+        (2, bit_l_4),
+        (4, bit_mhl_4),
+        (2, bit_a_4),
+        (2, bit_b_5),
+        (2, bit_c_5),
+        (2, bit_d_5),
+        (2, bit_e_5),
+        (2, bit_h_5),
+        (2, bit_l_5),
+        (4, bit_mhl_5),
+        (2, bit_a_5),
         // Opcodes CB 7X
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
+        (2, bit_b_6),
+        (2, bit_c_6),
+        (2, bit_d_6),
+        (2, bit_e_6),
+        (2, bit_h_6),
+        (2, bit_l_6),
+        (4, bit_mhl_6),
+        (2, bit_a_6),
+        (2, bit_b_7),
+        (2, bit_c_7),
+        (2, bit_d_7),
+        (2, bit_e_7),
+        (2, bit_h_7),
+        (2, bit_l_7),
+        (4, bit_mhl_7),
+        (2, bit_a_7),
         // Opcodes CB 8X
         (2, res_b_0),
         (2, res_c_0),
@@ -2356,6 +2356,406 @@ mod bitops {
         (4, set_mhl_7),
         (2, set_a_7),
     ];
+
+    /// Helper function to test one bit in a u8. Return true if bit is
+    /// 0.
+    fn bit_zero(val: u8, bit: u8) -> bool {
+        (val & (1u8 << (bit as uint))) != 0
+    }
+
+    /// Helper function to test bits in `A`
+    fn bit_a(cpu: &mut Cpu, bit: u8) {
+        let a = cpu.a();
+
+        cpu.set_zero(bit_zero(a, bit));
+        cpu.set_substract(false);
+        cpu.set_halfcarry(true);
+    }
+
+    /// Test `A` bit 0
+    fn bit_a_0(cpu: &mut Cpu) {
+        bit_a(cpu, 0);
+    }
+
+    /// Test `A` bit 1
+    fn bit_a_1(cpu: &mut Cpu) {
+        bit_a(cpu, 1);
+    }
+
+    /// Test `A` bit 2
+    fn bit_a_2(cpu: &mut Cpu) {
+        bit_a(cpu, 2);
+    }
+
+    /// Test `A` bit 3
+    fn bit_a_3(cpu: &mut Cpu) {
+        bit_a(cpu, 3);
+    }
+
+    /// Test `A` bit 4
+    fn bit_a_4(cpu: &mut Cpu) {
+        bit_a(cpu, 4);
+    }
+
+    /// Test `A` bit 5
+    fn bit_a_5(cpu: &mut Cpu) {
+        bit_a(cpu, 5);
+    }
+
+    /// Test `A` bit 6
+    fn bit_a_6(cpu: &mut Cpu) {
+        bit_a(cpu, 6);
+    }
+
+    /// Test `A` bit 7
+    fn bit_a_7(cpu: &mut Cpu) {
+        bit_a(cpu, 7);
+    }
+
+    /// Helper function to test bits in `B`
+    fn bit_b(cpu: &mut Cpu, bit: u8) {
+        let b = cpu.b();
+
+        cpu.set_zero(bit_zero(b, bit));
+        cpu.set_substract(false);
+        cpu.set_halfcarry(true);
+    }
+
+    /// Test `B` bit 0
+    fn bit_b_0(cpu: &mut Cpu) {
+        bit_b(cpu, 0);
+    }
+
+    /// Test `B` bit 1
+    fn bit_b_1(cpu: &mut Cpu) {
+        bit_b(cpu, 1);
+    }
+
+    /// Test `B` bit 2
+    fn bit_b_2(cpu: &mut Cpu) {
+        bit_b(cpu, 2);
+    }
+
+    /// Test `B` bit 3
+    fn bit_b_3(cpu: &mut Cpu) {
+        bit_b(cpu, 3);
+    }
+
+    /// Test `B` bit 4
+    fn bit_b_4(cpu: &mut Cpu) {
+        bit_b(cpu, 4);
+    }
+
+    /// Test `B` bit 5
+    fn bit_b_5(cpu: &mut Cpu) {
+        bit_b(cpu, 5);
+    }
+
+    /// Test `B` bit 6
+    fn bit_b_6(cpu: &mut Cpu) {
+        bit_b(cpu, 6);
+    }
+
+    /// Test `B` bit 7
+    fn bit_b_7(cpu: &mut Cpu) {
+        bit_b(cpu, 7);
+    }
+
+    /// Helper function to test bits in `C`
+    fn bit_c(cpu: &mut Cpu, bit: u8) {
+        let c = cpu.c();
+
+        cpu.set_zero(bit_zero(c, bit));
+        cpu.set_substract(false);
+        cpu.set_halfcarry(true);
+    }
+
+    /// Test `C` bit 0
+    fn bit_c_0(cpu: &mut Cpu) {
+        bit_c(cpu, 0);
+    }
+
+    /// Test `C` bit 1
+    fn bit_c_1(cpu: &mut Cpu) {
+        bit_c(cpu, 1);
+    }
+
+    /// Test `C` bit 2
+    fn bit_c_2(cpu: &mut Cpu) {
+        bit_c(cpu, 2);
+    }
+
+    /// Test `C` bit 3
+    fn bit_c_3(cpu: &mut Cpu) {
+        bit_c(cpu, 3);
+    }
+
+    /// Test `C` bit 4
+    fn bit_c_4(cpu: &mut Cpu) {
+        bit_c(cpu, 4);
+    }
+
+    /// Test `C` bit 5
+    fn bit_c_5(cpu: &mut Cpu) {
+        bit_c(cpu, 5);
+    }
+
+    /// Test `C` bit 6
+    fn bit_c_6(cpu: &mut Cpu) {
+        bit_c(cpu, 6);
+    }
+
+    /// Test `C` bit 7
+    fn bit_c_7(cpu: &mut Cpu) {
+        bit_c(cpu, 7);
+    }
+
+    /// Helper function to test bits in `D`
+    fn bit_d(cpu: &mut Cpu, bit: u8) {
+        let d = cpu.d();
+
+        cpu.set_zero(bit_zero(d, bit));
+        cpu.set_substract(false);
+        cpu.set_halfcarry(true);
+    }
+
+    /// Test `D` bit 0
+    fn bit_d_0(cpu: &mut Cpu) {
+        bit_d(cpu, 0);
+    }
+
+    /// Test `D` bit 1
+    fn bit_d_1(cpu: &mut Cpu) {
+        bit_d(cpu, 1);
+    }
+
+    /// Test `D` bit 2
+    fn bit_d_2(cpu: &mut Cpu) {
+        bit_d(cpu, 2);
+    }
+
+    /// Test `D` bit 3
+    fn bit_d_3(cpu: &mut Cpu) {
+        bit_d(cpu, 3);
+    }
+
+    /// Test `D` bit 4
+    fn bit_d_4(cpu: &mut Cpu) {
+        bit_d(cpu, 4);
+    }
+
+    /// Test `D` bit 5
+    fn bit_d_5(cpu: &mut Cpu) {
+        bit_d(cpu, 5);
+    }
+
+    /// Test `D` bit 6
+    fn bit_d_6(cpu: &mut Cpu) {
+        bit_d(cpu, 6);
+    }
+
+    /// Test `D` bit 7
+    fn bit_d_7(cpu: &mut Cpu) {
+        bit_d(cpu, 7);
+    }
+
+    /// Helper function to test bits in `E`
+    fn bit_e(cpu: &mut Cpu, bit: u8) {
+        let e = cpu.e();
+
+        cpu.set_zero(bit_zero(e, bit));
+        cpu.set_substract(false);
+        cpu.set_halfcarry(true);
+    }
+
+    /// Test `E` bit 0
+    fn bit_e_0(cpu: &mut Cpu) {
+        bit_e(cpu, 0);
+    }
+
+    /// Test `E` bit 1
+    fn bit_e_1(cpu: &mut Cpu) {
+        bit_e(cpu, 1);
+    }
+
+    /// Test `E` bit 2
+    fn bit_e_2(cpu: &mut Cpu) {
+        bit_e(cpu, 2);
+    }
+
+    /// Test `E` bit 3
+    fn bit_e_3(cpu: &mut Cpu) {
+        bit_e(cpu, 3);
+    }
+
+    /// Test `E` bit 4
+    fn bit_e_4(cpu: &mut Cpu) {
+        bit_e(cpu, 4);
+    }
+
+    /// Test `E` bit 5
+    fn bit_e_5(cpu: &mut Cpu) {
+        bit_e(cpu, 5);
+    }
+
+    /// Test `E` bit 6
+    fn bit_e_6(cpu: &mut Cpu) {
+        bit_e(cpu, 6);
+    }
+
+    /// Test `E` bit 7
+    fn bit_e_7(cpu: &mut Cpu) {
+        bit_e(cpu, 7);
+    }
+
+    /// Helper function to test bits in `H`
+    fn bit_h(cpu: &mut Cpu, bit: u8) {
+        let h = cpu.h();
+
+        cpu.set_zero(bit_zero(h, bit));
+        cpu.set_substract(false);
+        cpu.set_halfcarry(true);
+    }
+
+    /// Test `H` bit 0
+    fn bit_h_0(cpu: &mut Cpu) {
+        bit_h(cpu, 0);
+    }
+
+    /// Test `H` bit 1
+    fn bit_h_1(cpu: &mut Cpu) {
+        bit_h(cpu, 1);
+    }
+
+    /// Test `H` bit 2
+    fn bit_h_2(cpu: &mut Cpu) {
+        bit_h(cpu, 2);
+    }
+
+    /// Test `H` bit 3
+    fn bit_h_3(cpu: &mut Cpu) {
+        bit_h(cpu, 3);
+    }
+
+    /// Test `H` bit 4
+    fn bit_h_4(cpu: &mut Cpu) {
+        bit_h(cpu, 4);
+    }
+
+    /// Test `H` bit 5
+    fn bit_h_5(cpu: &mut Cpu) {
+        bit_h(cpu, 5);
+    }
+
+    /// Test `H` bit 6
+    fn bit_h_6(cpu: &mut Cpu) {
+        bit_h(cpu, 6);
+    }
+
+    /// Test `H` bit 7
+    fn bit_h_7(cpu: &mut Cpu) {
+        bit_h(cpu, 7);
+    }
+
+    /// Helper function to test bits in `L`
+    fn bit_l(cpu: &mut Cpu, bit: u8) {
+        let l = cpu.l();
+
+        cpu.set_zero(bit_zero(l, bit));
+        cpu.set_substract(false);
+        cpu.set_halfcarry(true);
+    }
+
+    /// Test `L` bit 0
+    fn bit_l_0(cpu: &mut Cpu) {
+        bit_l(cpu, 0);
+    }
+
+    /// Test `L` bit 1
+    fn bit_l_1(cpu: &mut Cpu) {
+        bit_l(cpu, 1);
+    }
+
+    /// Test `L` bit 2
+    fn bit_l_2(cpu: &mut Cpu) {
+        bit_l(cpu, 2);
+    }
+
+    /// Test `L` bit 3
+    fn bit_l_3(cpu: &mut Cpu) {
+        bit_l(cpu, 3);
+    }
+
+    /// Test `L` bit 4
+    fn bit_l_4(cpu: &mut Cpu) {
+        bit_l(cpu, 4);
+    }
+
+    /// Test `L` bit 5
+    fn bit_l_5(cpu: &mut Cpu) {
+        bit_l(cpu, 5);
+    }
+
+    /// Test `L` bit 6
+    fn bit_l_6(cpu: &mut Cpu) {
+        bit_l(cpu, 6);
+    }
+
+    /// Test `L` bit 7
+    fn bit_l_7(cpu: &mut Cpu) {
+        bit_l(cpu, 7);
+    }
+
+    /// Helper function to test bits in `[HL]`
+    fn bit_mhl(cpu: &mut Cpu, bit: u8) {
+        let hl = cpu.hl();
+
+        let n = cpu.fetch_byte(hl);
+
+        cpu.set_zero(bit_zero(n, bit));
+        cpu.set_substract(false);
+        cpu.set_halfcarry(true);
+    }
+
+    /// Test `[HL]` bit 0
+    fn bit_mhl_0(cpu: &mut Cpu) {
+        bit_mhl(cpu, 0);
+    }
+
+    /// Test `[HL]` bit 1
+    fn bit_mhl_1(cpu: &mut Cpu) {
+        bit_mhl(cpu, 1);
+    }
+
+    /// Test `[HL]` bit 2
+    fn bit_mhl_2(cpu: &mut Cpu) {
+        bit_mhl(cpu, 2);
+    }
+
+    /// Test `[HL]` bit 3
+    fn bit_mhl_3(cpu: &mut Cpu) {
+        bit_mhl(cpu, 3);
+    }
+
+    /// Test `[HL]` bit 4
+    fn bit_mhl_4(cpu: &mut Cpu) {
+        bit_mhl(cpu, 4);
+    }
+
+    /// Test `[HL]` bit 5
+    fn bit_mhl_5(cpu: &mut Cpu) {
+        bit_mhl(cpu, 5);
+    }
+
+    /// Test `[HL]` bit 6
+    fn bit_mhl_6(cpu: &mut Cpu) {
+        bit_mhl(cpu, 6);
+    }
+
+    /// Test `[HL]` bit 7
+    fn bit_mhl_7(cpu: &mut Cpu) {
+        bit_mhl(cpu, 7);
+    }
 
     /// Helper function to clear one bit in a u8
     fn res(val: u8, bit: u8) -> u8 {
@@ -3122,5 +3522,4 @@ mod bitops {
     fn set_mhl_7(cpu: &mut Cpu) {
         set_mhl(cpu, 7);
     }
-
 }
