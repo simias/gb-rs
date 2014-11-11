@@ -62,21 +62,19 @@ struct Flags {
 }
 
 impl<'a> Cpu<'a> {
-    /// Create a new Cpu instance. The register's value should be
-    /// treated as undetermined at that point so I fill them with
-    /// garbage values.
+    /// Create a new Cpu instance and reset it
     pub fn new<'n>(inter: Interconnect<'n>) -> Cpu<'n> {
-        Cpu {
-            instruction_delay:   0,
-            regs: Registers { pc: 0xbaad,
-                              sp: 0xbaad,
-                              a : 0x01,
-                              b : 0x23,
-                              c : 0x45,
-                              d : 0x67,
-                              e : 0x89,
-                              h : 0xcd,
-                              l : 0xef,
+        let mut cpu = Cpu {
+            instruction_delay:    0,
+            regs: Registers { pc: 0,
+                              sp: 0,
+                              a : 0,
+                              b : 0,
+                              c : 0,
+                              d : 0,
+                              e : 0,
+                              h : 0,
+                              l : 0,
             },
             flags: Flags { z: false,
                            n: false,
@@ -84,7 +82,11 @@ impl<'a> Cpu<'a> {
                            c: false,
             },
             inter: inter,
-        }
+        };
+
+        cpu.reset();
+
+        cpu
     }
 
     /// Reset CPU state to power up values
@@ -95,15 +97,22 @@ impl<'a> Cpu<'a> {
 
         // Code always starts at 0x100
         self.regs.pc = 0x100;
-        // Stack pointer default value
+        // Values after ROM execution as pulled from the unofficial GB
+        // CPU manual. Of course the program shouldn't rely on those
+        // values, but who knows...
         self.regs.sp = 0xfffe;
-        self.regs.a  = 0;
-        self.regs.b  = 0;
-        self.regs.c  = 0;
-        self.regs.d  = 0;
-        self.regs.e  = 0;
-        self.regs.h  = 0;
-        self.regs.l  = 0;
+        self.regs.a  = 0x01;
+        self.regs.b  = 0x00;
+        self.regs.c  = 0x13;
+        self.regs.d  = 0x00;
+        self.regs.e  = 0xd8;
+        self.regs.h  = 0x01;
+        self.regs.l  = 0x4D;
+
+        self.set_zero(true);
+        self.set_substract(false);
+        self.set_halfcarry(true);
+        self.set_carry(true);
 
         self.clear_flags();
     }
