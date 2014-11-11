@@ -166,7 +166,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (2, ld_mhl_e),
     (2, ld_mhl_h),
     (2, ld_mhl_l),
-    (0, nop),
+    (1, halt),
     (2, ld_mhl_a),
     (1, ld_a_b),
     (1, ld_a_c),
@@ -184,15 +184,15 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (1, add_a_h),
     (1, add_a_l),
     (2, add_a_mhl),
-    (2, add_a_a),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
+    (1, add_a_a),
+    (1, adc_a_b),
+    (1, adc_a_c),
+    (1, adc_a_d),
+    (1, adc_a_e),
+    (1, adc_a_h),
+    (1, adc_a_l),
+    (2, adc_a_mhl),
+    (1, adc_a_a),
     // Opcodes 9X
     (1, sub_a_b),
     (1, sub_a_c),
@@ -202,14 +202,14 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (1, sub_a_l),
     (2, sub_a_mhl),
     (1, sub_a_a),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (0, nop),
+    (1, sbc_a_b),
+    (1, sbc_a_c),
+    (1, sbc_a_d),
+    (1, sbc_a_e),
+    (1, sbc_a_h),
+    (1, sbc_a_l),
+    (2, sbc_a_mhl),
+    (1, sbc_a_a),
     // Opcodes AX
     (1, and_a_b),
     (1, and_a_c),
@@ -259,7 +259,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (0, nop), // See bitops opcode map
     (3, call_z_nn),
     (6, call_nn),
-    (0, nop),
+    (2, adc_a_n),
     (4, rst_08),
     // Opcodes DX
     (2, ret_nc),
@@ -293,7 +293,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (0, nop),
     (0, nop),
     (0, nop),
-    (0, nop),
+    (2, sbc_a_n),
     (4, rst_28),
     // Opcodes FX
     (3, ldh_a_mn),
@@ -1709,14 +1709,20 @@ fn dec_sp(cpu: &mut Cpu) {
 
 /// Helper function to substract two `u8`s and update the CPU flags
 fn sub_and_set_flags(cpu: &mut Cpu, x: u8, y: u8) -> u8 {
+    // Check for borrow using 32bit arithmetics
+    let x = x as u32;
+    let y = y as u32;
+
     let r = x - y;
 
-    cpu.set_zero(r == 0);
+    let rb = r as u8;
+
+    cpu.set_zero(rb == 0);
     cpu.set_halfcarry((x ^ y ^ r) & 0x10 != 0);
-    cpu.set_carry(x < y);
+    cpu.set_carry(r & 0x100 != 0);
     cpu.set_substract(true);
 
-    r
+    rb
 }
 
 /// Compare `A` with itself
@@ -1885,6 +1891,116 @@ fn sub_a_n(cpu: &mut Cpu) {
     cpu.set_a(r);
 }
 
+/// Helper function to substract two `u8`s with carry and update the CPU flags
+fn sub_with_carry_and_set_flags(cpu: &mut Cpu, x: u8, y: u8) -> u8 {
+    // Check for borrow using 32bit arithmetics
+    let x = x as u32;
+    let y = y as u32;
+    let carry = cpu.carry() as u32;
+
+    let r = x - y - carry;
+
+    let rb = r as u8;
+
+    cpu.set_zero(rb == 0);
+    cpu.set_halfcarry((x ^ y ^ r) & 0x10 != 0);
+    cpu.set_carry(r & 0x100 != 0);
+    cpu.set_substract(true);
+
+    rb
+}
+
+/// Substract `A` from `A` with carry
+fn sbc_a_a(cpu: &mut Cpu) {
+    let a = cpu.a();
+
+    let r = sub_with_carry_and_set_flags(cpu, a, a);
+
+    cpu.set_a(r);
+}
+
+/// Substract `B` from `A` with carry
+fn sbc_a_b(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let b = cpu.b();
+
+    let r = sub_with_carry_and_set_flags(cpu, a, b);
+
+    cpu.set_a(r);
+}
+
+/// Substract `C` from `A` with carry
+fn sbc_a_c(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let c = cpu.c();
+
+    let r = sub_with_carry_and_set_flags(cpu, a, c);
+
+    cpu.set_a(r);
+}
+
+/// Substract `D` from `A` with carry
+fn sbc_a_d(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let d = cpu.d();
+
+    let r = sub_with_carry_and_set_flags(cpu, a, d);
+
+    cpu.set_a(r);
+}
+
+/// Substract `E` from `A` with carry
+fn sbc_a_e(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let e = cpu.e();
+
+    let r = sub_with_carry_and_set_flags(cpu, a, e);
+
+    cpu.set_a(r);
+}
+
+/// Substract `H` from `A` with carry
+fn sbc_a_h(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let h = cpu.h();
+
+    let r = sub_with_carry_and_set_flags(cpu, a, h);
+
+    cpu.set_a(r);
+}
+
+/// Substract `L` from `A` with carry
+fn sbc_a_l(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let l = cpu.l();
+
+    let r = sub_with_carry_and_set_flags(cpu, a, l);
+
+    cpu.set_a(r);
+}
+
+/// Substract `[HL]` from `A` with carry
+fn sbc_a_mhl(cpu: &mut Cpu) {
+    let a  = cpu.a();
+    let hl = cpu.hl();
+
+    let n = cpu.fetch_byte(hl);
+
+    let r = sub_with_carry_and_set_flags(cpu, a, n);
+
+    cpu.set_a(r);
+}
+
+/// Substract `N` from `A` with carry
+fn sbc_a_n(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let n = next_byte(cpu);
+
+    let r = sub_with_carry_and_set_flags(cpu, a, n);
+
+    cpu.set_a(r);
+}
+
 /// Helper function to add two `u8`s and update the CPU flags
 fn add_and_set_flags(cpu: &mut Cpu, x: u8, y: u8) -> u8 {
     // Check for carry using 32bit arithmetics
@@ -1893,12 +2009,14 @@ fn add_and_set_flags(cpu: &mut Cpu, x: u8, y: u8) -> u8 {
 
     let r = x + y;
 
-    cpu.set_zero(r == 0);
+    let rb = r as u8;
+
+    cpu.set_zero(rb == 0);
     cpu.set_halfcarry((x ^ y ^ r) & 0x10 != 0);
     cpu.set_carry(r & 0x100 != 0);
     cpu.set_substract(false);
 
-    r as u8
+    rb
 }
 
 /// Add `A` to `A`
@@ -1988,6 +2106,116 @@ fn add_a_n(cpu: &mut Cpu) {
     let n = next_byte(cpu);
 
     let r = add_and_set_flags(cpu, a, n);
+
+    cpu.set_a(r);
+}
+
+/// Helper function to add two `u8`s with carry and update the CPU flags
+fn add_with_carry_and_set_flags(cpu: &mut Cpu, x: u8, y: u8) -> u8 {
+    // Check for carry using 32bit arithmetics
+    let x = x as u32;
+    let y = y as u32;
+    let carry = cpu.carry() as u32;
+
+    let r = x + y + carry;
+
+    let rb = r as u8;
+
+    cpu.set_zero(rb == 0);
+    cpu.set_halfcarry((x ^ y ^ r) & 0x10 != 0);
+    cpu.set_carry(r & 0x100 != 0);
+    cpu.set_substract(false);
+
+    rb
+}
+
+/// Add `A` to `A` with carry
+fn adc_a_a(cpu: &mut Cpu) {
+    let a = cpu.a();
+
+    let r = add_with_carry_and_set_flags(cpu, a, a);
+
+    cpu.set_a(r);
+}
+
+/// Add `B` to `A` with carry
+fn adc_a_b(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let b = cpu.b();
+
+    let r = add_with_carry_and_set_flags(cpu, a, b);
+
+    cpu.set_a(r);
+}
+
+/// Add `C` to `A` with carry
+fn adc_a_c(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let c = cpu.c();
+
+    let r = add_with_carry_and_set_flags(cpu, a, c);
+
+    cpu.set_a(r);
+}
+
+/// Add `D` to `A` with carry
+fn adc_a_d(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let d = cpu.d();
+
+    let r = add_with_carry_and_set_flags(cpu, a, d);
+
+    cpu.set_a(r);
+}
+
+/// Add `E` to `A` with carry
+fn adc_a_e(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let e = cpu.e();
+
+    let r = add_with_carry_and_set_flags(cpu, a, e);
+
+    cpu.set_a(r);
+}
+
+/// Add `H` to `A` with carry
+fn adc_a_h(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let h = cpu.h();
+
+    let r = add_with_carry_and_set_flags(cpu, a, h);
+
+    cpu.set_a(r);
+}
+
+/// Add `L` to `A` with carry
+fn adc_a_l(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let l = cpu.l();
+
+    let r = add_with_carry_and_set_flags(cpu, a, l);
+
+    cpu.set_a(r);
+}
+
+/// Add `[HL]` to `A` with carry
+fn adc_a_mhl(cpu: &mut Cpu) {
+    let a  = cpu.a();
+    let hl = cpu.hl();
+
+    let n = cpu.fetch_byte(hl);
+
+    let r = add_with_carry_and_set_flags(cpu, a, n);
+
+    cpu.set_a(r);
+}
+
+/// Add `N` to `A` with carry
+fn adc_a_n(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let n = next_byte(cpu);
+
+    let r = add_with_carry_and_set_flags(cpu, a, n);
 
     cpu.set_a(r);
 }
@@ -2407,6 +2635,10 @@ fn ei(cpu: &mut Cpu) {
     cpu.enable_interrupts();
 }
 
+/// Halt and wait for interrupt
+fn halt(cpu: &mut Cpu) {
+    cpu.halt();
+}
 
 mod bitops {
     //! Emulation of instructions prefixed by 0xCB. They are all

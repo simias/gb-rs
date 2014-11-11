@@ -367,6 +367,11 @@ impl Cpu {
     fn enable_interrupts(&mut self) {
         // TODO
     }
+
+    /// Halt and wait for interrupts
+    fn halt(&mut self) {
+        // TODO (also, check if interrupts are enabled)
+    }
 }
 
 impl Show for Cpu {
