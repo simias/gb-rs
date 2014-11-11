@@ -31,7 +31,11 @@ pub fn next_instruction(cpu: &mut Cpu) -> (u32, fn (&mut Cpu)) {
 /// Array containing tuples `(delay, instruction)`.
 ///
 /// `delay` is an `u32` describing how many machine cycles an
-/// instruction takes to execute. One machine cycle is 4 clock cycles.
+/// instruction takes to execute. One machine cycle is 4 clock
+/// cycles. Certain instructions are conditional and might take longer
+/// to execute depending on the current CPU state. For those I set the
+/// delay to the smallest value and I call cpu.additional_delay(x)
+/// from the instruction implementation if needed.
 ///
 /// `instruction` is an `fn (&mut Cpu)` used to emulate the
 /// instruction.
@@ -2443,14 +2447,14 @@ mod bitops {
         (2, swap_l),
         (4, swap_mhl),
         (2, swap_a),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
+        (2, srl_b),
+        (2, srl_c),
+        (2, srl_d),
+        (2, srl_e),
+        (2, srl_h),
+        (2, srl_l),
+        (4, srl_mhl),
+        (2, srl_a),
         // Opcodes CB 4X
         (2, bit_b_0),
         (2, bit_c_0),
@@ -3903,4 +3907,93 @@ mod bitops {
     fn set_mhl_7(cpu: &mut Cpu) {
         set_mhl(cpu, 7);
     }
+
+    /// Helper function to shift an `u8` to the right and update CPU
+    /// flags.
+    fn srl(cpu: &mut Cpu, v: u8)  -> u8 {
+        cpu.set_carry(v & 1 != 0);
+
+        let r = v >> 1;
+
+        cpu.set_zero(r == 0);
+
+        cpu.set_substract(false);
+        cpu.set_halfcarry(false);
+
+        r
+    }
+
+    /// Shift `A` to the right
+    fn srl_a(cpu: &mut Cpu) {
+        let a = cpu.a();
+
+        let r = srl(cpu, a);
+
+        cpu.set_a(r);
+    }
+
+    /// Shift `B` to the right
+    fn srl_b(cpu: &mut Cpu) {
+        let b = cpu.b();
+
+        let r = srl(cpu, b);
+
+        cpu.set_b(r);
+    }
+
+    /// Shift `C` to the right
+    fn srl_c(cpu: &mut Cpu) {
+        let c = cpu.c();
+
+        let r = srl(cpu, c);
+
+        cpu.set_c(r);
+    }
+
+    /// Shift `D` to the right
+    fn srl_d(cpu: &mut Cpu) {
+        let d = cpu.d();
+
+        let r = srl(cpu, d);
+
+        cpu.set_d(r);
+    }
+
+    /// Shift `E` to the right
+    fn srl_e(cpu: &mut Cpu) {
+        let e = cpu.e();
+
+        let r = srl(cpu, e);
+
+        cpu.set_e(r);
+    }
+
+    /// Shift `H` to the right
+    fn srl_h(cpu: &mut Cpu) {
+        let h = cpu.h();
+
+        let r = srl(cpu, h);
+
+        cpu.set_h(r);
+    }
+
+    /// Shift `L` to the right
+    fn srl_l(cpu: &mut Cpu) {
+        let l = cpu.l();
+
+        let r = srl(cpu, l);
+
+        cpu.set_l(r);
+    }
+
+    /// Shift `[HL]` to the right
+    fn srl_mhl(cpu: &mut Cpu) {
+        let hl = cpu.hl();
+        let n  = cpu.fetch_byte(hl);
+
+        let r = srl(cpu, n);
+
+        cpu.store_byte(hl, r);
+    }
+
 }

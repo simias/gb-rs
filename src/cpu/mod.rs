@@ -128,7 +128,9 @@ impl Cpu {
         // Instruction delays are in CPU Machine cycles. There's 4
         // Clock cycles in one Machine cycle.
         self.instruction_delay = delay * 4 - 1;
-        // Run the next instruction
+        // Run the next instruction. This can change the entire CPU
+        // state including the `instruction_delay` above (using the
+        // `additional_delay` method).
         (instruction)(self);
     }
 
