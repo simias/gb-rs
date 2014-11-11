@@ -97,7 +97,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (2, ldd_mhl_a),
     (2, inc_sp),
     (3, inc_mhl),
-    (0, nop),
+    (3, dec_mhl),
     (3, ld_mhl_n),
     (0, nop),
     (2, jr_c_n),
@@ -288,7 +288,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (2, and_a_n),
     (4, rst_20),
     (0, nop),
-    (0, nop),
+    (1, jp_hl),
     (4, ld_mnn_a),
     (0, nop),
     (0, nop),
@@ -1080,6 +1080,13 @@ fn jp_nn(cpu: &mut Cpu) {
     cpu.set_pc(addr);
 }
 
+/// Unconditional jump to address in `HL`
+fn jp_hl(cpu: &mut Cpu) {
+    let hl = cpu.hl();
+
+    cpu.set_pc(hl);
+}
+
 /// Jump to absolute address if `!Z`
 fn jp_nz_nn(cpu: &mut Cpu) {
     let addr = next_word(cpu);
@@ -1542,6 +1549,22 @@ fn dec_l(cpu: &mut Cpu) {
     cpu.set_l(l);
 
     cpu.set_zero(l == 0);
+    cpu.set_substract(true);
+}
+
+/// Decrement `[HL]`
+fn dec_mhl(cpu: &mut Cpu) {
+    let hl = cpu.hl();
+    let mut n = cpu.fetch_byte(hl);
+
+    // bit will carry over if the low nibble is 0
+    cpu.set_halfcarry(n & 0xf == 0);
+
+    n -= 1;
+
+    cpu.store_byte(hl, n);
+
+    cpu.set_zero(n == 0);
     cpu.set_substract(true);
 }
 
