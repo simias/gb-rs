@@ -12,3 +12,18 @@ pub trait Display {
     /// Current frame is done and can be displayed.
     fn flip(&mut self);
 }
+
+/// Dummy Display that does nothing, for testing purposes
+#[allow(dead_code)]
+pub struct DummyDisplay;
+
+impl Display for DummyDisplay {
+    fn clear(&mut self) {
+    }
+
+    fn set_pixel(&mut self, _: u32, _: u32, _: bool) {
+    }
+
+    fn flip(&mut self) {
+    }
+}

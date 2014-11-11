@@ -42,36 +42,101 @@ impl<'a> Interconnect<'a> {
 
     /// Get byte from peripheral mapped at `addr`
     pub fn get_byte(&self, addr: u16) -> u8 {
-        let (periph, offset) = self.get_peripheral(addr);
 
-        periph.get_byte(offset)
+        if map::in_range(addr, map::ROM_0) ||
+           map::in_range(addr, map::ROM_BANK) {
+            return self.rom.get_byte(addr);
+        }
+
+        if map::in_range(addr, map::VRAM)     ||
+           map::in_range(addr, map::RAM_BANK) ||
+           map::in_range(addr, map::IRAM) {
+            return self.ram.get_byte(addr - map::range_start(map::VRAM));
+        }
+
+        if map::in_range(addr, map::IRAM_ECHO) {
+            let iram_addr = addr
+                - map::range_start(map::IRAM_ECHO)
+                + map::range_start(map::IRAM);
+
+            return self.ram.get_byte(iram_addr - map::range_start(map::VRAM));
+        }
+
+        if map::in_range(addr, map::OAM) {
+            return self.gpu.get_byte(addr)
+        }
+
+        if map::in_range(addr, map::IO)        ||
+           map::in_range(addr, map::ZERO_PAGE) ||
+           addr == map::IEN {
+            return self.get_io(addr);
+        }
+
+        println!("Read from unmapped memory {:04x}", addr);
+        0
     }
 
     /// Store `val` into peripheral mapped at `addr`
-    pub fn set_byte(&self, addr: u16, val: u8) {
-        let (periph, offset) = self.get_peripheral(addr);
+    pub fn set_byte(&mut self, addr: u16, val: u8) {
 
-        periph.set_byte(offset, val);
+        if map::in_range(addr, map::ROM_0) ||
+           map::in_range(addr, map::ROM_BANK) {
+            return self.rom.set_byte(addr, val);
+        }
+
+        if map::in_range(addr, map::VRAM)     ||
+           map::in_range(addr, map::RAM_BANK) ||
+           map::in_range(addr, map::IRAM) {
+            return self.ram.set_byte(addr - map::range_start(map::VRAM), val);
+           }
+
+        if map::in_range(addr, map::IRAM_ECHO) {
+            let iram_addr = addr
+                - map::range_start(map::IRAM_ECHO)
+                + map::range_start(map::IRAM);
+
+            return self.ram.set_byte(iram_addr - map::range_start(map::VRAM),
+                                     val);
+        }
+
+        if map::in_range(addr, map::OAM) {
+            return self.gpu.set_byte(addr, val)
+        }
+
+        if map::in_range(addr, map::IO)        ||
+           map::in_range(addr, map::ZERO_PAGE) ||
+           addr == map::IEN {
+            return self.set_io(addr, val);
+        }
+
+        println!("Write to unmapped memory {:04x}: {:02x}", addr, val);
     }
 
-    /// Find the peripheral corresponding to the address space pointed
-    /// to by `addr` and return a reference to this peripheral as well
-    /// as the offset within the address space.
-    fn get_peripheral(&self, addr: u16) -> (&Addressable, u16) {
-        if addr < 0x8000 {
-            (&self.rom, addr - 0x0000)
-        } else if addr < 0xe000 {
-            (&self.ram, addr - 0x8000)
-        } else if addr < 0xfe00 {
-            (&UNMAPPED, addr)
-        } else if addr < 0xfea0 {
-            // OAM
-            (&self.gpu, addr)
-        } else if addr < 0xff00 {
-            (&EMPTY, addr)
-        } else {
-            // Handle IO memory ourselves
-            (self, addr - 0xff00)
+    /// Retrieve value from IO port
+    fn get_io(&self, addr: u16) -> u8 {
+        match addr {
+            map::LCD_LY => {
+                // LY register
+                self.gpu.get_line()
+            }
+            _ => {
+                println!("Unhandled IO read from 0x{:04x}", addr);
+                self.io[(addr & 0xff) as uint].get()
+            }
+        }
+    }
+
+    /// Set value of IO port
+    fn set_io(&mut self, addr: u16, val: u8) {
+
+        match addr {
+            map::LCD_LY => {
+                panic!("Unhandled write to LY register");
+            }
+            _ => {
+                println!("Unhandled IO write to 0x{:02x}: 0x{:04x}", addr, val)
+                    self.io[(addr & 0xff) as uint].set(val);
+            }
         }
     }
 }
@@ -81,69 +146,54 @@ pub trait Addressable {
     /// Return byte at `offset`
     fn get_byte(&self, offset: u16) -> u8;
 
-    /// Set byte at `offset`. If this is implemented it should use
-    /// internal mutability to allow shared references (hence the
-    /// `&self`).
-    fn set_byte(&self, offset: u16, val: u8) {
+    /// Set byte at `offset`.
+    fn set_byte(&mut self, offset: u16, val: u8) {
         // TODO(lionel) there should be a better way to handle that
         // type of errors. It should probably bubble up.
         println!("Writing to read-only memory [0x{:04x}]: 0x{:02x}", offset, val);
     }
 }
 
-/// IO register handling (0xff00 - 0xffff)
-impl<'a> Addressable for Interconnect<'a> {
-    fn get_byte(&self, offset: u16) -> u8 {
-        match offset {
-            0x44 => {
-                // LY register
-                self.gpu.get_line()
-            }
-            _ => {
-                println!("Unhandled IO read from 0x{:02x}", offset);
-                self.io[offset as uint].get()
-            }
-        }
+mod map {
+    //! Game Boy memory map. Memory ranges are inclusive.
+
+    /// ROM Bank #0
+    pub const ROM_0:     (u16, u16) = (0x0000, 0x3fff);
+    /// ROM Bank N
+    pub const ROM_BANK:  (u16, u16) = (0x4000, 0x7fff);
+    /// Video RAM
+    pub const VRAM:      (u16, u16) = (0x8000, 0x9fff);
+    /// RAM Bank N
+    pub const RAM_BANK:  (u16, u16) = (0xa000, 0xbfff);
+    /// Internal RAM
+    pub const IRAM:      (u16, u16) = (0xc000, 0xdfff);
+    /// Internal RAM echo
+    pub const IRAM_ECHO: (u16, u16) = (0xe000, 0xfdff);
+    /// Object Attribute Memory
+    pub const OAM:       (u16, u16) = (0xfe00, 0xfe9f);
+    /// IO ports
+    pub const IO:        (u16, u16) = (0xff00, 0xff4b);
+    /// Zero page memory
+    pub const ZERO_PAGE: (u16, u16) = (0xff80, 0xfffe);
+    pub const IEN:       u16        = 0xffff;
+
+    // IO ports description
+
+    /// Currently displayed line
+    pub const LCD_LY:   u16 = 0xff44;
+
+    /// Return `true` if the given address is in the inclusive range
+    /// `range`
+    pub fn in_range(addr: u16, range: (u16, u16)) -> bool {
+        let (first, last) = range;
+
+        addr >= first && addr <= last
     }
 
-    fn set_byte(&self, offset: u16, val: u8) {
-        match offset {
-            0x44 => {
-                panic!("Unhandled write to LY register");
-            }
-            _ => {
-                println!("Unhandled IO write to 0x{:02x}: 0x{:02x}", offset, val)
-                    self.io[offset as uint].set(val);
-            }
-        }
-    }
-}
+    /// Return `range` start
+    pub fn range_start(range: (u16, u16)) -> u16 {
+        let (start, _) = range;
 
-struct Unmapped;
-
-static UNMAPPED: Unmapped = Unmapped;
-
-impl Addressable for Unmapped {
-    fn get_byte(&self, offset: u16) -> u8 {
-        panic!("Read from unmapped memory at 0x{:04x}", offset);
-    }
-
-    fn set_byte(&self, offset: u16, val: u8) {
-        panic!("Write to unmapped memory at 0x{:04x}: 0x{:02x}", offset, val);
-    }
-}
-
-struct Empty;
-
-static EMPTY: Empty = Empty;
-
-impl Addressable for Empty {
-    fn get_byte(&self, offset: u16) -> u8 {
-        println!("Read from empty memory at 0x{:04x}", offset);
-        0
-    }
-
-    fn set_byte(&self, offset: u16, val: u8) {
-        println!("Write to empty memory at 0x{:04x}: 0x{:02x}", offset, val);
+        start
     }
 }

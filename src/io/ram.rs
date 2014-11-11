@@ -1,19 +1,17 @@
 //! RAM emulation
 
-use std::cell::Cell;
-
 use super::Addressable;
 
 /// RAM image
 pub struct Ram {
-    data: Vec<Cell<u8>>,
+    data: Vec<u8>,
 }
 
 impl Ram {
     /// Create a new RAM. The default RAM values are undetermined so I
     /// fill it with a "garbage" pattern.
     pub fn new(size: uint) -> Ram {
-        let data = Vec::from_elem(size, Cell::new(RAM_DEFAULT));
+        let data = Vec::from_elem(size, RAM_DEFAULT);
 
         Ram { data: data }
     }
@@ -21,19 +19,19 @@ impl Ram {
     /// Clear the ram to the default garbage value (allows for
     /// deterministic resets
     pub fn reset(&mut self) {
-        for c in self.data.iter() {
-            c.set(RAM_DEFAULT);
+        for b in self.data.iter_mut() {
+            *b = RAM_DEFAULT;
         }
     }
 }
 
 impl Addressable for Ram {
     fn get_byte(&self, offset: u16) -> u8 {
-        self.data[offset as uint].get()
+        self.data[offset as uint]
     }
 
-    fn set_byte(&self, offset: u16, val: u8) {
-        self.data[offset as uint].set(val);
+    fn set_byte(&mut self, offset: u16, val: u8) {
+        self.data[offset as uint] = val;
     }
 }
 

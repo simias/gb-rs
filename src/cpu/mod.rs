@@ -149,7 +149,7 @@ impl<'a> Cpu<'a> {
     }
 
     /// Store byte `val` at `addr` in the interconnect
-    fn store_byte(&self, addr: u16, val: u8) {
+    fn store_byte(&mut self, addr: u16, val: u8) {
         self.inter.set_byte(addr, val)
     }
 

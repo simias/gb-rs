@@ -114,7 +114,7 @@ impl<'a> Addressable for Gpu<'a> {
         }
     }
 
-    fn set_byte(&self, addr: u16, val: u8) {
+    fn set_byte(&mut self, addr: u16, val: u8) {
         if addr >= 0xfe00 {
             match self.get_mode() {
                 Prelude | Active => panic!("OAM access while in use {:04x}", addr),
