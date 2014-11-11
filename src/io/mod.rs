@@ -8,26 +8,42 @@ pub mod ram;
 /// Interconnect struct used by the CPU and GPU to access the ROM, RAM
 /// and registers
 pub struct Interconnect<'a> {
-    rom:  rom::Rom,
-    ram:  ram::Ram,
-    gpu:  Gpu<'a>,
-    io:   [u8, ..0x100],
+    rom:   rom::Rom,
+    ram:   ram::Ram,
+    iram:  ram::Ram,
+    zpage: ram::Ram,
+    gpu:   Gpu<'a>,
+    /// Used to store the value of IO Port when not properly
+    /// implemented.
+    io:   [u8, ..0x4c],
 }
 
 impl<'a> Interconnect<'a> {
     /// Create a new Interconnect
     pub fn new<'n>(rom: rom::Rom, gpu: Gpu<'n>) -> Interconnect<'n> {
-        // 8kB video RAM  + 2 banks RAM
-        let ram = ram::Ram::new(3 * 8 * 1024);
+        // Bankable RAM
+        let ram = ram::Ram::new(0x2000);
+        // internal RAM
+        let iram = ram::Ram::new(0x2000);
+        // 0-page RAM
+        let zpage = ram::Ram::new(0x7f);
         // IO mapped registers
-        let io = [0, ..0x100];
+        let io = [0, ..0x4c];
 
-        Interconnect { rom: rom, ram: ram, gpu: gpu, io: io }
+        Interconnect { rom:   rom,
+                       ram:   ram,
+                       iram:  iram,
+                       zpage: zpage,
+                       gpu:   gpu,
+                       io:    io,
+        }
     }
 
     pub fn reset(&mut self) {
         self.ram.reset();
+        self.iram.reset();
         self.gpu.reset();
+        self.zpage.reset();
 
         for b in self.io.iter_mut() {
             *b = 0;
@@ -41,36 +57,40 @@ impl<'a> Interconnect<'a> {
     /// Get byte from peripheral mapped at `addr`
     pub fn get_byte(&self, addr: u16) -> u8 {
 
-        if map::in_range(addr, map::ROM_0) ||
-           map::in_range(addr, map::ROM_BANK) {
-            return self.rom.get_byte(addr);
+        if let Some(off) = map::in_range(addr, map::ROM) {
+            return self.rom.get_byte(off);
         }
 
-        if map::in_range(addr, map::VRAM) {
-            return self.gpu.get_vram(addr - map::range_start(map::VRAM));
+        if let Some(off) = map::in_range(addr, map::VRAM) {
+            return self.gpu.get_vram(off);
         }
 
-        if map::in_range(addr, map::RAM_BANK) ||
-           map::in_range(addr, map::IRAM) {
-            return self.ram.get_byte(addr - map::range_start(map::RAM_BANK));
+        if let Some(off) = map::in_range(addr, map::RAM_BANK) {
+            return self.ram.get_byte(off);
         }
 
-        if map::in_range(addr, map::IRAM_ECHO) {
-            let iram_addr = addr
-                - map::range_start(map::IRAM_ECHO)
-                + map::range_start(map::IRAM);
-
-            return self.ram.get_byte(iram_addr - map::range_start(map::VRAM));
+        if let Some(off) = map::in_range(addr, map::IRAM) {
+            return self.iram.get_byte(off);
         }
 
-        if map::in_range(addr, map::OAM) {
-            return self.gpu.get_oam(addr - map::range_start(map::OAM));
+        if let Some(off) = map::in_range(addr, map::IRAM_ECHO) {
+            return self.iram.get_byte(off);
         }
 
-        if map::in_range(addr, map::IO)        ||
-           map::in_range(addr, map::ZERO_PAGE) ||
-           addr == map::IEN {
-            return self.get_io(addr);
+        if let Some(off) = map::in_range(addr, map::OAM) {
+            return self.gpu.get_oam(off);
+        }
+
+        if let Some(off) = map::in_range(addr, map::IO) {
+            return self.get_io(off);
+        }
+
+        if let Some(off) = map::in_range(addr, map::ZERO_PAGE) {
+            return self.zpage.get_byte(off);
+        }
+
+        if addr == map::IEN {
+            return 0;
         }
 
         println!("Read from unmapped memory {:04x}", addr);
@@ -79,40 +99,40 @@ impl<'a> Interconnect<'a> {
 
     /// Store `val` into peripheral mapped at `addr`
     pub fn set_byte(&mut self, addr: u16, val: u8) {
-
-        if map::in_range(addr, map::ROM_0) ||
-           map::in_range(addr, map::ROM_BANK) {
+        if let Some(_) = map::in_range(addr, map::ROM) {
             println!("Writing to ROM: {:04x}: {:02x}", addr, val);
-            return;
         }
 
-        if map::in_range(addr, map::VRAM) {
-            return self.gpu.set_vram(addr - map::range_start(map::VRAM), val);
+        if let Some(off) = map::in_range(addr, map::VRAM) {
+            return self.gpu.set_vram(off, val);
         }
 
-        if map::in_range(addr, map::RAM_BANK) ||
-           map::in_range(addr, map::IRAM) {
-            return self.ram.set_byte(addr - map::range_start(map::RAM_BANK),
-                                      val);
+        if let Some(off) = map::in_range(addr, map::RAM_BANK) {
+            return self.ram.set_byte(off, val);
         }
 
-        if map::in_range(addr, map::IRAM_ECHO) {
-            let iram_addr = addr
-                - map::range_start(map::IRAM_ECHO)
-                + map::range_start(map::IRAM);
-
-            return self.ram.set_byte(iram_addr - map::range_start(map::VRAM),
-                                     val);
+        if let Some(off) = map::in_range(addr, map::IRAM) {
+            return self.iram.set_byte(off, val);
         }
 
-        if map::in_range(addr, map::OAM) {
-            return self.gpu.set_oam(addr - map::range_start(map::OAM), val);
+        if let Some(off) = map::in_range(addr, map::IRAM_ECHO) {
+            return self.iram.set_byte(off, val);
         }
 
-        if map::in_range(addr, map::IO)        ||
-           map::in_range(addr, map::ZERO_PAGE) ||
-           addr == map::IEN {
-            return self.set_io(addr, val);
+        if let Some(off) = map::in_range(addr, map::OAM) {
+            return self.gpu.set_oam(off, val);
+        }
+
+        if let Some(off) = map::in_range(addr, map::IO) {
+            return self.set_io(off, val);
+        }
+
+        if let Some(off) = map::in_range(addr, map::ZERO_PAGE) {
+            return self.zpage.set_byte(off, val);
+        }
+
+        if addr == map::IEN {
+            println!("Interrupt enable {:02x}", val);
         }
 
         println!("Write to unmapped memory {:04x}: {:02x}", addr, val);
@@ -149,10 +169,8 @@ impl<'a> Interconnect<'a> {
 mod map {
     //! Game Boy memory map. Memory ranges are inclusive.
 
-    /// ROM Bank #0
-    pub const ROM_0:     (u16, u16) = (0x0000, 0x3fff);
-    /// ROM Bank N
-    pub const ROM_BANK:  (u16, u16) = (0x4000, 0x7fff);
+    /// ROM
+    pub const ROM:       (u16, u16) = (0x0000, 0x7fff);
     /// Video RAM
     pub const VRAM:      (u16, u16) = (0x8000, 0x9fff);
     /// RAM Bank N
@@ -172,20 +190,18 @@ mod map {
     // IO ports description
 
     /// Currently displayed line
-    pub const LCD_LY:   u16 = 0xff44;
+    pub const LCD_LY:   u16 = 0x44;
 
-    /// Return `true` if the given address is in the inclusive range
-    /// `range`
-    pub fn in_range(addr: u16, range: (u16, u16)) -> bool {
+    /// Return `Some(offset)` if the given address is in the inclusive
+    /// range `range`, Where `offset` is an u16 equal to the offset of
+    /// `addr` within the `range`.
+    pub fn in_range(addr: u16, range: (u16, u16)) -> Option<u16> {
         let (first, last) = range;
 
-        addr >= first && addr <= last
-    }
-
-    /// Return `range` start
-    pub fn range_start(range: (u16, u16)) -> u16 {
-        let (start, _) = range;
-
-        start
+        if addr >= first && addr <= last {
+            Some(addr - first)
+        } else {
+            None
+        }
     }
 }
