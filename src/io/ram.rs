@@ -1,7 +1,5 @@
 //! RAM emulation
 
-use super::Addressable;
-
 /// RAM image
 pub struct Ram {
     data: Vec<u8>,
@@ -23,14 +21,12 @@ impl Ram {
             *b = RAM_DEFAULT;
         }
     }
-}
 
-impl Addressable for Ram {
-    fn get_byte(&self, offset: u16) -> u8 {
+    pub fn get_byte(&self, offset: u16) -> u8 {
         self.data[offset as uint]
     }
 
-    fn set_byte(&mut self, offset: u16, val: u8) {
+    pub fn set_byte(&mut self, offset: u16, val: u8) {
         self.data[offset as uint] = val;
     }
 }

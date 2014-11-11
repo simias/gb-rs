@@ -63,7 +63,7 @@ impl<'a> Interconnect<'a> {
         }
 
         if map::in_range(addr, map::OAM) {
-            return self.gpu.get_byte(addr)
+            return self.gpu.get_oam((addr - map::range_start(map::OAM)) as u8)
         }
 
         if map::in_range(addr, map::IO)        ||
@@ -81,7 +81,8 @@ impl<'a> Interconnect<'a> {
 
         if map::in_range(addr, map::ROM_0) ||
            map::in_range(addr, map::ROM_BANK) {
-            return self.rom.set_byte(addr, val);
+               println!("Writing to ROM: {:04x}: {:02x}", addr, val);
+               return;
         }
 
         if map::in_range(addr, map::VRAM)     ||
@@ -100,7 +101,8 @@ impl<'a> Interconnect<'a> {
         }
 
         if map::in_range(addr, map::OAM) {
-            return self.gpu.set_byte(addr, val)
+            return self.gpu.set_oam((addr - map::range_start(map::OAM)) as u8,
+                                    val)
         }
 
         if map::in_range(addr, map::IO)        ||
@@ -138,19 +140,6 @@ impl<'a> Interconnect<'a> {
                     self.io[(addr & 0xff) as uint].set(val);
             }
         }
-    }
-}
-
-/// Common trait for all I/O ressources (ROM, RAM, registers...)
-pub trait Addressable {
-    /// Return byte at `offset`
-    fn get_byte(&self, offset: u16) -> u8;
-
-    /// Set byte at `offset`.
-    fn set_byte(&mut self, offset: u16, val: u8) {
-        // TODO(lionel) there should be a better way to handle that
-        // type of errors. It should probably bubble up.
-        println!("Writing to read-only memory [0x{:04x}]: 0x{:02x}", offset, val);
     }
 }
 

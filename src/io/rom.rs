@@ -3,8 +3,6 @@
 use std::fmt::{Show, Formatter, FormatError};
 use std::io::{File, Reader, IoResult};
 
-use super::Addressable;
-
 /// ROM image
 pub struct Rom {
     /// Full cartridge data
@@ -51,10 +49,8 @@ impl Rom {
 
         Some(name)
     }
-}
 
-impl Addressable for Rom {
-    fn get_byte(&self, offset: u16) -> u8 {
+    pub fn get_byte(&self, offset: u16) -> u8 {
         self.data[offset as uint]
     }
 }

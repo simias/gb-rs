@@ -3,7 +3,6 @@
 use std::cell::Cell;
 use std::fmt::{Show, Formatter, FormatError};
 
-use io::Addressable;
 use ui::Display;
 
 /// GPU state.
@@ -100,28 +99,20 @@ impl<'a> Gpu<'a> {
     fn end_of_frame(&mut self) {
         self.display.flip();
     }
-}
 
-impl<'a> Addressable for Gpu<'a> {
-    fn get_byte(&self, addr: u16) -> u8 {
-        if addr >= 0xfe00 {
-            match self.get_mode() {
-                Prelude | Active => panic!("OAM access while in use {:04x}", addr),
-                _                => self.oam[(addr & 0xff) as uint].get()
-            }
-        } else {
-            panic!("Unexpected GPU access at {:04x}", addr);
+    /// Get byte from OAM
+    pub fn get_oam(&self, addr: u8) -> u8 {
+        match self.get_mode() {
+            Prelude | Active => panic!("OAM access while in use {:02x}", addr),
+            _                => self.oam[(addr & 0xff) as uint].get()
         }
     }
 
-    fn set_byte(&mut self, addr: u16, val: u8) {
-        if addr >= 0xfe00 {
-            match self.get_mode() {
-                Prelude | Active => panic!("OAM access while in use {:04x}", addr),
-                _                => self.oam[(addr & 0xff) as uint].set(val)
-            }
-        } else {
-            panic!("Unexpected GPU write at {:04x}: {:02x}", addr, val);
+    /// Set byte in OAM
+    pub fn set_oam(&mut self, addr: u8, val: u8) {
+        match self.get_mode() {
+            Prelude | Active => panic!("OAM access while in use {:02x}", addr),
+            _                => self.oam[(addr & 0xff) as uint].set(val)
         }
     }
 
