@@ -252,7 +252,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (3, call_nz_nn),
     (4, push_bc),
     (2, add_a_n),
-    (0, nop),
+    (4, rst_00),
     (2, ret_z),
     (4, ret),
     (3, jp_z_nn),
@@ -260,7 +260,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (3, call_z_nn),
     (6, call_nn),
     (0, nop),
-    (0, nop),
+    (4, rst_08),
     // Opcodes DX
     (2, ret_nc),
     (3, pop_de),
@@ -269,7 +269,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (3, call_nc_nn),
     (4, push_de),
     (2, sub_a_n),
-    (0, nop),
+    (4, rst_10),
     (2, ret_c),
     (4, reti),
     (3, jp_c_nn),
@@ -277,7 +277,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (3, call_c_nn),
     (0, nop),
     (0, nop),
-    (0, nop),
+    (4, rst_18),
     // Opcodes EX
     (3, ldh_mn_a),
     (3, pop_hl),
@@ -286,7 +286,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (0, nop),
     (4, push_hl),
     (2, and_a_n),
-    (0, nop),
+    (4, rst_20),
     (0, nop),
     (0, nop),
     (4, ld_mnn_a),
@@ -294,7 +294,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (0, nop),
     (0, nop),
     (0, nop),
-    (0, nop),
+    (4, rst_28),
     // Opcodes FX
     (3, ldh_a_mn),
     (3, pop_af),
@@ -303,7 +303,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (0, nop),
     (4, push_af),
     (2, or_a_n),
-    (0, nop),
+    (4, rst_30),
     (0, nop),
     (0, nop),
     (2, ld_a_mnn),
@@ -311,7 +311,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (0, nop),
     (0, nop),
     (2, cp_a_n),
-    (0, nop),
+    (4, rst_38),
 ];
 
 /// For multi-byte instructions: return the byte at `pc` and increment `pc`
@@ -1185,6 +1185,55 @@ fn jr_c_n(cpu: &mut Cpu) {
 
         cpu.additional_delay(1);
     }
+}
+
+/// Helper function for RST instructions
+fn rst(cpu: &mut Cpu, addr: u16) {
+    let pc = cpu.pc();
+
+    push_word(cpu, pc);
+
+    cpu.set_pc(addr);
+}
+
+/// Push return address on stack and jump to 0x00
+fn rst_00(cpu: &mut Cpu) {
+    rst(cpu, 0x00);
+}
+
+/// Push return address on stack and jump to 0x08
+fn rst_08(cpu: &mut Cpu) {
+    rst(cpu, 0x08);
+}
+
+/// Push return address on stack and jump to 0x10
+fn rst_10(cpu: &mut Cpu) {
+    rst(cpu, 0x10);
+}
+
+/// Push return address on stack and jump to 0x18
+fn rst_18(cpu: &mut Cpu) {
+    rst(cpu, 0x18);
+}
+
+/// Push return address on stack and jump to 0x20
+fn rst_20(cpu: &mut Cpu) {
+    rst(cpu, 0x20);
+}
+
+/// Push return address on stack and jump to 0x28
+fn rst_28(cpu: &mut Cpu) {
+    rst(cpu, 0x28);
+}
+
+/// Push return address on stack and jump to 0x30
+fn rst_30(cpu: &mut Cpu) {
+    rst(cpu, 0x30);
+}
+
+/// Push return address on stack and jump to 0x38
+fn rst_38(cpu: &mut Cpu) {
+    rst(cpu, 0x38);
 }
 
 /// Push return address on stack and jump to immediate address
@@ -3995,5 +4044,4 @@ mod bitops {
 
         cpu.store_byte(hl, r);
     }
-
 }
