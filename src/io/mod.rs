@@ -141,26 +141,38 @@ impl<'a> Interconnect<'a> {
     /// Retrieve value from IO port
     fn get_io(&self, addr: u16) -> u8 {
         match addr {
-            map::LCD_LY => {
+            io_map::LCD_LY => {
                 // LY register
-                self.gpu.get_line()
+                return self.gpu.get_line()
+            }
+            io_map::LCD_BGP => {
+                return self.gpu.bgp()
             }
             _ => {
                 println!("Unhandled IO read from 0x{:04x}", addr);
-                self.io[(addr & 0xff) as uint]
+
             }
         }
+
+        self.io[(addr & 0xff) as uint]
     }
 
     /// Set value of IO port
     fn set_io(&mut self, addr: u16, val: u8) {
+        self.io[(addr & 0xff) as uint] = val;
+
         match addr {
-            map::LCD_LY => {
+            io_map::LCD_LY => {
                 panic!("Unhandled write to LY register");
+            },
+            io_map::LCD_BGP => {
+                return self.gpu.set_bgp(val)
             }
+            io_map::LCDC => {
+                return self.gpu.set_lcdc(val);
+            },
             _ => {
-                println!("Unhandled IO write to 0x{:02x}: 0x{:04x}", addr, val)
-                    self.io[(addr & 0xff) as uint] = val;
+                println!("Unhandled IO write to 0x{:02x}: 0x{:02x}", addr, val);
             }
         }
     }
@@ -187,11 +199,6 @@ mod map {
     pub const ZERO_PAGE: (u16, u16) = (0xff80, 0xfffe);
     pub const IEN:       u16        = 0xffff;
 
-    // IO ports description
-
-    /// Currently displayed line
-    pub const LCD_LY:   u16 = 0x44;
-
     /// Return `Some(offset)` if the given address is in the inclusive
     /// range `range`, Where `offset` is an u16 equal to the offset of
     /// `addr` within the `range`.
@@ -204,4 +211,16 @@ mod map {
             None
         }
     }
+}
+
+mod io_map {
+    //! IO Address Map (offset from 0xff00)
+
+    /// LCD Control
+    pub const LCDC:     u16 = 0x40;
+    /// Currently displayed line
+    pub const LCD_LY:   u16 = 0x44;
+    /// Background palette
+    pub const LCD_BGP:  u16 = 0x47;
+
 }

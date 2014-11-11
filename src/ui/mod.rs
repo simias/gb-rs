@@ -7,8 +7,9 @@ pub mod sdl2;
 pub trait Display {
     /// Clear the display
     fn clear(&mut self);
-    /// Set or clear pixel at (x, y). (0, 0) is top left.
-    fn set_pixel(&mut self, x: u32, y: u32, set: bool);
+    /// Set pixel at (x, y). (0, 0) is top left. col is in the range
+    /// [0, 3] where 0 is white and 3 is black.
+    fn set_pixel(&mut self, x: u32, y: u32, col: u8);
     /// Current frame is done and can be displayed.
     fn flip(&mut self);
 }
@@ -21,7 +22,7 @@ impl Display for DummyDisplay {
     fn clear(&mut self) {
     }
 
-    fn set_pixel(&mut self, _: u32, _: u32, _: bool) {
+    fn set_pixel(&mut self, _: u32, _: u32, _: u8) {
     }
 
     fn flip(&mut self) {
