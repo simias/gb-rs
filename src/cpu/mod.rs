@@ -9,7 +9,7 @@ mod instructions;
 
 /// CPU state. Should be considered undetermined as long as
 /// `Cpu::reset()` hasn't been called.
-pub struct Cpu {
+pub struct Cpu<'a> {
     // Time remaining for the current instruction to finish
     instruction_delay:   u32,
     // CPU registers (except for `F` register)
@@ -17,7 +17,7 @@ pub struct Cpu {
     // CPU flags (`F` register)
     flags:               Flags,
     // Interconnect to access external ressources (RAM, ROM, peripherals...)
-    inter:               Interconnect,
+    inter:               Interconnect<'a>,
 }
 
 /// CPU registers. They're 16bit wide but some of them can be accessed
@@ -61,11 +61,11 @@ struct Flags {
     c: bool,
 }
 
-impl Cpu {
+impl<'a> Cpu<'a> {
     /// Create a new Cpu instance. The register's value should be
     /// treated as undetermined at that point so I fill them with
     /// garbage values.
-    pub fn new (rom: ::io::rom::Rom) -> Cpu {
+    pub fn new<'n>(inter: Interconnect<'n>) -> Cpu<'n> {
         Cpu {
             instruction_delay:   0,
             regs: Registers { pc: 0xbaad,
@@ -83,7 +83,7 @@ impl Cpu {
                            h: false,
                            c: false,
             },
-            inter: Interconnect::new(rom),
+            inter: inter,
         }
     }
 
@@ -374,7 +374,7 @@ impl Cpu {
     }
 }
 
-impl Show for Cpu {
+impl<'a> Show for Cpu<'a> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
         try!(writeln!(f, "Registers:"));
 

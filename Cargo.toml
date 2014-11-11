@@ -3,3 +3,7 @@
 name = "gb-rs"
 version = "0.0.1"
 authors = ["Lionel Flandrin <lionel@svkt.org>"]
+
+[dependencies.sdl2]
+
+git = "https://github.com/AngryLawyer/rust-sdl2"

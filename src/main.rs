@@ -6,11 +6,16 @@
 
 #![warn(missing_docs)]
 
+extern crate sdl2;
+
 mod cpu;
 mod io;
 mod gpu;
+mod ui;
 
 fn main() {
+    let mut display = ui::sdl2::Display::new();
+
     let argv = std::os::args();
 
     if argv.len() < 2 {
@@ -27,7 +32,11 @@ fn main() {
 
     println!("Loaded ROM {}", rom);
 
-    let mut cpu = cpu::Cpu::new(rom);
+    let gpu = gpu::Gpu::new(&mut display);
+
+    let inter = io::Interconnect::new(rom, gpu);
+
+    let mut cpu = cpu::Cpu::new(inter);
 
     cpu.reset();
 

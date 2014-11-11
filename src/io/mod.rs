@@ -9,22 +9,20 @@ pub mod ram;
 
 /// Interconnect struct used by the CPU and GPU to access the ROM, RAM
 /// and registers
-pub struct Interconnect {
+pub struct Interconnect<'a> {
     rom:  rom::Rom,
     ram:  ram::Ram,
-    gpu:  Gpu,
+    gpu:  Gpu<'a>,
     io:   Vec<Cell<u8>>,
 }
 
-impl Interconnect {
+impl<'a> Interconnect<'a> {
     /// Create a new Interconnect
-    pub fn new(rom: rom::Rom) -> Interconnect {
+    pub fn new<'n>(rom: rom::Rom, gpu: Gpu<'n>) -> Interconnect<'n> {
         // 8kB video RAM  + 2 banks RAM
         let ram = ram::Ram::new(3 * 8 * 1024);
         // IO mapped registers
         let io = Vec::from_elem(0x100, Cell::new(0));
-        // GPU instance
-        let gpu = Gpu::new();
 
         Interconnect { rom: rom, ram: ram, gpu: gpu, io: io }
     }
@@ -94,7 +92,7 @@ pub trait Addressable {
 }
 
 /// IO register handling (0xff00 - 0xffff)
-impl Addressable for Interconnect {
+impl<'a> Addressable for Interconnect<'a> {
     fn get_byte(&self, offset: u16) -> u8 {
         match offset {
             0x44 => {
