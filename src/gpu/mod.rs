@@ -1,6 +1,5 @@
 //! Game Boy GPU emulation
 
-use std::cell::Cell;
 use std::fmt::{Show, Formatter, FormatError};
 
 use ui::Display;
@@ -12,7 +11,7 @@ pub struct Gpu<'a> {
     /// Position on the current line.
     col: u16,
     /// Object attritube memory
-    oam: [Cell<u8>, ..0xa0],
+    oam: [u8, ..0xa0],
     /// Emulator Display
     display: &'a mut Display + 'a,
 }
@@ -37,7 +36,7 @@ impl<'a> Gpu<'a> {
     pub fn new<'n>(display: &'n mut Display) -> Gpu<'n> {
         Gpu { line:    0,
               col:     0,
-              oam:     [Cell::new(0xca), ..0xa0],
+              oam:     [0xca, ..0xa0],
               display: display,
         }
     }
@@ -46,7 +45,7 @@ impl<'a> Gpu<'a> {
     pub fn reset(&mut self) {
         self.line = 0;
         self.col  = 0;
-        self.oam  = [Cell::new(0xca), ..0xa0];
+        self.oam  = [0xca, ..0xa0];
     }
 
     /// Called at each tick of the system clock. Move the emulated
@@ -104,7 +103,7 @@ impl<'a> Gpu<'a> {
     pub fn get_oam(&self, addr: u8) -> u8 {
         match self.get_mode() {
             Prelude | Active => panic!("OAM access while in use {:02x}", addr),
-            _                => self.oam[(addr & 0xff) as uint].get()
+            _                => self.oam[(addr & 0xff) as uint]
         }
     }
 
@@ -112,7 +111,7 @@ impl<'a> Gpu<'a> {
     pub fn set_oam(&mut self, addr: u8, val: u8) {
         match self.get_mode() {
             Prelude | Active => panic!("OAM access while in use {:02x}", addr),
-            _                => self.oam[(addr & 0xff) as uint].set(val)
+            _                => self.oam[(addr & 0xff) as uint] = val,
         }
     }
 

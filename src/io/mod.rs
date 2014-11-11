@@ -1,7 +1,5 @@
 //! Input/Output abstraction for memory, ROM and I/O mapped registers
 
-use std::cell::Cell;
-
 use gpu::Gpu;
 
 pub mod rom;
@@ -13,7 +11,7 @@ pub struct Interconnect<'a> {
     rom:  rom::Rom,
     ram:  ram::Ram,
     gpu:  Gpu<'a>,
-    io:   Vec<Cell<u8>>,
+    io:   [u8, ..0x100],
 }
 
 impl<'a> Interconnect<'a> {
@@ -22,7 +20,7 @@ impl<'a> Interconnect<'a> {
         // 8kB video RAM  + 2 banks RAM
         let ram = ram::Ram::new(3 * 8 * 1024);
         // IO mapped registers
-        let io = Vec::from_elem(0x100, Cell::new(0));
+        let io = [0, ..0x100];
 
         Interconnect { rom: rom, ram: ram, gpu: gpu, io: io }
     }
@@ -31,8 +29,8 @@ impl<'a> Interconnect<'a> {
         self.ram.reset();
         self.gpu.reset();
 
-        for c in self.io.iter() {
-            c.set(0);
+        for b in self.io.iter_mut() {
+            *b = 0;
         }
     }
 
@@ -123,7 +121,7 @@ impl<'a> Interconnect<'a> {
             }
             _ => {
                 println!("Unhandled IO read from 0x{:04x}", addr);
-                self.io[(addr & 0xff) as uint].get()
+                self.io[(addr & 0xff) as uint]
             }
         }
     }
@@ -137,7 +135,7 @@ impl<'a> Interconnect<'a> {
             }
             _ => {
                 println!("Unhandled IO write to 0x{:02x}: 0x{:04x}", addr, val)
-                    self.io[(addr & 0xff) as uint].set(val);
+                    self.io[(addr & 0xff) as uint] = val;
             }
         }
     }
