@@ -12,6 +12,8 @@ pub struct Gpu<'a> {
     col: u16,
     /// Object attritube memory
     oam: [u8, ..0xa0],
+    /// Video Ram
+    vram: [u8, ..0x2000],
     /// Emulator Display
     display: &'a mut Display + 'a,
 }
@@ -37,6 +39,7 @@ impl<'a> Gpu<'a> {
         Gpu { line:    0,
               col:     0,
               oam:     [0xca, ..0xa0],
+              vram:    [0xca, ..0x2000],
               display: display,
         }
     }
@@ -46,6 +49,7 @@ impl<'a> Gpu<'a> {
         self.line = 0;
         self.col  = 0;
         self.oam  = [0xca, ..0xa0];
+        self.vram = [0xca, ..0x2000];
     }
 
     /// Called at each tick of the system clock. Move the emulated
@@ -99,19 +103,35 @@ impl<'a> Gpu<'a> {
         self.display.flip();
     }
 
-    /// Get byte from OAM
-    pub fn get_oam(&self, addr: u8) -> u8 {
+    /// Get byte from VRAM
+    pub fn get_vram(&self, addr: u16) -> u8 {
         match self.get_mode() {
-            Prelude | Active => panic!("OAM access while in use {:02x}", addr),
-            _                => self.oam[(addr & 0xff) as uint]
+            Active => panic!("VRAM read while in use {:04x}", addr),
+            _      => self.vram[addr as uint]
+        }
+    }
+
+    /// Set byte in VRAM
+    pub fn set_vram(&mut self, addr: u16, val: u8) {
+        match self.get_mode() {
+            Active => panic!("VRAM write while in use {:04x}: {:02x}", addr, val),
+            _      => self.vram[addr as uint] = val,
+        }
+    }
+
+    /// Get byte from OAM
+    pub fn get_oam(&self, addr: u16) -> u8 {
+        match self.get_mode() {
+            Prelude | Active => panic!("OAM read while in use {:02x}", addr),
+            _                => self.oam[addr as uint]
         }
     }
 
     /// Set byte in OAM
-    pub fn set_oam(&mut self, addr: u8, val: u8) {
+    pub fn set_oam(&mut self, addr: u16, val: u8) {
         match self.get_mode() {
-            Prelude | Active => panic!("OAM access while in use {:02x}", addr),
-            _                => self.oam[(addr & 0xff) as uint] = val,
+            Prelude | Active => panic!("OAM write while in use {:02x}: {:02x}", addr, val),
+            _                => self.oam[addr as uint] = val,
         }
     }
 

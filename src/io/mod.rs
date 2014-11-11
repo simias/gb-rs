@@ -46,10 +46,13 @@ impl<'a> Interconnect<'a> {
             return self.rom.get_byte(addr);
         }
 
-        if map::in_range(addr, map::VRAM)     ||
-           map::in_range(addr, map::RAM_BANK) ||
+        if map::in_range(addr, map::VRAM) {
+            return self.gpu.get_vram(addr - map::range_start(map::VRAM));
+        }
+
+        if map::in_range(addr, map::RAM_BANK) ||
            map::in_range(addr, map::IRAM) {
-            return self.ram.get_byte(addr - map::range_start(map::VRAM));
+            return self.ram.get_byte(addr - map::range_start(map::RAM_BANK));
         }
 
         if map::in_range(addr, map::IRAM_ECHO) {
@@ -61,7 +64,7 @@ impl<'a> Interconnect<'a> {
         }
 
         if map::in_range(addr, map::OAM) {
-            return self.gpu.get_oam((addr - map::range_start(map::OAM)) as u8)
+            return self.gpu.get_oam(addr - map::range_start(map::OAM));
         }
 
         if map::in_range(addr, map::IO)        ||
@@ -79,15 +82,19 @@ impl<'a> Interconnect<'a> {
 
         if map::in_range(addr, map::ROM_0) ||
            map::in_range(addr, map::ROM_BANK) {
-               println!("Writing to ROM: {:04x}: {:02x}", addr, val);
-               return;
+            println!("Writing to ROM: {:04x}: {:02x}", addr, val);
+            return;
         }
 
-        if map::in_range(addr, map::VRAM)     ||
-           map::in_range(addr, map::RAM_BANK) ||
+        if map::in_range(addr, map::VRAM) {
+            return self.gpu.set_vram(addr - map::range_start(map::VRAM), val);
+        }
+
+        if map::in_range(addr, map::RAM_BANK) ||
            map::in_range(addr, map::IRAM) {
-            return self.ram.set_byte(addr - map::range_start(map::VRAM), val);
-           }
+            return self.ram.set_byte(addr - map::range_start(map::RAM_BANK),
+                                      val);
+        }
 
         if map::in_range(addr, map::IRAM_ECHO) {
             let iram_addr = addr
@@ -99,8 +106,7 @@ impl<'a> Interconnect<'a> {
         }
 
         if map::in_range(addr, map::OAM) {
-            return self.gpu.set_oam((addr - map::range_start(map::OAM)) as u8,
-                                    val)
+            return self.gpu.set_oam(addr - map::range_start(map::OAM), val);
         }
 
         if map::in_range(addr, map::IO)        ||
@@ -128,7 +134,6 @@ impl<'a> Interconnect<'a> {
 
     /// Set value of IO port
     fn set_io(&mut self, addr: u16, val: u8) {
-
         match addr {
             map::LCD_LY => {
                 panic!("Unhandled write to LY register");
