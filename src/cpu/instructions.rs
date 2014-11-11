@@ -298,7 +298,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     // Opcodes FX
     (3, ldh_a_mn),
     (3, pop_af),
-    (0, ldh_a_mc),
+    (2, ldh_a_mc),
     (1, di),
     (0, nop),
     (4, push_af),
