@@ -2677,7 +2677,6 @@ mod bitops {
     //! operations dealing with bit manipulation (rotations, shifts,
     //! bit set, bit clear...)
 
-    use super::nop;
     use cpu::Cpu;
 
     /// Return the 0xCB instruction to be executed
@@ -2701,39 +2700,39 @@ mod bitops {
     /// instructions
     pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
         // Opcodes CB 0X
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
+        (2, rlc_b),
+        (2, rlc_c),
+        (2, rlc_d),
+        (2, rlc_e),
+        (2, rlc_h),
+        (2, rlc_l),
+        (4, rlc_mhl),
+        (2, rlc_a),
+        (2, rrc_b),
+        (2, rrc_c),
+        (2, rrc_d),
+        (2, rrc_e),
+        (2, rrc_h),
+        (2, rrc_l),
+        (4, rrc_mhl),
+        (2, rrc_a),
         // Opcodes CB 1X
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
+        (2, rl_b),
+        (2, rl_c),
+        (2, rl_d),
+        (2, rl_e),
+        (2, rl_h),
+        (2, rl_l),
+        (4, rl_mhl),
+        (2, rl_a),
+        (2, rr_b),
+        (2, rr_c),
+        (2, rr_d),
+        (2, rr_e),
+        (2, rr_h),
+        (2, rr_l),
+        (4, rr_mhl),
+        (2, rr_a),
         // Opcodes CB 2X
         (2, sla_b),
         (2, sla_c),
@@ -4481,6 +4480,367 @@ mod bitops {
         let n  = cpu.fetch_byte(hl);
 
         let r = sra(cpu, n);
+
+        cpu.store_byte(hl, r);
+    }
+
+    /// Helper function to rotate an `u8` to the left and update CPU
+    /// flags.
+    fn rlc(cpu: &mut Cpu, v: u8)  -> u8 {
+        cpu.set_carry(v & 0x80 != 0);
+
+        let r = (v << 1) | (v >> 7);
+
+        cpu.set_zero(r == 0);
+
+        cpu.set_substract(false);
+        cpu.set_halfcarry(false);
+
+        r
+    }
+
+    /// Rotate `A` to the left. It's slower than RLCA and doesn't set
+    /// the same flags.
+    fn rlc_a(cpu: &mut Cpu) {
+        let a = cpu.a();
+
+        let r = rlc(cpu, a);
+
+        cpu.set_a(r);
+    }
+
+    /// Rotate `B` to the left
+    fn rlc_b(cpu: &mut Cpu) {
+        let b = cpu.b();
+
+        let r = rlc(cpu, b);
+
+        cpu.set_b(r);
+    }
+
+    /// Rotate `C` to the left
+    fn rlc_c(cpu: &mut Cpu) {
+        let c = cpu.c();
+
+        let r = rlc(cpu, c);
+
+        cpu.set_c(r);
+    }
+
+    /// Rotate `D` to the left
+    fn rlc_d(cpu: &mut Cpu) {
+        let d = cpu.d();
+
+        let r = rlc(cpu, d);
+
+        cpu.set_d(r);
+    }
+
+    /// Rotate `E` to the left
+    fn rlc_e(cpu: &mut Cpu) {
+        let e = cpu.e();
+
+        let r = rlc(cpu, e);
+
+        cpu.set_e(r);
+    }
+
+    /// Rotate `H` to the left
+    fn rlc_h(cpu: &mut Cpu) {
+        let h = cpu.h();
+
+        let r = rlc(cpu, h);
+
+        cpu.set_h(r);
+    }
+
+    /// Rotate `L` to the left
+    fn rlc_l(cpu: &mut Cpu) {
+        let l = cpu.l();
+
+        let r = rlc(cpu, l);
+
+        cpu.set_l(r);
+    }
+
+    /// Rotate `[HL]` to the left
+    fn rlc_mhl(cpu: &mut Cpu) {
+        let hl = cpu.hl();
+        let n  = cpu.fetch_byte(hl);
+
+        let r = rlc(cpu, n);
+
+        cpu.store_byte(hl, r);
+    }
+
+    /// Helper function to rotate an `u8` to the right and update CPU
+    /// flags.
+    fn rrc(cpu: &mut Cpu, v: u8)  -> u8 {
+        cpu.set_carry(v & 1 != 0);
+
+        let r = (v >> 1) | (v << 7);
+
+        cpu.set_zero(r == 0);
+
+        cpu.set_substract(false);
+        cpu.set_halfcarry(false);
+
+        r
+    }
+
+    /// Rotate `A` to the right. It's slower than RRCA and doesn't set
+    /// the same flags.
+    fn rrc_a(cpu: &mut Cpu) {
+        let a = cpu.a();
+
+        let r = rrc(cpu, a);
+
+        cpu.set_a(r);
+    }
+
+    /// Rotate `B` to the right
+    fn rrc_b(cpu: &mut Cpu) {
+        let b = cpu.b();
+
+        let r = rrc(cpu, b);
+
+        cpu.set_b(r);
+    }
+
+    /// Rotate `C` to the right
+    fn rrc_c(cpu: &mut Cpu) {
+        let c = cpu.c();
+
+        let r = rrc(cpu, c);
+
+        cpu.set_c(r);
+    }
+
+    /// Rotate `D` to the right
+    fn rrc_d(cpu: &mut Cpu) {
+        let d = cpu.d();
+
+        let r = rrc(cpu, d);
+
+        cpu.set_d(r);
+    }
+
+    /// Rotate `E` to the right
+    fn rrc_e(cpu: &mut Cpu) {
+        let e = cpu.e();
+
+        let r = rrc(cpu, e);
+
+        cpu.set_e(r);
+    }
+
+    /// Rotate `H` to the right
+    fn rrc_h(cpu: &mut Cpu) {
+        let h = cpu.h();
+
+        let r = rrc(cpu, h);
+
+        cpu.set_h(r);
+    }
+
+    /// Rotate `L` to the right
+    fn rrc_l(cpu: &mut Cpu) {
+        let l = cpu.l();
+
+        let r = rrc(cpu, l);
+
+        cpu.set_l(r);
+    }
+
+    /// Rotate `[HL]` to the right
+    fn rrc_mhl(cpu: &mut Cpu) {
+        let hl = cpu.hl();
+        let n  = cpu.fetch_byte(hl);
+
+        let r = rrc(cpu, n);
+
+        cpu.store_byte(hl, r);
+    }
+
+    /// Helper function to rotate an `u8` to the left through carry and update CPU
+    /// flags.
+    fn rl(cpu: &mut Cpu, v: u8)  -> u8 {
+        let oldcarry = cpu.carry() as u8;
+
+        cpu.set_carry(v & 0x80 != 0);
+
+        let r = (v << 1) | oldcarry;
+
+        cpu.set_zero(r == 0);
+
+        cpu.set_substract(false);
+        cpu.set_halfcarry(false);
+
+        r
+    }
+
+    /// Rotate `A` to the left through carry. It's slower than RLA and
+    /// doesn't set the same flags.
+    fn rl_a(cpu: &mut Cpu) {
+        let a = cpu.a();
+
+        let r = rl(cpu, a);
+
+        cpu.set_a(r);
+    }
+
+    /// Rotate `B` to the left through carry
+    fn rl_b(cpu: &mut Cpu) {
+        let b = cpu.b();
+
+        let r = rl(cpu, b);
+
+        cpu.set_b(r);
+    }
+
+    /// Rotate `C` to the left through carry
+    fn rl_c(cpu: &mut Cpu) {
+        let c = cpu.c();
+
+        let r = rl(cpu, c);
+
+        cpu.set_c(r);
+    }
+
+    /// Rotate `D` to the left through carry
+    fn rl_d(cpu: &mut Cpu) {
+        let d = cpu.d();
+
+        let r = rl(cpu, d);
+
+        cpu.set_d(r);
+    }
+
+    /// Rotate `E` to the left through carry
+    fn rl_e(cpu: &mut Cpu) {
+        let e = cpu.e();
+
+        let r = rl(cpu, e);
+
+        cpu.set_e(r);
+    }
+
+    /// Rotate `H` to the left through carry
+    fn rl_h(cpu: &mut Cpu) {
+        let h = cpu.h();
+
+        let r = rl(cpu, h);
+
+        cpu.set_h(r);
+    }
+
+    /// Rotate `L` to the left through carry
+    fn rl_l(cpu: &mut Cpu) {
+        let l = cpu.l();
+
+        let r = rl(cpu, l);
+
+        cpu.set_l(r);
+    }
+
+    /// Rotate `[HL]` to the left through carry
+    fn rl_mhl(cpu: &mut Cpu) {
+        let hl = cpu.hl();
+        let n  = cpu.fetch_byte(hl);
+
+        let r = rl(cpu, n);
+
+        cpu.store_byte(hl, r);
+    }
+
+
+    /// Helper function to rotate an `u8` to the right through carry and update CPU
+    /// flags.
+    fn rr(cpu: &mut Cpu, v: u8)  -> u8 {
+        let oldcarry = cpu.carry() as u8;
+
+        cpu.set_carry(v & 0x1 != 0);
+
+        let r = (v >> 1) | (oldcarry << 7);
+
+        cpu.set_zero(r == 0);
+
+        cpu.set_substract(false);
+        cpu.set_halfcarry(false);
+
+        r
+    }
+
+    /// Rotate `A` to the right through carry. It's slower than RRA and
+    /// doesn't set the same flags.
+    fn rr_a(cpu: &mut Cpu) {
+        let a = cpu.a();
+
+        let r = rr(cpu, a);
+
+        cpu.set_a(r);
+    }
+
+    /// Rotate `B` to the right through carry
+    fn rr_b(cpu: &mut Cpu) {
+        let b = cpu.b();
+
+        let r = rr(cpu, b);
+
+        cpu.set_b(r);
+    }
+
+    /// Rotate `C` to the right through carry
+    fn rr_c(cpu: &mut Cpu) {
+        let c = cpu.c();
+
+        let r = rr(cpu, c);
+
+        cpu.set_c(r);
+    }
+
+    /// Rotate `D` to the right through carry
+    fn rr_d(cpu: &mut Cpu) {
+        let d = cpu.d();
+
+        let r = rr(cpu, d);
+
+        cpu.set_d(r);
+    }
+
+    /// Rotate `E` to the right through carry
+    fn rr_e(cpu: &mut Cpu) {
+        let e = cpu.e();
+
+        let r = rr(cpu, e);
+
+        cpu.set_e(r);
+    }
+
+    /// Rotate `H` to the right through carry
+    fn rr_h(cpu: &mut Cpu) {
+        let h = cpu.h();
+
+        let r = rr(cpu, h);
+
+        cpu.set_h(r);
+    }
+
+    /// Rotate `L` to the right through carry
+    fn rr_l(cpu: &mut Cpu) {
+        let l = cpu.l();
+
+        let r = rr(cpu, l);
+
+        cpu.set_l(r);
+    }
+
+    /// Rotate `[HL]` to the right through carry
+    fn rr_mhl(cpu: &mut Cpu) {
+        let hl = cpu.hl();
+        let n  = cpu.fetch_byte(hl);
+
+        let r = rr(cpu, n);
 
         cpu.store_byte(hl, r);
     }
