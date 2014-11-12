@@ -381,6 +381,11 @@ impl<'a> Cpu<'a> {
     fn halt(&mut self) {
         // TODO (also, check if interrupts are enabled)
     }
+
+    /// Stop, blank the screen and wait for button press
+    fn stop(&mut self) {
+        // TODO (also, check if interrupts are enabled)
+    }
 }
 
 impl<'a> Show for Cpu<'a> {

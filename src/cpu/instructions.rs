@@ -58,7 +58,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (2, ld_c_n),
     (1, rrca),
     // Opcodes 1X
-    (0, nop),
+    (1, stop),
     (3, ld_de_nn),
     (2, ld_mde_a),
     (2, inc_de),
@@ -2663,6 +2663,15 @@ fn halt(cpu: &mut Cpu) {
     cpu.halt();
 }
 
+/// Stop, blank the screen and wait for button press
+fn stop(cpu: &mut Cpu) {
+    // The opcode takes two bytes for some reason, the 2nd byte should
+    // be 00 but I don't know if it's important. Just skip it for now.
+    let _ = next_byte(cpu);
+
+    cpu.stop();
+}
+
 mod bitops {
     //! Emulation of instructions prefixed by 0xCB. They are all
     //! operations dealing with bit manipulation (rotations, shifts,
@@ -2726,22 +2735,22 @@ mod bitops {
         (0, nop),
         (0, nop),
         // Opcodes CB 2X
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
-        (0, nop),
+        (2, sla_b),
+        (2, sla_c),
+        (2, sla_d),
+        (2, sla_e),
+        (2, sla_h),
+        (2, sla_l),
+        (4, sla_mhl),
+        (2, sla_a),
+        (2, sra_b),
+        (2, sra_c),
+        (2, sra_d),
+        (2, sra_e),
+        (2, sra_h),
+        (2, sra_l),
+        (4, sra_mhl),
+        (2, sra_a),
         // Opcodes CB 3X
         (2, swap_b),
         (2, swap_c),
@@ -4296,6 +4305,182 @@ mod bitops {
         let n  = cpu.fetch_byte(hl);
 
         let r = srl(cpu, n);
+
+        cpu.store_byte(hl, r);
+    }
+
+    /// Helper function to shift an `u8` to the left and update CPU
+    /// flags.
+    fn sla(cpu: &mut Cpu, v: u8)  -> u8 {
+        cpu.set_carry(v & 0x80 != 0);
+
+        let r = v << 1;
+
+        cpu.set_zero(r == 0);
+
+        cpu.set_substract(false);
+        cpu.set_halfcarry(false);
+
+        r
+    }
+
+    /// Shift `A` to the left
+    fn sla_a(cpu: &mut Cpu) {
+        let a = cpu.a();
+
+        let r = sla(cpu, a);
+
+        cpu.set_a(r);
+    }
+
+    /// Shift `B` to the left
+    fn sla_b(cpu: &mut Cpu) {
+        let b = cpu.b();
+
+        let r = sla(cpu, b);
+
+        cpu.set_b(r);
+    }
+
+    /// Shift `C` to the left
+    fn sla_c(cpu: &mut Cpu) {
+        let c = cpu.c();
+
+        let r = sla(cpu, c);
+
+        cpu.set_c(r);
+    }
+
+    /// Shift `D` to the left
+    fn sla_d(cpu: &mut Cpu) {
+        let d = cpu.d();
+
+        let r = sla(cpu, d);
+
+        cpu.set_d(r);
+    }
+
+    /// Shift `E` to the left
+    fn sla_e(cpu: &mut Cpu) {
+        let e = cpu.e();
+
+        let r = sla(cpu, e);
+
+        cpu.set_e(r);
+    }
+
+    /// Shift `H` to the left
+    fn sla_h(cpu: &mut Cpu) {
+        let h = cpu.h();
+
+        let r = sla(cpu, h);
+
+        cpu.set_h(r);
+    }
+
+    /// Shift `L` to the left
+    fn sla_l(cpu: &mut Cpu) {
+        let l = cpu.l();
+
+        let r = sla(cpu, l);
+
+        cpu.set_l(r);
+    }
+
+    /// Shift `[HL]` to the left
+    fn sla_mhl(cpu: &mut Cpu) {
+        let hl = cpu.hl();
+        let n  = cpu.fetch_byte(hl);
+
+        let r = sla(cpu, n);
+
+        cpu.store_byte(hl, r);
+    }
+
+    /// Helper function to shift an `u8` to the right and update CPU
+    /// flags. MSB is not affected.
+    fn sra(cpu: &mut Cpu, v: u8)  -> u8 {
+        cpu.set_carry(v & 1 != 0);
+
+        let r = (v >> 1) | (v & 0x80);
+
+        cpu.set_zero(r == 0);
+
+        cpu.set_substract(false);
+        cpu.set_halfcarry(false);
+
+        r
+    }
+
+    /// Shift `A` to the right. MSB is not affected.
+    fn sra_a(cpu: &mut Cpu) {
+        let a = cpu.a();
+
+        let r = sra(cpu, a);
+
+        cpu.set_a(r);
+    }
+
+    /// Shift `B` to the right. MSB is not affected.
+    fn sra_b(cpu: &mut Cpu) {
+        let b = cpu.b();
+
+        let r = sra(cpu, b);
+
+        cpu.set_b(r);
+    }
+
+    /// Shift `C` to the right. MSB is not affected.
+    fn sra_c(cpu: &mut Cpu) {
+        let c = cpu.c();
+
+        let r = sra(cpu, c);
+
+        cpu.set_c(r);
+    }
+
+    /// Shift `D` to the right. MSB is not affected.
+    fn sra_d(cpu: &mut Cpu) {
+        let d = cpu.d();
+
+        let r = sra(cpu, d);
+
+        cpu.set_d(r);
+    }
+
+    /// Shift `E` to the right. MSB is not affected.
+    fn sra_e(cpu: &mut Cpu) {
+        let e = cpu.e();
+
+        let r = sra(cpu, e);
+
+        cpu.set_e(r);
+    }
+
+    /// Shift `H` to the right. MSB is not affected.
+    fn sra_h(cpu: &mut Cpu) {
+        let h = cpu.h();
+
+        let r = sra(cpu, h);
+
+        cpu.set_h(r);
+    }
+
+    /// Shift `L` to the right. MSB is not affected.
+    fn sra_l(cpu: &mut Cpu) {
+        let l = cpu.l();
+
+        let r = sra(cpu, l);
+
+        cpu.set_l(r);
+    }
+
+    /// Shift `[HL]` to the right. MSB is not affected.
+    fn sra_mhl(cpu: &mut Cpu) {
+        let hl = cpu.hl();
+        let n  = cpu.fetch_byte(hl);
+
+        let r = sra(cpu, n);
 
         cpu.store_byte(hl, r);
     }
