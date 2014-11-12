@@ -226,8 +226,6 @@ impl<'a> Gpu<'a> {
     /// between 0 and 3.
     fn get_pix_value(&self, tile: u8, x: u8, y: u8) -> u8 {
 
-        let (x, y) = (y, x);
-
         if x >= 8 || y >= 8 {
             panic!("tile pos out of range");
         }
@@ -235,20 +233,20 @@ impl<'a> Gpu<'a> {
         let base = match self.tile_data_select {
             // If tile_data_select is false `tile` is signed and in
             // the range [-128, 127]. Tile 0 is at 0x9000.
-            false => (0x1000 + ((tile as i8) as i16) * 16) as u16,
+            false => (0x1000 + (((tile as i8) as i16) * 16)) as u16,
             // Otherwise it's unsigned and starts at 0x8000
             true  => 0x0 + (tile as u16) * 16,
         };
 
-        let addr = base + 2 * (x as u16);
+        let addr = base + 2 * (y as u16);
 
         let addr = addr    as uint;
-        let y    = (7 - y) as uint;
+        let x    = (7 - x) as uint;
 
         // Each row of 8 pixels is split across two contiguous bytes:
         // the first for the LSB, the 2nd for the MSB
-        let lsb = (self.vram[addr]     >> y) & 1;
-        let msb = (self.vram[addr + 1] >> y) & 1;
+        let lsb = (self.vram[addr]     >> x) & 1;
+        let msb = (self.vram[addr + 1] >> x) & 1;
 
         msb << 1 | lsb
     }
