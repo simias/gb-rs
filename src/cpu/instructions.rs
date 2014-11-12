@@ -49,7 +49,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (1, dec_b),
     (2, ld_b_n),
     (1, rlca),
-    (0, nop),
+    (5, ld_mnn_sp),
     (2, add_hl_bc),
     (2, ld_a_mbc),
     (2, dec_bc),
@@ -66,7 +66,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (1, dec_d),
     (2, ld_d_n),
     (1, rla),
-    (3, jr_n),
+    (3, jr_sn),
     (2, add_hl_de),
     (2, ld_a_mde),
     (2, dec_de),
@@ -75,15 +75,15 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (2, ld_e_n),
     (1, rra),
     // Opcodes 2X
-    (2, jr_nz_n),
+    (2, jr_nz_sn),
     (3, ld_hl_nn),
     (2, ldi_mhl_a),
     (2, inc_hl),
     (1, inc_h),
     (1, dec_h),
     (2, ld_h_n),
-    (0, nop),
-    (2, jr_z_n),
+    (0, nop),    // TODO: DAA, decimal adjust for BCD.
+    (2, jr_z_sn),
     (2, add_hl_hl),
     (2, ldi_a_mhl),
     (2, dec_hl),
@@ -92,22 +92,22 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (2, ld_l_n),
     (1, cpl),
     // Opcodes 3X
-    (2, jr_nc_n),
+    (2, jr_nc_sn),
     (3, ld_sp_nn),
     (2, ldd_mhl_a),
     (2, inc_sp),
     (3, inc_mhl),
     (3, dec_mhl),
     (3, ld_mhl_n),
-    (0, nop),
-    (2, jr_c_n),
+    (1, scf),
+    (2, jr_c_sn),
     (2, add_hl_sp),
     (2, ldd_a_mhl),
     (2, dec_sp),
     (1, inc_a),
     (1, dec_a),
     (2, ld_a_n),
-    (0, nop),
+    (1, ccf),
     // Opcodes 4X
     (1, ld_b_b),
     (1, ld_b_c),
@@ -225,7 +225,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (1, xor_a_e),
     (1, xor_a_h),
     (1, xor_a_l),
-    (0, nop),
+    (2, xor_a_mhl),
     (1, xor_a_a),
     // Opcodes BX
     (1, or_a_b),
@@ -256,7 +256,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (2, ret_z),
     (4, ret),
     (3, jp_z_nn),
-    (0, nop), // See bitops opcode map
+    (0, undefined), // See bitops opcode map
     (3, call_z_nn),
     (6, call_nn),
     (2, adc_a_n),
@@ -265,7 +265,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (2, ret_nc),
     (3, pop_de),
     (3, jp_nc_nn),
-    (0, nop),
+    (1, undefined),
     (3, call_nc_nn),
     (4, push_de),
     (2, sub_a_n),
@@ -273,43 +273,43 @@ pub static OPCODES: [(u32, fn (&mut Cpu)), ..0x100] = [
     (2, ret_c),
     (4, reti),
     (3, jp_c_nn),
-    (0, nop),
+    (1, undefined),
     (3, call_c_nn),
-    (0, nop),
-    (0, nop),
+    (1, undefined),
+    (2, sbc_a_n),
     (4, rst_18),
     // Opcodes EX
     (3, ldh_mn_a),
     (3, pop_hl),
     (2, ldh_mc_a),
-    (0, nop),
-    (0, nop),
+    (1, undefined),
+    (1, undefined),
     (4, push_hl),
     (2, and_a_n),
     (4, rst_20),
-    (0, nop),
+    (4, add_sp_sn),
     (1, jp_hl),
     (4, ld_mnn_a),
-    (0, nop),
-    (0, nop),
-    (0, nop),
-    (2, sbc_a_n),
+    (1, undefined),
+    (1, undefined),
+    (1, undefined),
+    (2, xor_a_n),
     (4, rst_28),
     // Opcodes FX
     (3, ldh_a_mn),
     (3, pop_af),
     (2, ldh_a_mc),
     (1, di),
-    (0, nop),
+    (1, undefined),
     (4, push_af),
     (2, or_a_n),
     (4, rst_30),
-    (0, nop),
-    (0, nop),
+    (3, ld_hl_sp_sn),
+    (2, ld_sp_hl),
     (2, ld_a_mnn),
     (1, ei),
-    (0, nop),
-    (0, nop),
+    (1, undefined),
+    (1, undefined),
     (2, cp_a_n),
     (4, rst_38),
 ];
@@ -373,6 +373,15 @@ fn pop_word(cpu: &mut Cpu) -> u16 {
 
 /// No operation
 fn nop(_: &mut Cpu) {
+}
+
+/// Undefined opcode. Stall the CPU.
+fn undefined(cpu: &mut Cpu) {
+    let pc = cpu.pc() - 1;
+
+    println!("Invalid instruction called at 0x{:04x}. CPU stalled.", pc);
+
+    cpu.set_pc(pc);
 }
 
 /// Rotate `A` left
@@ -444,6 +453,22 @@ fn cpl(cpu: &mut Cpu) {
 
     cpu.set_substract(true);
     cpu.set_halfcarry(true);
+}
+
+/// Complement carry flag
+fn ccf(cpu: &mut Cpu) {
+    let carry = cpu.carry();
+
+    cpu.set_carry(!carry);
+    cpu.set_substract(false);
+    cpu.set_halfcarry(false);
+}
+
+/// Set carry flag
+fn scf(cpu: &mut Cpu) {
+    cpu.set_carry(true);
+    cpu.set_substract(false);
+    cpu.set_halfcarry(false);
 }
 
 /// Load 8 bit immediate value into `A`
@@ -778,6 +803,15 @@ fn ld_mnn_a(cpu: &mut Cpu) {
     cpu.store_byte(n, a);
 }
 
+/// Store `SP` into `[NN]`
+fn ld_mnn_sp(cpu: &mut Cpu) {
+    let sp  = cpu.sp();
+    let n = next_word(cpu);
+
+    cpu.store_byte(n, sp as u8);
+    cpu.store_byte(n, (sp >> 8) as u8);
+}
+
 /// Load 16bits immediate value into `BC`
 fn ld_bc_nn(cpu: &mut Cpu) {
     let n = next_word(cpu);
@@ -799,11 +833,33 @@ fn ld_hl_nn(cpu: &mut Cpu) {
     cpu.set_hl(n);
 }
 
+/// Load `SP + N` into `HL`
+fn ld_hl_sp_sn(cpu: &mut Cpu) {
+    let sp = cpu.sp() as i32;
+    let n  = next_byte(cpu) as i8;
+
+    let nn = n as i32;
+
+    let r = sp + nn;
+
+    cpu.set_substract(false);
+    cpu.set_carry(r & 0x10000 != 0);
+    cpu.set_halfcarry((sp ^ nn ^ r) & 0x1000 != 0);
+    cpu.set_hl(r as u16);
+}
+
 /// Load 16bits immediate value into `SP`
 fn ld_sp_nn(cpu: &mut Cpu) {
     let n = next_word(cpu);
 
     cpu.set_sp(n);
+}
+
+/// Load `HL` into `SP`
+fn ld_sp_hl(cpu: &mut Cpu) {
+    let hl = cpu.hl();
+
+    cpu.set_sp(hl);
 }
 
 /// Load `C` into `B`
@@ -1124,7 +1180,7 @@ fn jp_c_nn(cpu: &mut Cpu) {
 }
 
 /// Unconditional jump to relative address
-fn jr_n(cpu: &mut Cpu) {
+fn jr_sn(cpu: &mut Cpu) {
     let off = next_byte(cpu) as i8;
 
     let mut pc = cpu.pc() as i16;
@@ -1135,7 +1191,7 @@ fn jr_n(cpu: &mut Cpu) {
 }
 
 /// Jump to relative address if `!Z`
-fn jr_nz_n(cpu: &mut Cpu) {
+fn jr_nz_sn(cpu: &mut Cpu) {
     let off = next_byte(cpu) as i8;
 
     if !cpu.zero() {
@@ -1150,7 +1206,7 @@ fn jr_nz_n(cpu: &mut Cpu) {
 }
 
 /// Jump to relative address if `Z`
-fn jr_z_n(cpu: &mut Cpu) {
+fn jr_z_sn(cpu: &mut Cpu) {
     let off = next_byte(cpu) as i8;
 
     if cpu.zero() {
@@ -1165,7 +1221,7 @@ fn jr_z_n(cpu: &mut Cpu) {
 }
 
 /// Jump to relative address if `!C`
-fn jr_nc_n(cpu: &mut Cpu) {
+fn jr_nc_sn(cpu: &mut Cpu) {
     let off = next_byte(cpu) as i8;
 
     if !cpu.carry() {
@@ -1180,7 +1236,7 @@ fn jr_nc_n(cpu: &mut Cpu) {
 }
 
 /// Jump to relative address if `C`
-fn jr_c_n(cpu: &mut Cpu) {
+fn jr_c_sn(cpu: &mut Cpu) {
     let off = next_byte(cpu) as i8;
 
     if cpu.carry() {
@@ -2297,6 +2353,24 @@ fn add_hl_sp(cpu: &mut Cpu) {
     cpu.set_hl(r);
 }
 
+/// Add signed 8bit immediate value to `SP`
+fn add_sp_sn(cpu: &mut Cpu) {
+    let sp = cpu.sp() as i32;
+    let n  = next_byte(cpu) as i8;
+
+    let nn = n as i32;
+
+    let r = sp + nn;
+
+    cpu.set_substract(false);
+    cpu.set_carry(r & 0x10000 != 0);
+    cpu.set_halfcarry((sp ^ nn ^ r) & 0x1000 != 0);
+    cpu.set_sp(r as u16);
+
+    // pastraiser's page say that this 16bit add clears `Z` but other
+    // sources disagree.
+}
+
 /// AND `A` with `A`
 fn and_a_a(cpu: &mut Cpu) {
     let a = cpu.a();
@@ -2625,6 +2699,34 @@ fn xor_a_l(cpu: &mut Cpu) {
     let l = cpu.l();
 
     let r = a ^ l;
+
+    cpu.set_a(r);
+
+    cpu.clear_flags();
+    cpu.set_zero(r == 0);
+}
+
+/// XOR `[HL]` into `A`
+fn xor_a_mhl(cpu: &mut Cpu) {
+    let a  = cpu.a();
+
+    let hl = cpu.hl();
+    let n  = cpu.fetch_byte(hl);
+
+    let r = a ^ n;
+
+    cpu.set_a(r);
+
+    cpu.clear_flags();
+    cpu.set_zero(r == 0);
+}
+
+/// XOR `N` with `A`
+fn xor_a_n(cpu: &mut Cpu) {
+    let a = cpu.a();
+    let n = next_byte(cpu);
+
+    let r = a ^ n;
 
     cpu.set_a(r);
 
