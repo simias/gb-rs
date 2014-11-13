@@ -8,34 +8,40 @@ pub mod ram;
 /// Interconnect struct used by the CPU and GPU to access the ROM, RAM
 /// and registers
 pub struct Interconnect<'a> {
-    rom:   rom::Rom,
-    ram:   ram::Ram,
-    iram:  ram::Ram,
-    zpage: ram::Ram,
-    gpu:   Gpu<'a>,
+    rom:        rom::Rom,
+    /// Bankable RAM
+    ram:        ram::Ram,
+    /// internal RAM
+    iram:       ram::Ram,
+    /// 0-page RAM
+    zpage:      ram::Ram,
+    /// GPU instance
+    gpu:        Gpu<'a>,
     /// Used to store the value of IO Port when not properly
     /// implemented.
-    io:   [u8, ..0x4c],
+    io:         [u8, ..0x4c],
+    /// Enabled interrupts
+    it_enabled: Interrupts,
 }
 
 impl<'a> Interconnect<'a> {
     /// Create a new Interconnect
     pub fn new<'n>(rom: rom::Rom, gpu: Gpu<'n>) -> Interconnect<'n> {
-        // Bankable RAM
+
         let ram = ram::Ram::new(0x2000);
-        // internal RAM
         let iram = ram::Ram::new(0x2000);
-        // 0-page RAM
         let zpage = ram::Ram::new(0x7f);
-        // IO mapped registers
         let io = [0, ..0x4c];
 
-        Interconnect { rom:   rom,
-                       ram:   ram,
-                       iram:  iram,
-                       zpage: zpage,
-                       gpu:   gpu,
-                       io:    io,
+        let it_enabled = Interrupts::from_register(0);
+
+        Interconnect { rom:        rom,
+                       ram:        ram,
+                       iram:       iram,
+                       zpage:      zpage,
+                       gpu:        gpu,
+                       io:         io,
+                       it_enabled: it_enabled,
         }
     }
 
@@ -44,6 +50,8 @@ impl<'a> Interconnect<'a> {
         self.iram.reset();
         self.gpu.reset();
         self.zpage.reset();
+
+        self.it_enabled = Interrupts::from_register(0);
 
         for b in self.io.iter_mut() {
             *b = 0;
@@ -90,7 +98,7 @@ impl<'a> Interconnect<'a> {
         }
 
         if addr == map::IEN {
-            return 0;
+            return self.it_enabled.as_register();
         }
 
         println!("Read from unmapped memory {:04x}", addr);
@@ -132,17 +140,36 @@ impl<'a> Interconnect<'a> {
         }
 
         if addr == map::IEN {
-            println!("Interrupt enable {:02x}", val);
+            self.it_enabled = Interrupts::from_register(val);
         }
 
         println!("Write to unmapped memory {:04x}: {:02x}", addr, val);
     }
 
+    /// Return the highest priority `Interrupt` (after acknowledging it)
+    /// currently triggered. If no interrupt is pending return `None`.
+    pub fn next_interrupt(&mut self) -> Option<Interrupt> {
+        if self.it_enabled.vblank && self.gpu.it_vblank() {
+            self.gpu.ack_it_vblank();
+            Some(VBlank)
+        } else {
+            None
+        }
+    }
+
     /// Retrieve value from IO port
     fn get_io(&self, addr: u16) -> u8 {
         match addr {
+            io_map::IF => {
+                return Interrupts {
+                    vblank: self.gpu.it_vblank(),
+                    lcdc:   false,
+                    timer:  false,
+                    serial: false,
+                    button: false,
+                }.as_register();
+            }
             io_map::LCD_LY => {
-                // LY register
                 return self.gpu.get_line()
             }
             io_map::LCD_BGP => {
@@ -150,7 +177,6 @@ impl<'a> Interconnect<'a> {
             }
             _ => {
                 println!("Unhandled IO read from 0x{:04x}", addr);
-
             }
         }
 
@@ -162,6 +188,11 @@ impl<'a> Interconnect<'a> {
         self.io[(addr & 0xff) as uint] = val;
 
         match addr {
+            io_map::IF => {
+                let f = Interrupts::from_register(val);
+
+                self.gpu.force_it_vblank(f.vblank);
+            }
             io_map::LCD_LY => {
                 panic!("Unhandled write to LY register");
             },
@@ -175,6 +206,53 @@ impl<'a> Interconnect<'a> {
                 println!("Unhandled IO write to 0x{:02x}: 0x{:02x}", addr, val);
             }
         }
+    }
+}
+
+/// The various sources of interrupt, from highest to lowest priority
+pub enum Interrupt {
+    /// GPU entered vertical blanking
+    VBlank,
+    // TODO: implement other interrupts
+}
+
+/// GB Interrupts, from highest to lowest priority
+struct Interrupts {
+    /// GPU entered vertical blanking
+    vblank: bool,
+    /// Configurable LCDC interrupt
+    lcdc:   bool,
+    /// Timer overflow interrupt
+    timer:  bool,
+    /// Serial I/O done
+    serial: bool,
+    /// P10-13 transited from high to low (user pressed button)
+    button: bool,
+}
+
+impl Interrupts {
+    /// Convert IE/IF register to Interrupt struct
+    fn from_register(reg: u8) -> Interrupts {
+        Interrupts {
+            vblank: reg & 0x01 != 0,
+            lcdc:   reg & 0x02 != 0,
+            timer:  reg & 0x04 != 0,
+            serial: reg & 0x08 != 0,
+            button: reg & 0x10 != 0,
+        }
+    }
+
+    /// Convert Interrupts into IE/IF register
+    fn as_register(&self) -> u8 {
+        let mut r = 0;
+
+        r |= (self.vblank as u8) << 0;
+        r |= (self.lcdc   as u8) << 1;
+        r |= (self.timer  as u8) << 2;
+        r |= (self.serial as u8) << 3;
+        r |= (self.button as u8) << 4;
+
+        r
     }
 }
 
@@ -216,6 +294,8 @@ mod map {
 mod io_map {
     //! IO Address Map (offset from 0xff00)
 
+    /// Interrupt Flag register
+    pub const IF:       u16 = 0x0f;
     /// LCD Control
     pub const LCDC:     u16 = 0x40;
     /// Currently displayed line

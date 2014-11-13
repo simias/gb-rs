@@ -34,6 +34,8 @@ pub struct Gpu<'a> {
     bg_window_enabled: bool,
     /// Background palette
     bgp: u8,
+    /// VBlank interrupt status
+    it_vblank: bool,
 }
 
 /// Current GPU mode
@@ -68,6 +70,7 @@ impl<'a> Gpu<'a> {
               objects_enabled:        false,
               bg_window_enabled:      true,
               bgp:                    0xfc,
+              it_vblank:              false,
         }
     }
 
@@ -86,6 +89,7 @@ impl<'a> Gpu<'a> {
         self.objects_enabled        = false;
         self.bg_window_enabled      = true;
         self.bgp                    = 0xfc;
+        self.it_vblank              = false;
     }
 
     /// Called at each tick of the system clock. Move the emulated
@@ -163,6 +167,7 @@ impl<'a> Gpu<'a> {
 
     /// Called when the last line of the active display has been drawn
     fn end_of_frame(&mut self) {
+        self.it_vblank = true;
         self.display.flip();
     }
 
@@ -184,6 +189,21 @@ impl<'a> Gpu<'a> {
     /// Set byte in OAM
     pub fn set_oam(&mut self, addr: u16, val: u8) {
         self.oam[addr as uint] = val;
+    }
+
+    /// Return status of VBlank interrupt
+    pub fn it_vblank(&self) -> bool {
+        self.it_vblank
+    }
+
+    /// Acknowledge VBlank interrupt
+    pub fn ack_it_vblank(&mut self) {
+        self.it_vblank = false;
+    }
+
+    /// Force VBlank interrupt state
+    pub fn force_it_vblank(&mut self, set: bool) {
+        self.it_vblank = set;
     }
 
     fn render_pixel(&mut self, x: u8, y: u8) {

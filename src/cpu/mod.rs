@@ -1,7 +1,7 @@
 //! Game Boy CPU emulation
 
 use std::fmt::{Show, Formatter, FormatError};
-use io::Interconnect;
+use io::{Interconnect, Interrupt, VBlank};
 
 use cpu::instructions::next_instruction;
 
@@ -10,13 +10,17 @@ mod instructions;
 /// CPU state. Should be considered undetermined as long as
 /// `Cpu::reset()` hasn't been called.
 pub struct Cpu<'a> {
-    // Time remaining for the current instruction to finish
+    /// Time remaining for the current instruction to finish
     instruction_delay:   u32,
-    // CPU registers (except for `F` register)
+    /// CPU registers (except for `F` register)
     regs:                Registers,
-    // CPU flags (`F` register)
+    /// CPU flags (`F` register)
     flags:               Flags,
-    // Interconnect to access external ressources (RAM, ROM, peripherals...)
+    /// Interrupt enabled flag
+    iten:                bool,
+    /// CPU halted flag
+    halted:              bool,
+    /// Interconnect to access external ressources (RAM, ROM, peripherals...)
     inter:               Interconnect<'a>,
 }
 
@@ -81,7 +85,9 @@ impl<'a> Cpu<'a> {
                            h: false,
                            c: false,
             },
-            inter: inter,
+            inter:  inter,
+            iten:   true,
+            halted: false,
         };
 
         cpu.reset();
@@ -92,6 +98,9 @@ impl<'a> Cpu<'a> {
     /// Reset CPU state to power up values
     pub fn reset(&mut self) {
         self.inter.reset();
+
+        self.iten = true;
+        self.halted = false;
 
         self.instruction_delay = 0;
 
@@ -129,6 +138,18 @@ impl<'a> Cpu<'a> {
             return;
         }
 
+        if self.iten {
+            if let Some(it) = self.inter.next_interrupt() {
+                // We have a pending interrupt!
+                self.interrupt(it);
+            }
+        }
+
+        if self.halted {
+            // CPU is halted, wait for interrupt
+            return;
+        }
+
         //println!("{}", *self);
 
         // Now we fetch the next instruction
@@ -143,6 +164,25 @@ impl<'a> Cpu<'a> {
         (instruction)(self);
     }
 
+    /// Execute interrupt handler for `it`
+    fn interrupt(&mut self, it: Interrupt) {
+
+        // If the CPU was halted it's time to wake it up.
+        self.halted = false;
+        // Interrupt are disabled when entering an interrupt handler.
+        self.iten   = false;
+
+        let handler_addr = match it {
+            VBlank => 0x40,
+        };
+
+        // Push current value to stack
+        let pc = self.pc();
+        self.push_word(pc);
+        // Jump to IT handler
+        self.set_pc(handler_addr);
+    }
+
     /// Fetch byte at `addr` from the interconnect
     fn fetch_byte(&self, addr: u16) -> u8 {
         self.inter.get_byte(addr)
@@ -151,6 +191,43 @@ impl<'a> Cpu<'a> {
     /// Store byte `val` at `addr` in the interconnect
     fn store_byte(&mut self, addr: u16, val: u8) {
         self.inter.set_byte(addr, val)
+    }
+
+    /// Push one byte onto the stack and decrement the stack pointer
+    fn push_byte(&mut self, val: u8){
+        let mut sp = self.sp();
+
+        sp -= 1;
+
+        self.set_sp(sp);
+        self.store_byte(sp, val);
+    }
+
+    /// Push two bytes onto the stack and decrement the stack pointer
+    /// twice
+    fn push_word(&mut self, val: u16) {
+        self.push_byte((val >> 8) as u8);
+        self.push_byte(val as u8);
+    }
+
+    /// Retreive one byte from the stack and increment the stack pointer
+    fn pop_byte(&mut self) -> u8 {
+        let sp = self.sp();
+
+        let b = self.fetch_byte(sp);
+
+        self.set_sp(sp + 1);
+
+        b
+    }
+
+    /// Retreive two bytes from the stack and increment the stack pointer
+    /// twice
+    fn pop_word(&mut self) -> u16 {
+        let lo = self.pop_byte() as u16;
+        let hi = self.pop_byte() as u16;
+
+        (hi << 8) | lo
     }
 
     /// Certain instructions take a different amount of time to
@@ -369,22 +446,29 @@ impl<'a> Cpu<'a> {
 
     /// Disable Interrupts
     fn disable_interrupts(&mut self) {
-        // TODO
+        self.iten = false;
     }
 
     /// Enable Interrupts
     fn enable_interrupts(&mut self) {
-        // TODO
+        self.iten = true;
     }
 
     /// Halt and wait for interrupts
     fn halt(&mut self) {
-        // TODO (also, check if interrupts are enabled)
+        if !self.iten {
+            println!("Halt while interrupts are disabled!");
+        }
+
+        println!("CPU halted");
+
+        self.halted = true;
     }
 
     /// Stop, blank the screen and wait for button press
     fn stop(&mut self) {
-        // TODO (also, check if interrupts are enabled)
+        println!("{}", *self);
+        panic!("STOP is not implemented");
     }
 }
 
@@ -411,6 +495,8 @@ impl<'a> Show for Cpu<'a> {
                       self.flags.n as int,
                       self.flags.h as int,
                       self.flags.c as int));
+
+        try!(writeln!(f, "  iten: {}  halted: {}", self.iten, self.halted));
 
         Ok(())
     }

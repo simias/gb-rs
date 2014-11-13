@@ -334,43 +334,6 @@ fn next_word(cpu: &mut Cpu) -> u16 {
     b1 | (b2 << 8)
 }
 
-/// Push one byte onto the stack and decrement the stack pointer
-fn push_byte(cpu: &mut Cpu, val: u8){
-    let mut sp = cpu.sp();
-
-    sp -= 1;
-
-    cpu.set_sp(sp);
-    cpu.store_byte(sp, val);
-}
-
-/// Push two bytes onto the stack and decrement the stack pointer
-/// twice
-fn push_word(cpu: &mut Cpu, val: u16){
-    push_byte(cpu, (val >> 8) as u8);
-    push_byte(cpu, val as u8)
-}
-
-/// Retreive one byte from the stack and increment the stack pointer
-fn pop_byte(cpu: &mut Cpu) -> u8 {
-    let sp = cpu.sp();
-
-    let b = cpu.fetch_byte(sp);
-
-    cpu.set_sp(sp + 1);
-
-    b
-}
-
-/// Retreive two bytes from the stack and increment the stack pointer
-/// twice
-fn pop_word(cpu: &mut Cpu) -> u16 {
-    let lo = pop_byte(cpu) as u16;
-    let hi = pop_byte(cpu) as u16;
-
-    (hi << 8) | lo
-}
-
 /// No operation
 fn nop(_: &mut Cpu) {
 }
@@ -1075,28 +1038,28 @@ fn ld_h_l(cpu: &mut Cpu) {
 
 /// Pop `AF` from the stack
 fn pop_af(cpu: &mut Cpu) {
-    let n = pop_word(cpu);
+    let n = cpu.pop_word();
 
     cpu.set_af(n);
 }
 
 /// Pop `BC` from the stack
 fn pop_bc(cpu: &mut Cpu) {
-    let n = pop_word(cpu);
+    let n = cpu.pop_word();
 
     cpu.set_bc(n);
 }
 
 /// Pop `DE` from the stack
 fn pop_de(cpu: &mut Cpu) {
-    let n = pop_word(cpu);
+    let n = cpu.pop_word();
 
     cpu.set_de(n);
 }
 
 /// Pop `HL` from the stack
 fn pop_hl(cpu: &mut Cpu) {
-    let n = pop_word(cpu);
+    let n = cpu.pop_word();
 
     cpu.set_hl(n);
 }
@@ -1105,28 +1068,28 @@ fn pop_hl(cpu: &mut Cpu) {
 fn push_af(cpu: &mut Cpu) {
     let af = cpu.af();
 
-    push_word(cpu, af);
+    cpu.push_word(af);
 }
 
 /// Push `BC` on the stack
 fn push_bc(cpu: &mut Cpu) {
     let bc = cpu.bc();
 
-    push_word(cpu, bc);
+    cpu.push_word(bc);
 }
 
 /// Push `DE` on the stack
 fn push_de(cpu: &mut Cpu) {
     let de = cpu.de();
 
-    push_word(cpu, de);
+    cpu.push_word(de);
 }
 
 /// Push `HL` on the stack
 fn push_hl(cpu: &mut Cpu) {
     let hl = cpu.hl();
 
-    push_word(cpu, hl);
+    cpu.push_word(hl);
 }
 
 /// Unconditional jump to absolute address
@@ -1254,7 +1217,7 @@ fn jr_c_sn(cpu: &mut Cpu) {
 fn rst(cpu: &mut Cpu, addr: u16) {
     let pc = cpu.pc();
 
-    push_word(cpu, pc);
+    cpu.push_word(pc);
 
     cpu.set_pc(addr);
 }
@@ -1304,7 +1267,7 @@ fn call_nn(cpu: &mut Cpu) {
     let addr = next_word(cpu);
     let pc = cpu.pc();
 
-    push_word(cpu, pc);
+    cpu.push_word(pc);
 
     cpu.set_pc(addr);
 }
@@ -1316,7 +1279,7 @@ fn call_nz_nn(cpu: &mut Cpu) {
     if !cpu.zero() {
         let pc = cpu.pc();
 
-        push_word(cpu, pc);
+        cpu.push_word(pc);
 
         cpu.set_pc(addr);
 
@@ -1331,7 +1294,7 @@ fn call_z_nn(cpu: &mut Cpu) {
     if cpu.zero() {
         let pc = cpu.pc();
 
-        push_word(cpu, pc);
+        cpu.push_word(pc);
 
         cpu.set_pc(addr);
 
@@ -1346,7 +1309,7 @@ fn call_nc_nn(cpu: &mut Cpu) {
     if !cpu.carry() {
         let pc = cpu.pc();
 
-        push_word(cpu, pc);
+        cpu.push_word(pc);
 
         cpu.set_pc(addr);
 
@@ -1361,7 +1324,7 @@ fn call_c_nn(cpu: &mut Cpu) {
     if cpu.carry() {
         let pc = cpu.pc();
 
-        push_word(cpu, pc);
+        cpu.push_word(pc);
 
         cpu.set_pc(addr);
 
@@ -1371,7 +1334,7 @@ fn call_c_nn(cpu: &mut Cpu) {
 
 /// Pop return address from stack and jump to it
 fn ret(cpu: &mut Cpu) {
-    let addr = pop_word(cpu);
+    let addr = cpu.pop_word();
 
     cpu.set_pc(addr);
 }
@@ -1379,7 +1342,7 @@ fn ret(cpu: &mut Cpu) {
 /// Pop return address from stack and jump to it then enable
 /// interrupts.
 fn reti(cpu: &mut Cpu) {
-    let addr = pop_word(cpu);
+    let addr = cpu.pop_word();
 
     cpu.set_pc(addr);
 
@@ -1389,7 +1352,7 @@ fn reti(cpu: &mut Cpu) {
 /// If !Z pop return address from stack and jump to it
 fn ret_nz(cpu: &mut Cpu) {
     if !cpu.zero() {
-        let addr = pop_word(cpu);
+        let addr = cpu.pop_word();
 
         cpu.set_pc(addr);
 
@@ -1400,7 +1363,7 @@ fn ret_nz(cpu: &mut Cpu) {
 /// If Z pop return address from stack and jump to it
 fn ret_z(cpu: &mut Cpu) {
     if cpu.zero() {
-        let addr = pop_word(cpu);
+        let addr = cpu.pop_word();
 
         cpu.set_pc(addr);
 
@@ -1411,7 +1374,7 @@ fn ret_z(cpu: &mut Cpu) {
 /// If !C pop return address from stack and jump to it
 fn ret_nc(cpu: &mut Cpu) {
     if !cpu.carry() {
-        let addr = pop_word(cpu);
+        let addr = cpu.pop_word();
 
         cpu.set_pc(addr);
 
@@ -1422,7 +1385,7 @@ fn ret_nc(cpu: &mut Cpu) {
 /// If C pop return address from stack and jump to it
 fn ret_c(cpu: &mut Cpu) {
     if cpu.carry() {
-        let addr = pop_word(cpu);
+        let addr = cpu.pop_word();
 
         cpu.set_pc(addr);
 
@@ -2753,7 +2716,6 @@ fn or_a_l(cpu: &mut Cpu) {
 fn di(cpu: &mut Cpu) {
     cpu.disable_interrupts();
 }
-
 
 /// Enable interrupts
 fn ei(cpu: &mut Cpu) {
