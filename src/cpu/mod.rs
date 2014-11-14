@@ -1,7 +1,7 @@
 //! Game Boy CPU emulation
 
 use std::fmt::{Show, Formatter, FormatError};
-use io::{Interconnect, Interrupt, VBlank};
+use io::{Interconnect, Interrupt, VBlank, Lcdc};
 
 use cpu::instructions::next_instruction;
 
@@ -142,6 +142,10 @@ impl<'a> Cpu<'a> {
             if let Some(it) = self.inter.next_interrupt() {
                 // We have a pending interrupt!
                 self.interrupt(it);
+                // Wait until the context switch delay is over. We're
+                // sure not to reenter here after that since the
+                // `iten` is set to false in `self.interrupt`
+                return;
             }
         }
 
@@ -172,9 +176,15 @@ impl<'a> Cpu<'a> {
         // Interrupt are disabled when entering an interrupt handler.
         self.iten   = false;
 
+        // Switching context takes 32 cycles
+        self.instruction_delay = 32;
+
         let handler_addr = match it {
             VBlank => 0x40,
+            Lcdc   => 0x48,
         };
+
+        println!("Interrupt {:02x}", handler_addr);
 
         // Push current value to stack
         let pc = self.pc();

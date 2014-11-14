@@ -140,7 +140,7 @@ impl<'a> Interconnect<'a> {
         }
 
         if addr == map::IEN {
-            self.it_enabled = Interrupts::from_register(val);
+            return self.it_enabled = Interrupts::from_register(val);
         }
 
         println!("Write to unmapped memory {:04x}: {:02x}", addr, val);
@@ -152,6 +152,9 @@ impl<'a> Interconnect<'a> {
         if self.it_enabled.vblank && self.gpu.it_vblank() {
             self.gpu.ack_it_vblank();
             Some(VBlank)
+        } else if self.it_enabled.lcdc && self.gpu.it_lcd() {
+            self.gpu.ack_it_lcd();
+            Some(Lcdc)
         } else {
             None
         }
@@ -169,14 +172,23 @@ impl<'a> Interconnect<'a> {
                     button: false,
                 }.as_register();
             }
+            io_map::LCD_STAT => {
+                return self.gpu.stat()
+            }
+            io_map::LCDC => {
+                return self.gpu.lcdc()
+            }
             io_map::LCD_LY => {
-                return self.gpu.get_line()
+                return self.gpu.line()
+            }
+            io_map::LCD_LYC => {
+                return self.gpu.lyc()
             }
             io_map::LCD_BGP => {
                 return self.gpu.bgp()
             }
             _ => {
-                println!("Unhandled IO read from 0x{:04x}", addr);
+                println!("Unhandled IO read from 0x{:04x}", 0xff00 | addr);
             }
         }
 
@@ -192,18 +204,26 @@ impl<'a> Interconnect<'a> {
                 let f = Interrupts::from_register(val);
 
                 self.gpu.force_it_vblank(f.vblank);
+                self.gpu.force_it_lcd(f.lcdc);
             }
-            io_map::LCD_LY => {
-                panic!("Unhandled write to LY register");
-            },
-            io_map::LCD_BGP => {
-                return self.gpu.set_bgp(val)
+            io_map::LCD_STAT => {
+                return self.gpu.set_stat(val)
             }
             io_map::LCDC => {
                 return self.gpu.set_lcdc(val);
             },
+            io_map::LCD_LY => {
+                // Read Only
+            },
+            io_map::LCD_LYC => {
+                return self.gpu.set_lyc(val);
+            }
+            io_map::LCD_BGP => {
+                return self.gpu.set_bgp(val)
+            }
             _ => {
-                println!("Unhandled IO write to 0x{:02x}: 0x{:02x}", addr, val);
+                println!("Unhandled IO write to 0x{:04x}: 0x{:02x}",
+                         0xff00 | addr, val);
             }
         }
     }
@@ -213,6 +233,8 @@ impl<'a> Interconnect<'a> {
 pub enum Interrupt {
     /// GPU entered vertical blanking
     VBlank,
+    /// Configurable LCD Controller interrupt
+    Lcdc,
     // TODO: implement other interrupts
 }
 
@@ -275,6 +297,7 @@ mod map {
     pub const IO:        (u16, u16) = (0xff00, 0xff4b);
     /// Zero page memory
     pub const ZERO_PAGE: (u16, u16) = (0xff80, 0xfffe);
+    /// Interrupt Enable register
     pub const IEN:       u16        = 0xffff;
 
     /// Return `Some(offset)` if the given address is in the inclusive
@@ -298,8 +321,12 @@ mod io_map {
     pub const IF:       u16 = 0x0f;
     /// LCD Control
     pub const LCDC:     u16 = 0x40;
+    /// LCDC Status + IT selection
+    pub const LCD_STAT: u16 = 0x41;
     /// Currently displayed line
     pub const LCD_LY:   u16 = 0x44;
+    /// Currently line compare
+    pub const LCD_LYC:  u16 = 0x45;
     /// Background palette
     pub const LCD_BGP:  u16 = 0x47;
 

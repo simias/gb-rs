@@ -34,12 +34,25 @@ pub struct Gpu<'a> {
     bg_window_enabled: bool,
     /// Background palette
     bgp: u8,
+    /// Line compare
+    lyc: u8,
     /// VBlank interrupt status
     it_vblank: bool,
+    /// LYC match interrupt enable (IT when LY == LYC)
+    iten_lyc: bool,
+    /// Interrupt during prelude (mode == 2)
+    iten_prelude: bool,
+    /// Interrupt during vblank (mode == 1). This is not the same as
+    /// `it_vblank` above: it_vblank fires with a higher priority and
+    /// is not shared with other interrupt sources like this one.
+    iten_vblank: bool,
+    /// Interrupt during hblank (mode == 0)
+    iten_hblank: bool,
+    lcd_it_status: LcdItStatus,
 }
 
 /// Current GPU mode
-#[deriving(Show)]
+#[deriving(Show, PartialEq)]
 pub enum Mode {
     /// In horizontal blanking
     HBlank = 0,
@@ -51,6 +64,34 @@ pub enum Mode {
     /// Accessing sprite memory and video memory [0x8000, 0x9fff],
     /// both can't be accessed from CPU
     Active = 3,
+}
+
+/// State of the LCD interrupt (as controlled by the STAT
+/// register).
+///
+/// I'm not absolutely certain I got things right but if I understand
+/// correctly: the interrupt source is configurable (LYC, prelude,
+/// vblank, hblank). The way I see it all those interrupt sources are
+/// ORed together and an interrupt is only signaled on a rising edge
+/// of the ORed signal.
+///
+/// So for instance if the LYC and HBlank interrupts are enabled and
+/// we're at the matched line, the interrupt will trigger at the
+/// beginning of the line (LY == LYC) but not at the beginning of
+/// hblank (since the IT line is already high).
+
+/// However, if the LYC register value is changed in the middle of the
+/// line and the LY == LYC is no longer true, the IT signal will go
+/// low and can be triggered again in the same line.
+#[deriving(PartialEq)]
+enum LcdItStatus {
+    /// Interrupt is inactive
+    Inactive,
+    /// Interrupt event occured
+    Triggered,
+    /// Interrupt event occured and has been acknowledged. It will be
+    /// rearmed when the signal goes low.
+    Acked,
 }
 
 impl<'a> Gpu<'a> {
@@ -70,7 +111,13 @@ impl<'a> Gpu<'a> {
               objects_enabled:        false,
               bg_window_enabled:      true,
               bgp:                    0xfc,
+              lyc:                    0x00,
               it_vblank:              false,
+              iten_lyc:               false,
+              iten_prelude:           false,
+              iten_vblank:            false,
+              iten_hblank:            false,
+              lcd_it_status:          Inactive,
         }
     }
 
@@ -89,7 +136,14 @@ impl<'a> Gpu<'a> {
         self.objects_enabled        = false;
         self.bg_window_enabled      = true;
         self.bgp                    = 0xfc;
+        self.lyc                    = 0;
         self.it_vblank              = false;
+        self.it_vblank              = false;
+        self.iten_lyc               = false;
+        self.iten_prelude           = false;
+        self.iten_vblank            = false;
+        self.iten_hblank            = false;
+        self.lcd_it_status          = Inactive;
     }
 
     /// Called at each tick of the system clock. Move the emulated
@@ -98,16 +152,16 @@ impl<'a> Gpu<'a> {
 
         //println!("{}", *self);
 
-        if self.col < 456 {
+        if self.col < timings::HTOTAL {
             self.col += 1;
         } else {
+            // Move on to the next line
             self.col = 0;
 
-            // Move on to the next line
-            if self.line < 154 {
+            if self.line < timings::VTOTAL {
                 self.line += 1;
 
-                if self.line == 144 {
+                if self.line == timings::VSYNC_ON {
                     // We're entering blanking, we're done drawing the
                     // current frame
                     self.end_of_frame()
@@ -125,15 +179,19 @@ impl<'a> Gpu<'a> {
 
             self.render_pixel(x, y);
         }
+
+        self.update_ldc_interrupt();
     }
 
     /// Return current GPU mode
     pub fn get_mode(&self) -> Mode {
-        if self.line < 144 {
-            match self.col {
-                0  ... 79  => Prelude,
-                80 ... 172 => Active,
-                _          => HBlank,
+        if self.line < timings::VSYNC_ON {
+            if self.col < timings::HACTIVE_ON {
+                Prelude
+            } else if self.col < timings::HSYNC_ON {
+                Active
+            } else {
+                HBlank
             }
         } else {
             VBlank
@@ -152,16 +210,70 @@ impl<'a> Gpu<'a> {
         self.bg_window_enabled      = lcdc & 0x01 != 0;
     }
 
+    /// Generate value of lcdc register
+    pub fn lcdc(&self) -> u8 {
+        let mut r = 0;
+
+        r |= (self.enabled                as u8) << 7;
+        r |= (self.window_tile_map_select as u8) << 6;
+        r |= (self.window_display         as u8) << 5;
+        r |= (self.tile_data_select       as u8) << 4;
+        r |= (self.bg_tile_map_select     as u8) << 3;
+        r |= (self.object_size            as u8) << 2;
+        r |= (self.objects_enabled        as u8) << 1;
+        r |= (self.bg_window_enabled      as u8) << 0;
+
+        r
+    }
+
+    pub fn stat(&self) -> u8 {
+        let mut r = 0;
+
+        let c = self.lyc == self.line;
+
+        r |= (self.iten_lyc     as u8) << 6;
+        r |= (self.iten_prelude as u8) << 5;
+        r |= (self.iten_vblank  as u8) << 4;
+        r |= (self.iten_hblank  as u8) << 3;
+        r |= (c                 as u8) << 2;
+        r |= self.get_mode()    as u8;
+
+        r
+    }
+
+    pub fn set_stat(&mut self, stat: u8) {
+        self.iten_lyc     = stat & 0x40 != 0;
+        self.iten_prelude = stat & 0x20 != 0;
+        self.iten_vblank  = stat & 0x10 != 0;
+        self.iten_hblank  = stat & 0x03 != 0;
+        // Other fields are R/O
+
+        // Update interrupt status with new stat params
+        self.update_ldc_interrupt();
+    }
+
+    /// Handle reconfiguration of the lyc register
+    pub fn set_lyc(&mut self, lyc: u8) {
+        self.lyc = lyc;
+    }
+
+    /// Return value of the lyc register
+    pub fn lyc(&self) -> u8 {
+        self.lyc
+    }
+
+    /// Handle reconfiguration of the background palette
     pub fn set_bgp(&mut self, bgp: u8) {
         self.bgp = bgp;
     }
 
+    /// Return value of the background palette register
     pub fn bgp(&self) -> u8 {
         self.bgp
     }
 
     /// Return number of line currently being drawn
-    pub fn get_line(&self) -> u8 {
+    pub fn line(&self) -> u8 {
         self.line
     }
 
@@ -204,6 +316,64 @@ impl<'a> Gpu<'a> {
     /// Force VBlank interrupt state
     pub fn force_it_vblank(&mut self, set: bool) {
         self.it_vblank = set;
+    }
+
+    /// Return status of Lcd interrupt
+    pub fn it_lcd(&self) -> bool {
+        self.lcd_it_status == Triggered
+    }
+
+    /// Acknowledge Lcd interrupt
+    pub fn ack_it_lcd(&mut self) {
+        if self.lcd_it_status == Triggered {
+            self.lcd_it_status = Acked;
+        }
+    }
+
+    /// Force Lcd interrupt state. As with all the rest of the Lcd
+    /// interrupt state machine, I'm not sure if that's right.
+    pub fn force_it_lcd(&mut self, set: bool) {
+        match set {
+            true  => self.lcd_it_status = Triggered,
+            false => self.ack_it_lcd(),
+        }
+    }
+
+    /// Return the current level of the LCD interrupt (`true` if one
+    /// of the interrupt conditions is met and is enabled).
+    fn lcd_interrupt_level(&self) -> bool {
+        let mode = self.get_mode();
+
+        (self.iten_lyc     && self.lyc == self.line) ||
+        (self.iten_prelude && mode == Prelude)       ||
+        (self.iten_vblank  && mode == VBlank)        ||
+        (self.iten_hblank  && mode == HBlank)
+    }
+
+    /// Look for a transition in the LCD interrupt to see if we should
+    /// trigger a new one (or rearm it)
+    fn update_ldc_interrupt(&mut self) {
+        let level = self.lcd_interrupt_level();
+
+        match level {
+            true => {
+                if self.lcd_it_status == Inactive {
+                    // Rising edge of IT line, we trigger a new interrupt.
+                    self.lcd_it_status = Triggered;
+                }
+            }
+            false => {
+                // Not entirely sure about that one. If the interrupt
+                // has not been acked yet, what should be done? At the
+                // moment I just assume it's shadowed somewhere and
+                // won't go down until acked.
+                if self.lcd_it_status == Acked {
+                    // IT line returned to low, it could trigger again
+                    // within the same line.
+                    self.lcd_it_status = Inactive;
+                }
+            }
+        }
     }
 
     fn render_pixel(&mut self, x: u8, y: u8) {
@@ -278,4 +448,20 @@ impl<'a> Show for Gpu<'a> {
 
         Ok(())
     }
+}
+
+mod timings {
+    //! LCD timings
+
+    /// Total line size (including hblank)
+    pub const HTOTAL:     u16 = 456;
+    /// Beginning of Active period
+    pub const HACTIVE_ON: u16 = 80;
+    /// Beginning of HSync period
+    pub const HSYNC_ON:   u16 = 173;
+
+    /// Total number of lines (including vblank)
+    pub const VTOTAL:   u8 = 154;
+    /// Beginning of VSync period
+    pub const VSYNC_ON: u8 = 144;
 }
