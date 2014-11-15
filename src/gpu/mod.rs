@@ -48,7 +48,12 @@ pub struct Gpu<'a> {
     iten_vblank: bool,
     /// Interrupt during hblank (mode == 0)
     iten_hblank: bool,
+    /// Lcdc interrupt status
     lcd_it_status: LcdItStatus,
+    /// Background y position
+    scy: u8,
+    /// Background x position
+    scx: u8,
 }
 
 /// Current GPU mode
@@ -118,6 +123,8 @@ impl<'a> Gpu<'a> {
               iten_vblank:            false,
               iten_hblank:            false,
               lcd_it_status:          Inactive,
+              scy:                    0,
+              scx:                    0,
         }
     }
 
@@ -144,6 +151,8 @@ impl<'a> Gpu<'a> {
         self.iten_vblank            = false;
         self.iten_hblank            = false;
         self.lcd_it_status          = Inactive;
+        self.scy                    = 0;
+        self.scx                    = 0;
     }
 
     /// Called at each tick of the system clock. Move the emulated
@@ -177,7 +186,9 @@ impl<'a> Gpu<'a> {
             let x = self.col as u8;
             let y = self.line;
 
-            self.render_pixel(x, y);
+            if self.bg_window_enabled {
+                self.render_pixel(x, y);
+            }
         }
 
         self.update_ldc_interrupt();
@@ -250,6 +261,26 @@ impl<'a> Gpu<'a> {
 
         // Update interrupt status with new stat params
         self.update_ldc_interrupt();
+    }
+
+    /// Reconfiguration of SCY register
+    pub fn scy(&self) -> u8 {
+        self.scy
+    }
+
+    /// Return value of SCY register
+    pub fn set_scy(&mut self, scy: u8) {
+        self.scy = scy;
+    }
+
+    /// Reconfiguration of SCX register
+    pub fn scx(&self) -> u8 {
+        self.scx
+    }
+
+    /// Return value of SCX register
+    pub fn set_scx(&mut self, scx: u8) {
+        self.scx = scx;
     }
 
     /// Handle reconfiguration of the lyc register
@@ -377,10 +408,12 @@ impl<'a> Gpu<'a> {
     }
 
     fn render_pixel(&mut self, x: u8, y: u8) {
-        let tile_map_x = x / 8;
-        let tile_map_y = y / 8;
-        let tile_x     = x % 8;
-        let tile_y     = y % 8;
+        let bgx        = x + self.scx;
+        let bgy        = y + self.scy;
+        let tile_map_x = bgx / 8;
+        let tile_map_y = bgy / 8;
+        let tile_x     = bgx % 8;
+        let tile_y     = bgy % 8;
 
         // The screen is divided in 8x8 pixel tiles. It creates a
         // matrix of 32x32 tiles (As far as the GPU is concerned the

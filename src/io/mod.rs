@@ -175,6 +175,12 @@ impl<'a> Interconnect<'a> {
             io_map::LCD_STAT => {
                 return self.gpu.stat()
             }
+            io_map::LCD_SCY => {
+                return self.gpu.scy()
+            }
+            io_map::LCD_SCX => {
+                return self.gpu.scx()
+            }
             io_map::LCDC => {
                 return self.gpu.lcdc()
             }
@@ -207,7 +213,13 @@ impl<'a> Interconnect<'a> {
                 self.gpu.force_it_lcd(f.lcdc);
             }
             io_map::LCD_STAT => {
-                return self.gpu.set_stat(val)
+                return self.gpu.set_stat(val);
+            }
+            io_map::LCD_SCY => {
+                return self.gpu.set_scy(val);
+            }
+            io_map::LCD_SCX => {
+                return self.gpu.set_scx(val);
             }
             io_map::LCDC => {
                 return self.gpu.set_lcdc(val);
@@ -323,6 +335,10 @@ mod io_map {
     pub const LCDC:     u16 = 0x40;
     /// LCDC Status + IT selection
     pub const LCD_STAT: u16 = 0x41;
+    /// LCDC Background Y position
+    pub const LCD_SCY:  u16 = 0x42;
+    /// LCDC Background X position
+    pub const LCD_SCX:  u16 = 0x43;
     /// Currently displayed line
     pub const LCD_LY:   u16 = 0x44;
     /// Currently line compare
