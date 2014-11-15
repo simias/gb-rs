@@ -18,20 +18,20 @@ pub struct Gpu<'a> {
     vram: [u8, ..0x2000],
     /// `true` if the LCD is enabled.
     enabled: bool,
-    /// `true` if we use tile map #1. Otherwise use tile map #0
-    window_tile_map_select: bool,
+    /// Which tile map the window uses
+    window_tile_map: TileMap,
     /// `true` if window display is enabled
-    window_display: bool,
-    /// `true` if we use tile set #1. Otherwise use tile set #0`
-    tile_data_select: bool,
-    /// `true` if we use tile map #1. Otherwise use tile map #0
-    bg_tile_map_select: bool,
+    window_enabled: bool,
+    /// Which tile set Background and Window use
+    bg_win_tile_set: TileSet,
+    /// Which tile map background uses
+    bg_tile_map: TileMap,
     /// `true` if sprite size is 8x16. Otherwise sprite size is 8x8.
     object_size: bool,
     /// `true` if sprites are displayed
     objects_enabled: bool,
-    /// `true` if BG and window display are enabled
-    bg_window_enabled: bool,
+    /// `true` if background display is enabled
+    bg_enabled: bool,
     /// Background palette
     bgp: u8,
     /// Line compare
@@ -54,6 +54,10 @@ pub struct Gpu<'a> {
     scy: u8,
     /// Background x position
     scx: u8,
+    /// Window top-left x position + 7
+    wx: u8,
+    /// Window top-left y position.
+    wy: u8,
 }
 
 /// Current GPU mode
@@ -108,13 +112,13 @@ impl<'a> Gpu<'a> {
               vram:                   [0xca, ..0x2000],
               display:                display,
               enabled:                true,
-              window_tile_map_select: false,
-              window_display:         false,
-              tile_data_select:       true,
-              bg_tile_map_select:     false,
+              window_tile_map:        MapLow,
+              window_enabled:         false,
+              bg_win_tile_set:        TileSet0,
+              bg_tile_map:            MapLow,
               object_size:            false,
               objects_enabled:        false,
-              bg_window_enabled:      true,
+              bg_enabled:             true,
               bgp:                    0xfc,
               lyc:                    0x00,
               it_vblank:              false,
@@ -125,6 +129,8 @@ impl<'a> Gpu<'a> {
               lcd_it_status:          Inactive,
               scy:                    0,
               scx:                    0,
+              wx:                     0,
+              wy:                     0,
         }
     }
 
@@ -135,13 +141,13 @@ impl<'a> Gpu<'a> {
         self.oam                    = [0xca, ..0xa0];
         self.vram                   = [0xca, ..0x2000];
         self.enabled                = true;
-        self.window_tile_map_select = false;
-        self.window_display         = false;
-        self.tile_data_select       = true;
-        self.bg_tile_map_select     = false;
+        self.window_tile_map        = MapLow;
+        self.window_enabled         = false;
+        self.bg_win_tile_set        = TileSet0;
+        self.bg_tile_map            = MapLow;
         self.object_size            = false;
         self.objects_enabled        = false;
-        self.bg_window_enabled      = true;
+        self.bg_enabled             = true;
         self.bgp                    = 0xfc;
         self.lyc                    = 0;
         self.it_vblank              = false;
@@ -158,8 +164,6 @@ impl<'a> Gpu<'a> {
     /// Called at each tick of the system clock. Move the emulated
     /// state one step forward.
     pub fn step(&mut self) {
-
-        //println!("{}", *self);
 
         if self.col < timings::HTOTAL {
             self.col += 1;
@@ -186,9 +190,17 @@ impl<'a> Gpu<'a> {
             let x = self.col as u8;
             let y = self.line;
 
-            if self.bg_window_enabled {
-                self.render_pixel(x, y);
-            }
+            let c =
+                // Window is always on top of background
+                if self.window_enabled && self.in_window(x, y) {
+                    self.get_window_pixel(x, y)
+                } else if self.bg_enabled && self.bg_enabled {
+                    self.get_background_pixel(x, y)
+                } else {
+                    0
+                };
+
+                self.display.set_pixel(x as u32, y as u32, c);
         }
 
         self.update_ldc_interrupt();
@@ -211,28 +223,46 @@ impl<'a> Gpu<'a> {
 
     /// Handle reconfig through LCDC register
     pub fn set_lcdc(&mut self, lcdc: u8) {
-        self.enabled                = lcdc & 0x80 != 0;
-        self.window_tile_map_select = lcdc & 0x40 != 0;
-        self.window_display         = lcdc & 0x20 != 0;
-        self.tile_data_select       = lcdc & 0x10 != 0;
-        self.bg_tile_map_select     = lcdc & 0x08 != 0;
-        self.object_size            = lcdc & 0x04 != 0;
-        self.objects_enabled        = lcdc & 0x02 != 0;
-        self.bg_window_enabled      = lcdc & 0x01 != 0;
+        self.enabled          = lcdc & 0x80 != 0;
+        self.window_tile_map  = match lcdc & 0x40 != 0 {
+            true  => MapHigh,
+            false => MapLow,
+        };
+        self.window_enabled  = lcdc & 0x20 != 0;
+        self.bg_win_tile_set = match lcdc & 0x10 != 0 {
+            true  => TileSet1,
+            false => TileSet0,
+        };
+        self.bg_tile_map     = match lcdc & 0x08 != 0 {
+            true  => MapHigh,
+            false => MapLow,
+        };
+        self.object_size     = lcdc & 0x04 != 0;
+        self.objects_enabled = lcdc & 0x02 != 0;
+        self.bg_enabled      = lcdc & 0x01 != 0;
     }
 
     /// Generate value of lcdc register
     pub fn lcdc(&self) -> u8 {
         let mut r = 0;
 
-        r |= (self.enabled                as u8) << 7;
-        r |= (self.window_tile_map_select as u8) << 6;
-        r |= (self.window_display         as u8) << 5;
-        r |= (self.tile_data_select       as u8) << 4;
-        r |= (self.bg_tile_map_select     as u8) << 3;
-        r |= (self.object_size            as u8) << 2;
-        r |= (self.objects_enabled        as u8) << 1;
-        r |= (self.bg_window_enabled      as u8) << 0;
+        r |= (self.enabled         as u8) << 7;
+        r |= match self.window_tile_map {
+            MapHigh => 1,
+            MapLow  => 0,
+        } << 6;
+        r |= (self.window_enabled  as u8) << 5;
+        r |= match self.bg_win_tile_set {
+            TileSet1 => 1,
+            TileSet0 => 0
+        }<< 4;
+        r |= match self.bg_tile_map {
+            MapHigh => 1,
+            MapLow  => 0,
+        } << 3;
+        r |= (self.object_size     as u8) << 2;
+        r |= (self.objects_enabled as u8) << 1;
+        r |= (self.bg_enabled      as u8) << 0;
 
         r
     }
@@ -306,6 +336,26 @@ impl<'a> Gpu<'a> {
     /// Return number of line currently being drawn
     pub fn line(&self) -> u8 {
         self.line
+    }
+
+    /// Return value of wy register
+    pub fn wy(&self) -> u8 {
+        self.wy
+    }
+
+    /// Handle reconfiguration of wy register
+    pub fn set_wy(&mut self, wy: u8) {
+        self.wy = wy
+    }
+
+    /// Return value of wx register
+    pub fn wx(&self) -> u8 {
+        self.wx
+    }
+
+    /// Handle reconfiguration of wx register
+    pub fn set_wx(&mut self, wx: u8) {
+        self.wx = wx
     }
 
     /// Called when the last line of the active display has been drawn
@@ -407,35 +457,64 @@ impl<'a> Gpu<'a> {
         }
     }
 
-    fn render_pixel(&mut self, x: u8, y: u8) {
-        let bgx        = x + self.scx;
-        let bgy        = y + self.scy;
-        let tile_map_x = bgx / 8;
-        let tile_map_y = bgy / 8;
-        let tile_x     = bgx % 8;
-        let tile_y     = bgy % 8;
+    /// Return `true` if the pixel at (`x`, `y`) is in the window
+    fn in_window(&self, x: u8, y: u8) -> bool {
+        let x  = x as i32;
+        let y  = y as i32;
+        let wx = (self.wx as i32) - 7;
+        let wy = self.wy as i32;
+
+        x >= wx && y >= wy
+    }
+
+    /// Get pixel in the window. Assumes (`x`, `y`) is inside the
+    /// window.
+    fn get_window_pixel(&mut self, x: u8, y: u8) -> u8 {
+        // Window X value is offset by 7 for some reason
+        let px = x - self.wx + 7;
+        let py = y - self.wx;
+
+        let map = self.window_tile_map;
+        let set = self.bg_win_tile_set;
+
+        self.get_pixel(px, py, map, set)
+    }
+
+    fn get_background_pixel(&mut self, x: u8, y: u8) -> u8 {
+        let px = x + self.scx;
+        let py = y + self.scy;
+
+        let map = self.bg_tile_map;
+        let set = self.bg_win_tile_set;
+
+        self.get_pixel(px, py, map, set)
+    }
+
+    /// Get one pixel from either the window or the background.
+    fn get_pixel(&mut self, x: u8, y: u8, map: TileMap, set: TileSet) -> u8 {
+        let tile_map_x = x / 8;
+        let tile_map_y = y / 8;
+        let tile_x     = x % 8;
+        let tile_y     = y % 8;
 
         // The screen is divided in 8x8 pixel tiles. It creates a
         // matrix of 32x32 tiles (As far as the GPU is concerned the
         // screen resolution is 256x256). The tile map contains one u8
         // per tile which is the index of the tile to use in the tile
         // set.
-        let tile_index = self.bg_tile_index(tile_map_x, tile_map_y);
+        let tile_index = self.tile_index(tile_map_x, tile_map_y, map);
 
-        let tile_pix_value = self.get_pix_value(tile_index, tile_x, tile_y);
+        let tile_pix_value = self.get_pix_value(tile_index, tile_x, tile_y, set);
 
         // Use tile_pix_value as index in the bgp
-        let pix_value = (self.bgp >> ((tile_pix_value * 2) as uint)) & 0x3;
+        let pix_color = (self.bgp >> ((tile_pix_value * 2) as uint)) & 0x3;
 
-        self.display.set_pixel(x as u32, y as u32, pix_value);
+        pix_color
     }
 
-    /// Return the background tile index for the tile at (`tx`, `ty`)
-    fn bg_tile_index(&self, tx: u8, ty: u8) -> u8 {
-        let base = match self.bg_tile_map_select {
-            false  => 0x1800,
-            true   => 0x1c00,
-        };
+    /// Return the tile index for the tile at (`tx`, `ty`) in `map`
+    fn tile_index(&self, tx: u8, ty: u8, map: TileMap) -> u8 {
+        let base = map.base();
 
         let tx = tx as u16;
         let ty = ty as u16;
@@ -447,19 +526,13 @@ impl<'a> Gpu<'a> {
 
     /// Get the value of pixel (`x`, `y`) in `tile`. Return a value
     /// between 0 and 3.
-    fn get_pix_value(&self, tile: u8, x: u8, y: u8) -> u8 {
+    fn get_pix_value(&self, tile: u8, x: u8, y: u8, set: TileSet) -> u8 {
 
         if x >= 8 || y >= 8 {
             panic!("tile pos out of range");
         }
 
-        let base = match self.tile_data_select {
-            // If tile_data_select is false `tile` is signed and in
-            // the range [-128, 127]. Tile 0 is at 0x9000.
-            false => (0x1000 + (((tile as i8) as i16) * 16)) as u16,
-            // Otherwise it's unsigned and starts at 0x8000
-            true  => 0x0 + (tile as u16) * 16,
-        };
+        let base = set.tile_addr(tile);
 
         let addr = base + 2 * (y as u16);
 
@@ -480,6 +553,49 @@ impl<'a> Show for Gpu<'a> {
         try!(write!(f, "Gpu at ({}, {}) [{}] ", self.col, self.line, self.get_mode()));
 
         Ok(())
+    }
+}
+
+/// There are two tile maps available on the GameBoy. Each map is
+/// 32x32x8bits large and contain index values into the tile set for
+/// each map.
+enum TileMap {
+    /// Low map at addresse range [0x9800, 0x9bff]
+    MapLow,
+    /// High map at addresse range [0x9c00, 0x9fff]
+    MapHigh,
+}
+
+
+impl TileMap {
+    /// Return tile map base offset in VRAM
+    fn base(self) -> u16 {
+        match self {
+            MapLow  => 0x1800,
+            MapHigh => 0x1c00,
+        }
+    }
+}
+
+/// There are two overlapping tile sets on the Game Boy. Tile sets are
+/// 256x16byte large, entries are indexed into the `TileMap`.
+enum TileSet {
+    /// Tile set #0 in [0x8800, 0x9bff], index is signed [-128, 127]
+    TileSet0,
+    /// Tile set #1 in [0x8000, 0x8fff], index is unsigned [0, 255]
+    TileSet1,
+}
+
+impl TileSet {
+    /// Return VRAM offset of `tile` for the tileset.
+    fn tile_addr(self, tile: u8) -> u16 {
+        match self {
+            // For `TileSet0` `tile` is signed and in the range [-128,
+            // 127]. Tile 0 is at offset 0x1000.
+            TileSet0 => (0x1000 + (((tile as i8) as i16) * 16)) as u16,
+            // `TileSet1` is unsigned and starts at offset 0x0000
+            TileSet1  => 0x0 + (tile as u16) * 16,
+        }
     }
 }
 

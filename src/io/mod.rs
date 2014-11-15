@@ -193,6 +193,12 @@ impl<'a> Interconnect<'a> {
             io_map::LCD_BGP => {
                 return self.gpu.bgp()
             }
+            io_map::LCD_WY => {
+                return self.gpu.wy()
+            }
+            io_map::LCD_WX => {
+                return self.gpu.wx()
+            }
             _ => {
                 println!("Unhandled IO read from 0x{:04x}", 0xff00 | addr);
             }
@@ -231,7 +237,13 @@ impl<'a> Interconnect<'a> {
                 return self.gpu.set_lyc(val);
             }
             io_map::LCD_BGP => {
-                return self.gpu.set_bgp(val)
+                return self.gpu.set_bgp(val);
+            }
+            io_map::LCD_WY => {
+                return self.gpu.set_wy(val);
+            }
+            io_map::LCD_WX => {
+                return self.gpu.set_wx(val);
             }
             _ => {
                 println!("Unhandled IO write to 0x{:04x}: 0x{:02x}",
@@ -345,5 +357,9 @@ mod io_map {
     pub const LCD_LYC:  u16 = 0x45;
     /// Background palette
     pub const LCD_BGP:  u16 = 0x47;
+    /// Window Y position
+    pub const LCD_WY:   u16 = 0x4a;
+    /// Window X position + 7
+    pub const LCD_WX:   u16 = 0x4b;
 
 }
