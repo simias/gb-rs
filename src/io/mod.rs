@@ -22,6 +22,10 @@ pub struct Interconnect<'a> {
     io:         [u8, ..0x4c],
     /// Enabled interrupts
     it_enabled: Interrupts,
+    /// Current DMA source address
+    dma_src:    u16,
+    /// Current DMA index in OAM
+    dma_idx:    u16,
 }
 
 impl<'a> Interconnect<'a> {
@@ -42,6 +46,8 @@ impl<'a> Interconnect<'a> {
                        gpu:        gpu,
                        io:         io,
                        it_enabled: it_enabled,
+                       dma_src:    0,
+                       dma_idx:    map::range_size(map::OAM),
         }
     }
 
@@ -53,6 +59,9 @@ impl<'a> Interconnect<'a> {
 
         self.it_enabled = Interrupts::from_register(0);
 
+        self.dma_src = 0;
+        self.dma_idx = map::range_size(map::OAM);
+
         for b in self.io.iter_mut() {
             *b = 0;
         }
@@ -60,6 +69,22 @@ impl<'a> Interconnect<'a> {
 
     pub fn step(&mut self) {
         self.gpu.step();
+        self.dma_step();
+    }
+
+    pub fn dma_step(&mut self) {
+        let end = map::range_size(map::OAM);
+
+        if self.dma_idx >= end {
+            // No dma transfer in progress
+            return;
+        }
+
+        let b = self.get_byte(self.dma_src);
+        self.gpu.set_oam(self.dma_idx, b);
+
+        self.dma_src += 1;
+        self.dma_idx += 1;
     }
 
     /// Get byte from peripheral mapped at `addr`
@@ -163,6 +188,9 @@ impl<'a> Interconnect<'a> {
     /// Retrieve value from IO port
     fn get_io(&self, addr: u16) -> u8 {
         match addr {
+            io_map::DMA => {
+                return self.dma_addr();
+            }
             io_map::IF => {
                 return Interrupts {
                     vblank: self.gpu.it_vblank(),
@@ -212,6 +240,9 @@ impl<'a> Interconnect<'a> {
         self.io[(addr & 0xff) as uint] = val;
 
         match addr {
+            io_map::DMA => {
+                return self.start_dma(val);
+            }
             io_map::IF => {
                 let f = Interrupts::from_register(val);
 
@@ -250,6 +281,20 @@ impl<'a> Interconnect<'a> {
                          0xff00 | addr, val);
             }
         }
+    }
+
+    /// Return the base of the last DMA transfer (only the high byte,
+    /// the low byte is always 0)
+    fn dma_addr(&self) -> u8 {
+        (self.dma_src >> 8) as u8
+    }
+
+    /// Start a new transfer from (`src` << 8) into OAM
+    fn start_dma(&mut self, src: u8) {
+        self.dma_idx = 0;
+        self.dma_src = (src as u16) << 8;
+
+        self.dma_step();
     }
 }
 
@@ -336,6 +381,13 @@ mod map {
             None
         }
     }
+
+    /// Return the size of `range` in bytes
+    pub fn range_size(range: (u16, u16)) -> u16 {
+        let (first, last) = range;
+
+        return last - first + 1;
+    }
 }
 
 mod io_map {
@@ -355,6 +407,8 @@ mod io_map {
     pub const LCD_LY:   u16 = 0x44;
     /// Currently line compare
     pub const LCD_LYC:  u16 = 0x45;
+    /// DMA transfer from ROM/RAM to OAM
+    pub const DMA:      u16 = 0x46;
     /// Background palette
     pub const LCD_BGP:  u16 = 0x47;
     /// Window Y position

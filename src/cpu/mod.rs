@@ -159,6 +159,9 @@ impl<'a> Cpu<'a> {
         // Now we fetch the next instruction
         let (delay, instruction) = next_instruction(self);
 
+        // let mut reader = io::stdin();
+        // let _ = reader.read_line().ok();
+
         // Instruction delays are in CPU Machine cycles. There's 4
         // Clock cycles in one Machine cycle.
         self.instruction_delay = delay * 4 - 1;
@@ -486,17 +489,27 @@ impl<'a> Show for Cpu<'a> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
         try!(writeln!(f, "Registers:"));
 
-        try!(writeln!(f, "  pc: 0x{:04x} [{:02X}]",
-                      self.pc(), self.fetch_byte(self.pc())));
-        try!(writeln!(f, "  sp: 0x{:04x}", self.sp()));
+        try!(writeln!(f, "  pc: 0x{:04x} [{:02X} {:02X} {:02X} ...]",
+                      self.pc(),
+                      self.fetch_byte(self.pc()),
+                      self.fetch_byte(self.pc() + 1),
+                      self.fetch_byte(self.pc() + 2)));
+        try!(writeln!(f, "  sp: 0x{:04x} [{:02X} {:02X} {:02X} ...]",
+                      self.sp(),
+                      self.fetch_byte(self.sp()),
+                      self.fetch_byte(self.sp() + 1),
+                      self.fetch_byte(self.sp() + 2)));
         try!(writeln!(f, "  af: 0x{:04x}    a: {:3u}    f: {:3u}",
                       self.af(), self.a(), self.f()));
         try!(writeln!(f, "  bc: 0x{:04x}    b: {:3u}    c: {:3u}",
                       self.bc(), self.b(), self.c()));
         try!(writeln!(f, "  de: 0x{:04x}    d: {:3u}    d: {:3u}",
                       self.de(), self.d(), self.e()));
-        try!(writeln!(f, "  hl: 0x{:04x}    h: {:3u}    l: {:3u}",
-                      self.hl(), self.h(), self.l()));
+        try!(writeln!(f, "  hl: 0x{:04x}    h: {:3u}    l: {:3u}    \
+                           [hl]: [{:02X} {:02X} ...]",
+                      self.hl(), self.h(), self.l(),
+                      self.fetch_byte(self.hl()),
+                      self.fetch_byte(self.hl() + 1)));
 
         try!(writeln!(f, "Flags:"));
 

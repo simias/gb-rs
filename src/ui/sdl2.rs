@@ -26,17 +26,13 @@ impl Display {
             Err(err) => panic!("failed to create SDL2 renderer: {}", err)
         };
 
-        let display = Display { renderer: renderer };
-
-        //display.clear();
-
-        display
+        Display { renderer: renderer }
     }
 }
 
 impl super::Display for Display {
     fn clear(&mut self) {
-        let _ = self.renderer.set_draw_color(RGB(0xff, 0xff, 0xff));
+        let _ = self.renderer.set_draw_color(RGB(0xff, 0x00, 0x00));
         let _ = self.renderer.clear();
     }
 

@@ -165,6 +165,10 @@ impl<'a> Gpu<'a> {
     /// state one step forward.
     pub fn step(&mut self) {
 
+        if !self.enabled {
+            return;
+        }
+
         if self.col < timings::HTOTAL {
             self.col += 1;
         } else {
