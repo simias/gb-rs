@@ -1,7 +1,7 @@
 //! Game Boy CPU emulation
 
 use std::fmt::{Show, Formatter, FormatError};
-use io::{Interconnect, Interrupt, VBlank, Lcdc};
+use io::{Interconnect, Interrupt, VBlank, Lcdc, Timer};
 
 use cpu::instructions::next_instruction;
 
@@ -154,13 +154,8 @@ impl<'a> Cpu<'a> {
             return;
         }
 
-        //println!("{}", *self);
-
         // Now we fetch the next instruction
         let (delay, instruction) = next_instruction(self);
-
-        // let mut reader = io::stdin();
-        // let _ = reader.read_line().ok();
 
         // Instruction delays are in CPU Machine cycles. There's 4
         // Clock cycles in one Machine cycle.
@@ -185,6 +180,7 @@ impl<'a> Cpu<'a> {
         let handler_addr = match it {
             VBlank => 0x40,
             Lcdc   => 0x48,
+            Timer  => 0x50,
         };
 
         println!("Interrupt {:02x}", handler_addr);

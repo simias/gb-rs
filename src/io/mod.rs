@@ -4,6 +4,7 @@ use gpu::Gpu;
 
 pub mod rom;
 pub mod ram;
+pub mod timer;
 
 /// Interconnect struct used by the CPU and GPU to access the ROM, RAM
 /// and registers
@@ -15,6 +16,8 @@ pub struct Interconnect<'a> {
     iram:       ram::Ram,
     /// 0-page RAM
     zpage:      ram::Ram,
+    /// Timer instance
+    timer:      timer::Timer,
     /// GPU instance
     gpu:        Gpu<'a>,
     /// Used to store the value of IO Port when not properly
@@ -37,12 +40,15 @@ impl<'a> Interconnect<'a> {
         let zpage = ram::Ram::new(0x7f);
         let io = [0, ..0x4c];
 
+        let timer = timer::Timer::new();
+
         let it_enabled = Interrupts::from_register(0);
 
         Interconnect { rom:        rom,
                        ram:        ram,
                        iram:       iram,
                        zpage:      zpage,
+                       timer:      timer,
                        gpu:        gpu,
                        io:         io,
                        it_enabled: it_enabled,
@@ -57,6 +63,8 @@ impl<'a> Interconnect<'a> {
         self.gpu.reset();
         self.zpage.reset();
 
+        self.timer.reset();
+
         self.it_enabled = Interrupts::from_register(0);
 
         self.dma_src = 0;
@@ -70,6 +78,7 @@ impl<'a> Interconnect<'a> {
     pub fn step(&mut self) {
         self.gpu.step();
         self.dma_step();
+        self.timer.step();
     }
 
     pub fn dma_step(&mut self) {
@@ -180,6 +189,9 @@ impl<'a> Interconnect<'a> {
         } else if self.it_enabled.lcdc && self.gpu.it_lcd() {
             self.gpu.ack_it_lcd();
             Some(Lcdc)
+        } else if self.it_enabled.timer && self.timer.interrupt() {
+            self.timer.ack_interrupt();
+            Some(Timer)
         } else {
             None
         }
@@ -188,6 +200,18 @@ impl<'a> Interconnect<'a> {
     /// Retrieve value from IO port
     fn get_io(&self, addr: u16) -> u8 {
         match addr {
+            io_map::DIV => {
+                return self.timer.div();
+            }
+            io_map::TIMA => {
+                return self.timer.counter();
+            }
+            io_map::TMA => {
+                return self.timer.modulo();
+            }
+            io_map::TAC => {
+                return self.timer.config();
+            }
             io_map::DMA => {
                 return self.dma_addr();
             }
@@ -240,6 +264,18 @@ impl<'a> Interconnect<'a> {
         self.io[(addr & 0xff) as uint] = val;
 
         match addr {
+            io_map::DIV => {
+                return self.timer.reset_div();
+            }
+            io_map::TIMA => {
+                return self.timer.set_counter(val);
+            }
+            io_map::TMA => {
+                return self.timer.set_modulo(val);
+            }
+            io_map::TAC => {
+                return self.timer.set_config(val);
+            }
             io_map::DMA => {
                 return self.start_dma(val);
             }
@@ -304,6 +340,8 @@ pub enum Interrupt {
     VBlank,
     /// Configurable LCD Controller interrupt
     Lcdc,
+    /// Timer overflow
+    Timer,
     // TODO: implement other interrupts
 }
 
@@ -393,6 +431,15 @@ mod map {
 mod io_map {
     //! IO Address Map (offset from 0xff00)
 
+    /// 16.384kHz free-running counter. Writing to it resets it to 0.
+    pub const DIV:      u16 = 0x04;
+    /// Configurable timer counter
+    pub const TIMA:     u16 = 0x05;
+    /// Configurable timer modulo (value reloaded in the counter after
+    /// oveflow)
+    pub const TMA:      u16 = 0x06;
+    /// Timer control register
+    pub const TAC:      u16 = 0x07;
     /// Interrupt Flag register
     pub const IF:       u16 = 0x0f;
     /// LCD Control
