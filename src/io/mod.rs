@@ -143,6 +143,7 @@ impl<'a> Interconnect<'a> {
     pub fn set_byte(&mut self, addr: u16, val: u8) {
         if let Some(_) = map::in_range(addr, map::ROM) {
             println!("Writing to ROM: {:04x}: {:02x}", addr, val);
+            return;
         }
 
         if let Some(off) = map::in_range(addr, map::VRAM) {
