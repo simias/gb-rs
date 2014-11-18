@@ -212,6 +212,11 @@ impl<'a> Gpu<'a> {
 
     /// Return current GPU mode
     pub fn get_mode(&self) -> Mode {
+        // Apparently mode is 0 when disabled
+        if !self.enabled {
+            return HBlank;
+        }
+
         if self.line < timings::VSYNC_ON {
             if self.col < timings::HACTIVE_ON {
                 Prelude
@@ -244,6 +249,11 @@ impl<'a> Gpu<'a> {
         self.object_size     = lcdc & 0x04 != 0;
         self.objects_enabled = lcdc & 0x02 != 0;
         self.bg_enabled      = lcdc & 0x01 != 0;
+
+        if !self.enabled {
+            self.line = 0;
+            self.col  = 0;
+        }
     }
 
     /// Generate value of lcdc register
