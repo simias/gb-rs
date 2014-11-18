@@ -212,11 +212,6 @@ impl<'a> Gpu<'a> {
 
     /// Return current GPU mode
     pub fn get_mode(&self) -> Mode {
-        // Apparently mode is 0 when disabled
-        if !self.enabled {
-            return HBlank;
-        }
-
         if self.line < timings::VSYNC_ON {
             if self.col < timings::HACTIVE_ON {
                 Prelude
@@ -291,7 +286,11 @@ impl<'a> Gpu<'a> {
         r |= (self.iten_vblank  as u8) << 4;
         r |= (self.iten_hblank  as u8) << 3;
         r |= (c                 as u8) << 2;
-        r |= self.get_mode()    as u8;
+
+        // Apparently mode is 0 when disabled
+        if self.enabled {
+            r |= self.get_mode() as u8;
+        }
 
         r
     }
