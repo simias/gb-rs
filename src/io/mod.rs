@@ -186,13 +186,13 @@ impl<'a> Interconnect<'a> {
     pub fn next_interrupt(&mut self) -> Option<Interrupt> {
         if self.it_enabled.vblank && self.gpu.it_vblank() {
             self.gpu.ack_it_vblank();
-            Some(VBlank)
+            Some(Interrupt::VBlank)
         } else if self.it_enabled.lcdc && self.gpu.it_lcd() {
             self.gpu.ack_it_lcd();
-            Some(Lcdc)
+            Some(Interrupt::Lcdc)
         } else if self.it_enabled.timer && self.timer.interrupt() {
             self.timer.ack_interrupt();
-            Some(Timer)
+            Some(Interrupt::Timer)
         } else {
             None
         }

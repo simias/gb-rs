@@ -19,9 +19,10 @@ impl Display {
             Err(err)   => panic!("failed to create SDL2 window: {}", err)
         };
 
-        let renderer = match Renderer::from_window(window,
-                                                   ::sdl2::render::DriverAuto,
-                                                   ::sdl2::render::SOFTWARE) {
+        let renderer =
+            match Renderer::from_window(window,
+                                        ::sdl2::render::RenderDriverIndex::Auto,
+                                        ::sdl2::render::SOFTWARE) {
             Ok(renderer) => renderer,
             Err(err) => panic!("failed to create SDL2 renderer: {}", err)
         };

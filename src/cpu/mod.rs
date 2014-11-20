@@ -1,7 +1,7 @@
 //! Game Boy CPU emulation
 
-use std::fmt::{Show, Formatter, FormatError};
-use io::{Interconnect, Interrupt, VBlank, Lcdc, Timer};
+use std::fmt::{Show, Formatter, Error};
+use io::{Interconnect, Interrupt};
 
 use cpu::instructions::next_instruction;
 
@@ -178,9 +178,9 @@ impl<'a> Cpu<'a> {
         self.instruction_delay = 32;
 
         let handler_addr = match it {
-            VBlank => 0x40,
-            Lcdc   => 0x48,
-            Timer  => 0x50,
+            Interrupt::VBlank => 0x40,
+            Interrupt::Lcdc   => 0x48,
+            Interrupt::Timer  => 0x50,
         };
 
         println!("Interrupt {:02x}", handler_addr);
@@ -482,7 +482,7 @@ impl<'a> Cpu<'a> {
 }
 
 impl<'a> Show for Cpu<'a> {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         try!(writeln!(f, "Registers:"));
 
         try!(writeln!(f, "  pc: 0x{:04x} [{:02X} {:02X} {:02X} ...]",
@@ -495,13 +495,13 @@ impl<'a> Show for Cpu<'a> {
                       self.fetch_byte(self.sp()),
                       self.fetch_byte(self.sp() + 1),
                       self.fetch_byte(self.sp() + 2)));
-        try!(writeln!(f, "  af: 0x{:04x}    a: {:3u}    f: {:3u}",
+        try!(writeln!(f, "  af: 0x{:04x}    a: {:3}    f: {:3}",
                       self.af(), self.a(), self.f()));
-        try!(writeln!(f, "  bc: 0x{:04x}    b: {:3u}    c: {:3u}",
+        try!(writeln!(f, "  bc: 0x{:04x}    b: {:3}    c: {:3}",
                       self.bc(), self.b(), self.c()));
-        try!(writeln!(f, "  de: 0x{:04x}    d: {:3u}    d: {:3u}",
+        try!(writeln!(f, "  de: 0x{:04x}    d: {:3}    d: {:3}",
                       self.de(), self.d(), self.e()));
-        try!(writeln!(f, "  hl: 0x{:04x}    h: {:3u}    l: {:3u}    \
+        try!(writeln!(f, "  hl: 0x{:04x}    h: {:3}    l: {:3}    \
                            [hl]: [{:02X} {:02X} ...]",
                       self.hl(), self.h(), self.l(),
                       self.fetch_byte(self.hl()),

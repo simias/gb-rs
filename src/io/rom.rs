@@ -1,6 +1,6 @@
 //! ROM (cartridge) emulation
 
-use std::fmt::{Show, Formatter, FormatError};
+use std::fmt::{Show, Formatter, Error};
 use std::io::{File, Reader, IoResult};
 
 /// ROM image
@@ -56,7 +56,7 @@ impl Rom {
 }
 
 impl Show for Rom {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         try!(write!(f, "'{}'", match self.get_name() {
             Some(s) => s,
             None    => "<INVALID>".to_string(),

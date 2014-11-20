@@ -1,8 +1,10 @@
 //! Game Boy GPU emulation
 
-use std::fmt::{Show, Formatter, FormatError};
-
+use std::fmt::{Show, Formatter, Error};
 use ui::Display;
+use gpu::sprite::Sprite;
+
+mod sprite;
 
 /// GPU state.
 pub struct Gpu<'a> {
@@ -13,7 +15,7 @@ pub struct Gpu<'a> {
     /// Position on the current line.
     col: u16,
     /// Object attritube memory
-    oam: [u8, ..0xa0],
+    oam: [Sprite, ..0xa0],
     /// Video Ram
     vram: [u8, ..0x2000],
     /// `true` if the LCD is enabled.
@@ -27,9 +29,9 @@ pub struct Gpu<'a> {
     /// Which tile map background uses
     bg_tile_map: TileMap,
     /// `true` if sprite size is 8x16. Otherwise sprite size is 8x8.
-    object_size: bool,
+    sprite_size: bool,
     /// `true` if sprites are displayed
-    objects_enabled: bool,
+    sprites_enabled: bool,
     /// `true` if background display is enabled
     bg_enabled: bool,
     /// Background palette
@@ -58,6 +60,10 @@ pub struct Gpu<'a> {
     wx: u8,
     /// Window top-left y position.
     wy: u8,
+    /// Sprites displayed on each line. Contains an index into OAM or
+    /// None. There can't be more than 10 sprites displayed on each
+    /// line.
+    line_sprites: [[Option<u8>, ..10], ..144],
 }
 
 /// Current GPU mode
@@ -106,18 +112,19 @@ enum LcdItStatus {
 impl<'a> Gpu<'a> {
     /// Create a new Gpu instance.
     pub fn new<'n>(display: &'n mut Display) -> Gpu<'n> {
+
         Gpu { line:                   0,
               col:                    0,
-              oam:                    [0xca, ..0xa0],
+              oam:                    [Sprite::new(), ..0xa0],
               vram:                   [0xca, ..0x2000],
               display:                display,
               enabled:                true,
-              window_tile_map:        MapLow,
+              window_tile_map:        TileMap::Low,
               window_enabled:         false,
-              bg_win_tile_set:        TileSet0,
-              bg_tile_map:            MapLow,
-              object_size:            false,
-              objects_enabled:        false,
+              bg_win_tile_set:        TileSet::Set0,
+              bg_tile_map:            TileMap::Low,
+              sprite_size:            false,
+              sprites_enabled:        false,
               bg_enabled:             true,
               bgp:                    0xfc,
               lyc:                    0x00,
@@ -126,11 +133,12 @@ impl<'a> Gpu<'a> {
               iten_prelude:           false,
               iten_vblank:            false,
               iten_hblank:            false,
-              lcd_it_status:          Inactive,
+              lcd_it_status:          LcdItStatus::Inactive,
               scy:                    0,
               scx:                    0,
               wx:                     0,
               wy:                     0,
+              line_sprites:           [[None, ..10], ..144],
         }
     }
 
@@ -138,15 +146,15 @@ impl<'a> Gpu<'a> {
     pub fn reset(&mut self) {
         self.line                   = 0;
         self.col                    = 0;
-        self.oam                    = [0xca, ..0xa0];
+        self.oam                    = [Sprite::new(), ..0xa0];
         self.vram                   = [0xca, ..0x2000];
         self.enabled                = true;
-        self.window_tile_map        = MapLow;
+        self.window_tile_map        = TileMap::Low;
         self.window_enabled         = false;
-        self.bg_win_tile_set        = TileSet0;
-        self.bg_tile_map            = MapLow;
-        self.object_size            = false;
-        self.objects_enabled        = false;
+        self.bg_win_tile_set        = TileSet::Set0;
+        self.bg_tile_map            = TileMap::Low;
+        self.sprite_size            = false;
+        self.sprites_enabled        = false;
         self.bg_enabled             = true;
         self.bgp                    = 0xfc;
         self.lyc                    = 0;
@@ -156,9 +164,10 @@ impl<'a> Gpu<'a> {
         self.iten_prelude           = false;
         self.iten_vblank            = false;
         self.iten_hblank            = false;
-        self.lcd_it_status          = Inactive;
+        self.lcd_it_status          = LcdItStatus::Inactive;
         self.scy                    = 0;
         self.scx                    = 0;
+        self.line_sprites           = [[None, ..10], ..144];
     }
 
     /// Called at each tick of the system clock. Move the emulated
@@ -214,14 +223,14 @@ impl<'a> Gpu<'a> {
     pub fn get_mode(&self) -> Mode {
         if self.line < timings::VSYNC_ON {
             if self.col < timings::HACTIVE_ON {
-                Prelude
+                Mode::Prelude
             } else if self.col < timings::HSYNC_ON {
-                Active
+                Mode::Active
             } else {
-                HBlank
+                Mode::HBlank
             }
         } else {
-            VBlank
+            Mode::VBlank
         }
     }
 
@@ -229,20 +238,20 @@ impl<'a> Gpu<'a> {
     pub fn set_lcdc(&mut self, lcdc: u8) {
         self.enabled          = lcdc & 0x80 != 0;
         self.window_tile_map  = match lcdc & 0x40 != 0 {
-            true  => MapHigh,
-            false => MapLow,
+            true  => TileMap::High,
+            false => TileMap::Low,
         };
         self.window_enabled  = lcdc & 0x20 != 0;
         self.bg_win_tile_set = match lcdc & 0x10 != 0 {
-            true  => TileSet1,
-            false => TileSet0,
+            true  => TileSet::Set1,
+            false => TileSet::Set0,
         };
         self.bg_tile_map     = match lcdc & 0x08 != 0 {
-            true  => MapHigh,
-            false => MapLow,
+            true  => TileMap::High,
+            false => TileMap::Low,
         };
-        self.object_size     = lcdc & 0x04 != 0;
-        self.objects_enabled = lcdc & 0x02 != 0;
+        self.sprite_size     = lcdc & 0x04 != 0;
+        self.sprites_enabled = lcdc & 0x02 != 0;
         self.bg_enabled      = lcdc & 0x01 != 0;
 
         if !self.enabled {
@@ -257,20 +266,20 @@ impl<'a> Gpu<'a> {
 
         r |= (self.enabled         as u8) << 7;
         r |= match self.window_tile_map {
-            MapHigh => 1,
-            MapLow  => 0,
+            TileMap::High => 1,
+            TileMap::Low  => 0,
         } << 6;
         r |= (self.window_enabled  as u8) << 5;
         r |= match self.bg_win_tile_set {
-            TileSet1 => 1,
-            TileSet0 => 0
+            TileSet::Set1 => 1,
+            TileSet::Set0 => 0
         }<< 4;
         r |= match self.bg_tile_map {
-            MapHigh => 1,
-            MapLow  => 0,
+            TileMap::High => 1,
+            TileMap::Low  => 0,
         } << 3;
-        r |= (self.object_size     as u8) << 2;
-        r |= (self.objects_enabled as u8) << 1;
+        r |= (self.sprite_size     as u8) << 2;
+        r |= (self.sprites_enabled as u8) << 1;
         r |= (self.bg_enabled      as u8) << 0;
 
         r
@@ -389,12 +398,36 @@ impl<'a> Gpu<'a> {
 
     /// Get byte from OAM
     pub fn get_oam(&self, addr: u16) -> u8 {
-        self.oam[addr as uint]
+        // Each sprite takes 4 byte in OAM
+        let index     = (addr / 4) as uint;
+        let attribute = addr % 4;
+
+        let sprite = &self.oam[index];
+
+        match attribute {
+            0 => sprite.y_pos(),
+            1 => sprite.x_pos(),
+            2 => sprite.tile(),
+            3 => sprite.flags(),
+            _ => panic!("unreachable"),
+        }
     }
 
     /// Set byte in OAM
     pub fn set_oam(&mut self, addr: u16, val: u8) {
-        self.oam[addr as uint] = val;
+        // Each sprite takes 4 byte in OAM
+        let index     = (addr / 4) as uint;
+        let attribute = addr % 4;
+
+        let sprite = &mut self.oam[index];
+
+        match attribute {
+            0 => sprite.set_y_pos(val),
+            1 => sprite.set_x_pos(val),
+            2 => sprite.set_tile(val),
+            3 => sprite.set_flags(val),
+            _ => panic!("unreachable"),
+        }
     }
 
     /// Return status of VBlank interrupt
@@ -414,13 +447,13 @@ impl<'a> Gpu<'a> {
 
     /// Return status of Lcd interrupt
     pub fn it_lcd(&self) -> bool {
-        self.lcd_it_status == Triggered
+        self.lcd_it_status == LcdItStatus::Triggered
     }
 
     /// Acknowledge Lcd interrupt
     pub fn ack_it_lcd(&mut self) {
-        if self.lcd_it_status == Triggered {
-            self.lcd_it_status = Acked;
+        if self.lcd_it_status == LcdItStatus::Triggered {
+            self.lcd_it_status = LcdItStatus::Acked;
         }
     }
 
@@ -428,7 +461,7 @@ impl<'a> Gpu<'a> {
     /// interrupt state machine, I'm not sure if that's right.
     pub fn force_it_lcd(&mut self, set: bool) {
         match set {
-            true  => self.lcd_it_status = Triggered,
+            true  => self.lcd_it_status = LcdItStatus::Triggered,
             false => self.ack_it_lcd(),
         }
     }
@@ -439,9 +472,9 @@ impl<'a> Gpu<'a> {
         let mode = self.get_mode();
 
         (self.iten_lyc     && self.lyc == self.line) ||
-        (self.iten_prelude && mode == Prelude)       ||
-        (self.iten_vblank  && mode == VBlank)        ||
-        (self.iten_hblank  && mode == HBlank)
+        (self.iten_prelude && mode == Mode::Prelude) ||
+        (self.iten_vblank  && mode == Mode::VBlank)  ||
+        (self.iten_hblank  && mode == Mode::HBlank)
     }
 
     /// Look for a transition in the LCD interrupt to see if we should
@@ -451,9 +484,9 @@ impl<'a> Gpu<'a> {
 
         match level {
             true => {
-                if self.lcd_it_status == Inactive {
+                if self.lcd_it_status == LcdItStatus::Inactive {
                     // Rising edge of IT line, we trigger a new interrupt.
-                    self.lcd_it_status = Triggered;
+                    self.lcd_it_status = LcdItStatus::Triggered;
                 }
             }
             false => {
@@ -461,10 +494,10 @@ impl<'a> Gpu<'a> {
                 // has not been acked yet, what should be done? At the
                 // moment I just assume it's shadowed somewhere and
                 // won't go down until acked.
-                if self.lcd_it_status == Acked {
+                if self.lcd_it_status == LcdItStatus::Acked {
                     // IT line returned to low, it could trigger again
                     // within the same line.
-                    self.lcd_it_status = Inactive;
+                    self.lcd_it_status = LcdItStatus::Inactive;
                 }
             }
         }
@@ -562,7 +595,7 @@ impl<'a> Gpu<'a> {
 }
 
 impl<'a> Show for Gpu<'a> {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         try!(write!(f, "Gpu at ({}, {}) [{}] ", self.col, self.line, self.get_mode()));
 
         Ok(())
@@ -574,9 +607,9 @@ impl<'a> Show for Gpu<'a> {
 /// each map.
 enum TileMap {
     /// Low map at addresse range [0x9800, 0x9bff]
-    MapLow,
+    Low,
     /// High map at addresse range [0x9c00, 0x9fff]
-    MapHigh,
+    High,
 }
 
 
@@ -584,8 +617,8 @@ impl TileMap {
     /// Return tile map base offset in VRAM
     fn base(self) -> u16 {
         match self {
-            MapLow  => 0x1800,
-            MapHigh => 0x1c00,
+            TileMap::Low  => 0x1800,
+            TileMap::High => 0x1c00,
         }
     }
 }
@@ -594,20 +627,20 @@ impl TileMap {
 /// 256x16byte large, entries are indexed into the `TileMap`.
 enum TileSet {
     /// Tile set #0 in [0x8800, 0x9bff], index is signed [-128, 127]
-    TileSet0,
+    Set0,
     /// Tile set #1 in [0x8000, 0x8fff], index is unsigned [0, 255]
-    TileSet1,
+    Set1,
 }
 
 impl TileSet {
     /// Return VRAM offset of `tile` for the tileset.
     fn tile_addr(self, tile: u8) -> u16 {
         match self {
-            // For `TileSet0` `tile` is signed and in the range [-128,
+            // For `Set0` `tile` is signed and in the range [-128,
             // 127]. Tile 0 is at offset 0x1000.
-            TileSet0 => (0x1000 + (((tile as i8) as i16) * 16)) as u16,
-            // `TileSet1` is unsigned and starts at offset 0x0000
-            TileSet1  => 0x0 + (tile as u16) * 16,
+            TileSet::Set0 => (0x1000 + (((tile as i8) as i16) * 16)) as u16,
+            // `Set1` is unsigned and starts at offset 0x0000
+            TileSet::Set1  => 0x0 + (tile as u16) * 16,
         }
     }
 }

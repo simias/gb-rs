@@ -27,7 +27,7 @@ impl Timer {
             counter:     0,
             modulo:      0,
             enabled:     false,
-            divider:     Div1024,
+            divider:     Divider::Div1024,
             clk:         0,
             counter_16k: 0,
             interrupt:   false,
@@ -38,7 +38,7 @@ impl Timer {
         self.counter     = 0;
         self.modulo      = 0;
         self.enabled     = false;
-        self.divider     = Div1024;
+        self.divider     = Divider::Div1024;
         self.clk         = 0;
         self.counter_16k = 0;
         self.interrupt   = false;
@@ -102,10 +102,10 @@ impl Timer {
         self.enabled = cfg & 4 != 0;
 
         self.divider = match cfg & 3 {
-            0 => Div1024,
-            1 => Div16,
-            2 => Div64,
-            3 => Div256,
+            0 => Divider::Div1024,
+            1 => Divider::Div16,
+            2 => Divider::Div64,
+            3 => Divider::Div256,
             _ => panic!("Unreachable"),
         };
     }

@@ -8,5 +8,5 @@ dependencies = [
 [[package]]
 name = "sdl2"
 version = "0.0.1-alpha.1"
-source = "git+https://github.com/AngryLawyer/rust-sdl2#93cc0d4184b3f66dbced0e46798dc3800717cb3b"
+source = "git+https://github.com/AngryLawyer/rust-sdl2#1082349e7e47c0ba2d3ad49281ca203efd36d2bc"
 
