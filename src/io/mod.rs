@@ -201,6 +201,10 @@ impl<'a> Interconnect<'a> {
     /// Retrieve value from IO port
     fn get_io(&self, addr: u16) -> u8 {
         match addr {
+            io_map::INPUT => {
+                // TODO: implement input handling
+                return 0xf;
+            }
             io_map::DIV => {
                 return self.timer.div();
             }
@@ -246,6 +250,12 @@ impl<'a> Interconnect<'a> {
             io_map::LCD_BGP => {
                 return self.gpu.bgp()
             }
+            io_map::LCD_OBP0 => {
+                return self.gpu.obp0()
+            }
+            io_map::LCD_OBP1 => {
+                return self.gpu.obp1()
+            }
             io_map::LCD_WY => {
                 return self.gpu.wy()
             }
@@ -265,6 +275,9 @@ impl<'a> Interconnect<'a> {
         self.io[(addr & 0xff) as uint] = val;
 
         match addr {
+            io_map::INPUT => {
+                // TODO
+            }
             io_map::DIV => {
                 return self.timer.reset_div();
             }
@@ -306,6 +319,12 @@ impl<'a> Interconnect<'a> {
             }
             io_map::LCD_BGP => {
                 return self.gpu.set_bgp(val);
+            }
+            io_map::LCD_OBP0 => {
+                return self.gpu.set_obp0(val);
+            }
+            io_map::LCD_OBP1 => {
+                return self.gpu.set_obp1(val);
             }
             io_map::LCD_WY => {
                 return self.gpu.set_wy(val);
@@ -432,6 +451,8 @@ mod map {
 mod io_map {
     //! IO Address Map (offset from 0xff00)
 
+    /// Input button matrix control
+    pub const INPUT:    u16 = 0x00;
     /// 16.384kHz free-running counter. Writing to it resets it to 0.
     pub const DIV:      u16 = 0x04;
     /// Configurable timer counter
@@ -459,6 +480,10 @@ mod io_map {
     pub const DMA:      u16 = 0x46;
     /// Background palette
     pub const LCD_BGP:  u16 = 0x47;
+    /// Sprite palette 0
+    pub const LCD_OBP0: u16 = 0x48;
+    /// Sprite palette 1
+    pub const LCD_OBP1: u16 = 0x49;
     /// Window Y position
     pub const LCD_WY:   u16 = 0x4a;
     /// Window X position + 7

@@ -28,14 +28,18 @@ pub struct Gpu<'a> {
     bg_win_tile_set: TileSet,
     /// Which tile map background uses
     bg_tile_map: TileMap,
-    /// `true` if sprite size is 8x16. Otherwise sprite size is 8x8.
-    sprite_size: bool,
+    /// Resolution of the sprites
+    sprite_size: SpriteSize,
     /// `true` if sprites are displayed
     sprites_enabled: bool,
     /// `true` if background display is enabled
     bg_enabled: bool,
     /// Background palette
     bgp: u8,
+    /// Object palette 0
+    obp0: u8,
+    /// Object palette 1
+    obp1: u8,
     /// Line compare
     lyc: u8,
     /// VBlank interrupt status
@@ -63,7 +67,7 @@ pub struct Gpu<'a> {
     /// Sprites displayed on each line. Contains an index into OAM or
     /// None. There can't be more than 10 sprites displayed on each
     /// line.
-    line_sprites: [[Option<u8>, ..10], ..144],
+    line_cache: [[Option<u8>, ..10], ..144],
 }
 
 /// Current GPU mode
@@ -123,10 +127,12 @@ impl<'a> Gpu<'a> {
               window_enabled:         false,
               bg_win_tile_set:        TileSet::Set0,
               bg_tile_map:            TileMap::Low,
-              sprite_size:            false,
+              sprite_size:            SpriteSize::Sz8x8,
               sprites_enabled:        false,
               bg_enabled:             true,
               bgp:                    0xfc,
+              obp0:                   0xff,
+              obp1:                   0xff,
               lyc:                    0x00,
               it_vblank:              false,
               iten_lyc:               false,
@@ -138,7 +144,7 @@ impl<'a> Gpu<'a> {
               scx:                    0,
               wx:                     0,
               wy:                     0,
-              line_sprites:           [[None, ..10], ..144],
+              line_cache:             [[None, ..10], ..144],
         }
     }
 
@@ -153,10 +159,12 @@ impl<'a> Gpu<'a> {
         self.window_enabled         = false;
         self.bg_win_tile_set        = TileSet::Set0;
         self.bg_tile_map            = TileMap::Low;
-        self.sprite_size            = false;
+        self.sprite_size            = SpriteSize::Sz8x8;
         self.sprites_enabled        = false;
         self.bg_enabled             = true;
         self.bgp                    = 0xfc;
+        self.obp0                   = 0xff;
+        self.obp1                   = 0xff;
         self.lyc                    = 0;
         self.it_vblank              = false;
         self.it_vblank              = false;
@@ -167,7 +175,7 @@ impl<'a> Gpu<'a> {
         self.lcd_it_status          = LcdItStatus::Inactive;
         self.scy                    = 0;
         self.scx                    = 0;
-        self.line_sprites           = [[None, ..10], ..144];
+        self.line_cache             = [[None, ..10], ..144];
     }
 
     /// Called at each tick of the system clock. Move the emulated
@@ -203,17 +211,7 @@ impl<'a> Gpu<'a> {
             let x = self.col as u8;
             let y = self.line;
 
-            let c =
-                // Window is always on top of background
-                if self.window_enabled && self.in_window(x, y) {
-                    self.get_window_pixel(x, y)
-                } else if self.bg_enabled && self.bg_enabled {
-                    self.get_background_pixel(x, y)
-                } else {
-                    0
-                };
-
-                self.display.set_pixel(x as u32, y as u32, c);
+            self.render_pixel(x, y);
         }
 
         self.update_ldc_interrupt();
@@ -250,13 +248,23 @@ impl<'a> Gpu<'a> {
             true  => TileMap::High,
             false => TileMap::Low,
         };
-        self.sprite_size     = lcdc & 0x04 != 0;
+        let new_sprite_size = match lcdc & 0x04 != 0 {
+            false => SpriteSize::Sz8x8,
+            true  => SpriteSize::Sz8x16,
+        };
+
         self.sprites_enabled = lcdc & 0x02 != 0;
         self.bg_enabled      = lcdc & 0x01 != 0;
 
         if !self.enabled {
             self.line = 0;
             self.col  = 0;
+        }
+
+        if new_sprite_size != self.sprite_size {
+            self.sprite_size = new_sprite_size;
+
+            self.rebuild_line_cache();
         }
     }
 
@@ -278,7 +286,10 @@ impl<'a> Gpu<'a> {
             TileMap::High => 1,
             TileMap::Low  => 0,
         } << 3;
-        r |= (self.sprite_size     as u8) << 2;
+        r |= match self.sprite_size {
+            SpriteSize::Sz8x16 => 1,
+            SpriteSize::Sz8x8  => 0,
+        } << 2;
         r |= (self.sprites_enabled as u8) << 1;
         r |= (self.bg_enabled      as u8) << 0;
 
@@ -355,6 +366,26 @@ impl<'a> Gpu<'a> {
         self.bgp
     }
 
+    /// Handle reconfiguration of the sprite palette 0
+    pub fn set_obp0(&mut self, obp0: u8) {
+        self.obp0 = obp0;
+    }
+
+    /// Return value of the background palette register
+    pub fn obp0(&self) -> u8 {
+        self.obp0
+    }
+
+    /// Handle reconfiguration of the sprite palette 1
+    pub fn set_obp1(&mut self, obp1: u8) {
+        self.obp1 = obp1;
+    }
+
+    /// Return value of the background palette register
+    pub fn obp1(&self) -> u8 {
+        self.obp1
+    }
+
     /// Return number of line currently being drawn
     pub fn line(&self) -> u8 {
         self.line
@@ -399,10 +430,10 @@ impl<'a> Gpu<'a> {
     /// Get byte from OAM
     pub fn get_oam(&self, addr: u16) -> u8 {
         // Each sprite takes 4 byte in OAM
-        let index     = (addr / 4) as uint;
+        let index     = (addr / 4) as u8;
         let attribute = addr % 4;
 
-        let sprite = &self.oam[index];
+        let sprite = self.oam[index as uint];
 
         match attribute {
             0 => sprite.y_pos(),
@@ -419,14 +450,20 @@ impl<'a> Gpu<'a> {
         let index     = (addr / 4) as uint;
         let attribute = addr % 4;
 
-        let sprite = &mut self.oam[index];
+        {
+            let sprite = &mut self.oam[index];
 
-        match attribute {
-            0 => sprite.set_y_pos(val),
-            1 => sprite.set_x_pos(val),
-            2 => sprite.set_tile(val),
-            3 => sprite.set_flags(val),
-            _ => panic!("unreachable"),
+            match attribute {
+                0 => sprite.set_y_pos(val),
+                1 => sprite.set_x_pos(val),
+                2 => sprite.set_tile(val),
+                3 => sprite.set_flags(val),
+                _ => panic!("unreachable"),
+            }
+        }
+
+        if attribute == 0 || attribute == 1 {
+            self.rebuild_line_cache();
         }
     }
 
@@ -472,9 +509,9 @@ impl<'a> Gpu<'a> {
         let mode = self.get_mode();
 
         (self.iten_lyc     && self.lyc == self.line) ||
-        (self.iten_prelude && mode == Mode::Prelude) ||
-        (self.iten_vblank  && mode == Mode::VBlank)  ||
-        (self.iten_hblank  && mode == Mode::HBlank)
+            (self.iten_prelude && mode == Mode::Prelude) ||
+            (self.iten_vblank  && mode == Mode::VBlank)  ||
+            (self.iten_hblank  && mode == Mode::HBlank)
     }
 
     /// Look for a transition in the LCD interrupt to see if we should
@@ -537,7 +574,7 @@ impl<'a> Gpu<'a> {
     }
 
     /// Get one pixel from either the window or the background.
-    fn get_pixel(&mut self, x: u8, y: u8, map: TileMap, set: TileSet) -> u8 {
+    fn get_pixel(&self, x: u8, y: u8, map: TileMap, set: TileSet) -> u8 {
         let tile_map_x = x / 8;
         let tile_map_y = y / 8;
         let tile_x     = x % 8;
@@ -553,9 +590,7 @@ impl<'a> Gpu<'a> {
         let tile_pix_value = self.get_pix_value(tile_index, tile_x, tile_y, set);
 
         // Use tile_pix_value as index in the bgp
-        let pix_color = (self.bgp >> ((tile_pix_value * 2) as uint)) & 0x3;
-
-        pix_color
+        palette_conversion(tile_pix_value, self.bgp)
     }
 
     /// Return the tile index for the tile at (`tx`, `ty`) in `map`
@@ -575,7 +610,7 @@ impl<'a> Gpu<'a> {
     fn get_pix_value(&self, tile: u8, x: u8, y: u8, set: TileSet) -> u8 {
 
         if x >= 8 || y >= 8 {
-            panic!("tile pos out of range");
+            panic!("tile pos out of range ({}, {})", x, y);
         }
 
         let base = set.tile_addr(tile);
@@ -592,6 +627,165 @@ impl<'a> Gpu<'a> {
 
         msb << 1 | lsb
     }
+
+    /// Rebuild the entire Sprite cache for each line.
+    fn rebuild_line_cache(&mut self) {
+        // Clear the cache
+        self.line_cache = [[None, ..10], ..144];
+
+        // Rebuild it
+        for i in range(0, self.oam.len()) {
+            self.cache_sprite(i as u8);
+        }
+    }
+
+    /// Insert sprite at `index` into the line cache
+    fn cache_sprite(&mut self, index: u8) {
+        let sprite = self.oam[index as uint];
+        let height = self.sprite_size.height();
+        let start  = sprite.top_line();
+        let end    = start + (height as i32);
+
+        for y in range(start, end) {
+            if y < 0 || y >= 144 {
+                // Sprite line is not displayed
+                continue;
+            }
+
+            let y = y as uint;
+
+            // Insert sprite into the cache for this line. We order
+            // the sprites from left to right and from highest to
+            // lowest priority.
+            for i in range(0u, 10) {
+
+                match self.line_cache[y][i] {
+                    None => {
+                        // This cache entry is empty, use it to hold
+                        // our sprite and move on to the next line
+                        self.line_cache[y][i] = Some(index as u8);
+                        break;
+                    }
+                    Some(other) => {
+                        let other_sprite = &self.oam[index as uint];
+
+                        // When sprites overlap the one with the
+                        // smallest x pos is on top. If the x values
+                        // are equal then the offset in OAM is used.
+                        if sprite.x_pos() < other_sprite.x_pos() ||
+                            (sprite.x_pos() == other_sprite.x_pos() &&
+                             index < other) {
+                            // Our sprite is higher priority, move the
+                            // rest of the cacheline ahead (discarding
+                            // the last item if necessary) and insert
+                            // the new entry.
+                            for j in range(i, 9) {
+                                self.line_cache[y][j + 1] =
+                                    self.line_cache[y][j];
+                            }
+
+                            self.line_cache[y][i] = Some(index);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Render a single pixel from the display
+    fn render_pixel(&mut self, x: u8, y: u8) {
+        let bg_col =
+            // Window is always on top of background
+            if self.window_enabled && self.in_window(x, y) {
+                self.get_window_pixel(x, y)
+            } else if self.bg_enabled && self.bg_enabled {
+                self.get_background_pixel(x, y)
+            } else {
+                0
+            };
+
+        let col = if self.sprites_enabled {
+            self.render_sprite(x, y, bg_col)
+        } else {
+            bg_col
+        };
+
+        self.display.set_pixel(x as u32, y as u32, col);
+    }
+
+    fn render_sprite(&self, x: u8, y: u8, bg_col: u8) -> u8 {
+
+        for i in range(0, 10) {
+            match self.line_cache[y as uint][i] {
+                None    => return bg_col, // Nothing left in cache
+                Some(index) => {
+                    let sprite = &self.oam[index as uint];
+
+                    let sprite_x = (x as i32) - sprite.left_column();
+
+                    if sprite_x >= 8 {
+                        // Sprite was earlier on the line
+                        continue;
+                    }
+
+                    if sprite_x < 0 {
+                        // It's too early to draw that sprite. Since
+                        // sprites are in order on the line we know
+                        // there's no sprite remaining to be drawn
+                        break;
+                    }
+
+                    if sprite.background() && bg_col != 0 {
+                        // Sprite is covered by the background
+                        continue;
+                    }
+
+                    let sprite_y = (y as i32) - sprite.top_line();
+
+                    let sprite_y = match sprite.y_flip() {
+                        true  => 15 - sprite_y,
+                        false => sprite_y,
+                    };
+
+                    let sprite_x = match sprite.x_flip() {
+                        true  => 7 - sprite_x,
+                        false => sprite_x,
+                    };
+
+                    let tile = match self.sprite_size {
+                        SpriteSize::Sz8x8  => sprite.tile(),
+                        SpriteSize::Sz8x16 => {
+                            let off = (sprite_y >> 3) & 1;
+
+                            (sprite.tile() & 0xe) | (off as u8)
+                        }
+                    };
+
+                    let pix = self.get_pix_value(tile,
+                                                 sprite_x         as u8,
+                                                 (sprite_y & 0x7) as u8,
+                                                 TileSet::Set1);
+
+                    if pix != 0 {
+                        // Pixel is not transparent, compute the color
+                        // and return that
+
+                        let palette = match sprite.palette() {
+                            sprite::Palette::Obp0 => self.obp0,
+                            sprite::Palette::Obp1 => self.obp1,
+                        };
+
+
+                        return palette_conversion(pix, palette);
+                    }
+                }
+            }
+        }
+
+        bg_col
+
+    }
+
 }
 
 impl<'a> Show for Gpu<'a> {
@@ -643,6 +837,32 @@ impl TileSet {
             TileSet::Set1  => 0x0 + (tile as u16) * 16,
         }
     }
+}
+
+/// Sprites can be 8x8 pixels or 8x16 pixels (a pair of 8x8
+/// tiles). The setting is global for all sprites.
+#[deriving(PartialEq,Eq)]
+enum SpriteSize {
+    /// Sprites resolution is 8x8 (i.e. single tile)
+    Sz8x8,
+    /// Sprites resolution is 8x16 (i.e. two tiles)
+    Sz8x16,
+}
+
+impl SpriteSize {
+    /// Return the height of sprites depending on the SpriteSize
+    /// setting
+    fn height(self) -> uint {
+        match self {
+            SpriteSize::Sz8x8  => 8,
+            SpriteSize::Sz8x16 => 16,
+        }
+    }
+}
+
+/// Transform `val` through `palette`
+fn palette_conversion(val: u8, palette: u8) -> u8 {
+    (palette >> ((val * 2) as uint)) & 0x3
 }
 
 mod timings {

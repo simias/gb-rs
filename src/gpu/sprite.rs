@@ -28,7 +28,7 @@ impl Sprite {
             background: false,
             x_flip:     false,
             y_flip:     false,
-            palette:    Palette::Obj0,
+            palette:    Palette::Obp0,
         }
     }
 
@@ -36,16 +36,34 @@ impl Sprite {
         self.x = x;
     }
 
+    /// Return the sprite's x position as configured in the
+    /// register. The actual position of the top left corner on the
+    /// screen is `x_pos - 8`
     pub fn x_pos(&self) -> u8 {
         self.x
     }
 
+    /// Return the sprite's y position as configured in the
+    /// register. The actual position of the top left corner on the
+    /// screen is `y_pos - 16`
     pub fn set_y_pos(&mut self, y: u8) {
         self.y = y;
     }
 
     pub fn y_pos(&self) -> u8 {
         self.y
+    }
+
+    /// Return the number of top line of the sprite in real screen
+    /// coordinates.
+    pub fn top_line(&self) -> i32 {
+        (self.y as i32) - 16
+    }
+
+    /// Return the number of the left line of the sprite in real
+    /// screen coordinates.
+    pub fn left_column(&self) -> i32 {
+        (self.x as i32) - 8
     }
 
     pub fn set_tile(&mut self, tile: u8) {
@@ -56,6 +74,22 @@ impl Sprite {
         self.tile
     }
 
+    pub fn background(&self) -> bool {
+        self.background
+    }
+
+    pub fn palette(&self) -> Palette {
+        self.palette
+    }
+
+    pub fn x_flip(&self) -> bool {
+        self.x_flip
+    }
+
+    pub fn y_flip(&self) -> bool {
+        self.y_flip
+    }
+
     /// Set sprite miscellaneous flags. `flags` is the OAM memory byte
     /// representing the flags.
     pub fn set_flags(&mut self, flags: u8) {
@@ -63,8 +97,8 @@ impl Sprite {
         self.y_flip     = flags & 0x40 != 0;
         self.x_flip     = flags & 0x20 != 0;
         self.palette    = match flags & 0x10 != 0 {
-            false => Palette::Obj0,
-            true  => Palette::Obj1,
+            false => Palette::Obp0,
+            true  => Palette::Obp1,
         }
     }
 
@@ -77,8 +111,8 @@ impl Sprite {
         r |= (self.x_flip     as u8) << 5;
 
         r |= match self.palette {
-            Palette::Obj0 => 0,
-            Palette::Obj1 => 1,
+            Palette::Obp0 => 0,
+            Palette::Obp1 => 1,
         } << 4;
 
         r
@@ -86,9 +120,9 @@ impl Sprite {
 }
 
 /// Sprites can use two palettes
-enum Palette {
-    /// Pallette OBJ0
-    Obj0,
-    /// Pallette OBJ1
-    Obj1,
+pub enum Palette {
+    /// Pallette OBP0
+    Obp0,
+    /// Pallette OBP1
+    Obp1,
 }
