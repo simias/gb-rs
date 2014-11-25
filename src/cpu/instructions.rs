@@ -85,7 +85,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu), &'static str), ..0x100] = [
     (1, inc_h,      "INC H"),
     (1, dec_h,      "DEC H"),
     (2, ld_h_n,     "LD H, N"),
-    (0, nop,        "DAA"),        // TODO: DAA, decimal adjust for BCD.
+    (1, nop,        "DAA"),        // TODO: DAA, decimal adjust for BCD.
     (2, jr_z_sn,    "JR Z, SN"),
     (2, add_hl_hl,  "ADD HL, HL"),
     (2, ldi_a_mhl,  "LDI A, [HL]"),
@@ -3044,6 +3044,9 @@ mod bitops {
     /// cpu flags.
     fn swap(cpu: &mut Cpu, v: u8) -> u8 {
         cpu.set_zero(v == 0);
+        cpu.set_substract(false);
+        cpu.set_halfcarry(false);
+        cpu.set_carry(false);
 
         (v << 4) | (v >> 4)
     }
@@ -3124,7 +3127,7 @@ mod bitops {
     /// Helper function to test one bit in a u8. Return true if bit is
     /// 0.
     fn bit_zero(val: u8, bit: u8) -> bool {
-        (val & (1u8 << (bit as uint))) != 0
+        (val & (1u8 << (bit as uint))) == 0
     }
 
     /// Helper function to test bits in `A`
