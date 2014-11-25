@@ -183,8 +183,6 @@ impl<'a> Cpu<'a> {
             Interrupt::Timer  => 0x50,
         };
 
-        println!("Interrupt {:02x}", handler_addr);
-
         // Push current value to stack
         let pc = self.pc();
         self.push_word(pc);
@@ -468,8 +466,6 @@ impl<'a> Cpu<'a> {
         if !self.iten {
             println!("Halt while interrupts are disabled!");
         }
-
-        println!("CPU halted");
 
         self.halted = true;
     }

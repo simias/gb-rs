@@ -1,6 +1,7 @@
 //! Input/Output abstraction for memory, ROM and I/O mapped registers
 
 use gpu::Gpu;
+use ui::{Controller, ButtonState};
 
 pub mod rom;
 pub mod ram;
@@ -29,11 +30,15 @@ pub struct Interconnect<'a> {
     dma_src:    u16,
     /// Current DMA index in OAM
     dma_idx:    u16,
+    /// Controller interface
+    controller: &'a mut Controller + 'a,
 }
 
 impl<'a> Interconnect<'a> {
     /// Create a new Interconnect
-    pub fn new<'n>(rom: rom::Rom, gpu: Gpu<'n>) -> Interconnect<'n> {
+    pub fn new<'n>(rom:        rom::Rom,
+                   gpu:        Gpu<'n>,
+                   controller: &'n mut Controller + 'n) -> Interconnect<'n> {
 
         let ram = ram::Ram::new(0x2000);
         let iram = ram::Ram::new(0x2000);
@@ -54,6 +59,7 @@ impl<'a> Interconnect<'a> {
                        it_enabled: it_enabled,
                        dma_src:    0,
                        dma_idx:    map::range_size(map::OAM),
+                       controller: controller,
         }
     }
 
@@ -202,8 +208,59 @@ impl<'a> Interconnect<'a> {
     fn get_io(&self, addr: u16) -> u8 {
         match addr {
             io_map::INPUT => {
-                // TODO: implement input handling
-                return 0xf;
+                let v = self.io[0];
+
+                let buttons = self.controller.state();
+
+                let mut r = 0;
+
+                if v & 0x10 == 0 {
+                    r |= match buttons.right {
+                        ButtonState::Up => 1,
+                        _               => 0,
+                    } << 0;
+
+                    r |= match buttons.left {
+                        ButtonState::Up => 1,
+                        _               => 0,
+                    } << 1;
+
+                    r |= match buttons.up {
+                        ButtonState::Up => 1,
+                        _               => 0,
+                    } << 2;
+
+
+                    r |= match buttons.down {
+                        ButtonState::Up => 1,
+                        _               => 0,
+                    } << 3;
+                }
+
+                if v & 0x20 == 0 {
+                    r |= match buttons.a {
+                        ButtonState::Up => 1,
+                        _               => 0,
+                    } << 0;
+
+                    r |= match buttons.b {
+                        ButtonState::Up => 1,
+                        _               => 0,
+                    } << 1;
+
+                    r |= match buttons.select {
+                        ButtonState::Up => 1,
+                        _               => 0,
+                    } << 2;
+
+
+                    r |= match buttons.start {
+                        ButtonState::Up => 1,
+                        _               => 0,
+                    } << 3;
+                }
+
+                return r;
             }
             io_map::DIV => {
                 return self.timer.div();
@@ -276,7 +333,7 @@ impl<'a> Interconnect<'a> {
 
         match addr {
             io_map::INPUT => {
-                // TODO
+                self.controller.update();
             }
             io_map::DIV => {
                 return self.timer.reset_div();

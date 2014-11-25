@@ -3,6 +3,11 @@ use sdl2::render::Renderer;
 use sdl2::pixels::RGB;
 use sdl2::rect::Point;
 
+use sdl2::event::{None, KeyDown, KeyUp};
+use sdl2::keycode::KeyCode;
+
+use super::ButtonState;
+
 pub struct Display {
     renderer: Renderer,
 }
@@ -48,11 +53,59 @@ impl super::Display for Display {
 
         let _ = self.renderer.set_draw_color(col);
 
-        let _ =self.renderer.draw_point(Point::new(x as i32, y as i32));
+        let _ = self.renderer.draw_point(Point::new(x as i32, y as i32));
     }
 
     fn flip(&mut self) {
         self.renderer.present();
         self.clear();
+    }
+}
+
+pub struct Controller {
+    buttons: super::Buttons,
+}
+
+impl Controller {
+    pub fn new() -> Controller {
+        Controller {
+            buttons: super::Buttons::new(ButtonState::Up),
+        }
+    }
+
+    /// Update key state. For now keybindings are hardcoded.
+    fn update_key(&mut self, key: KeyCode, state: ButtonState) {
+         match key {
+             KeyCode::Up        => self.buttons.up     = state,
+             KeyCode::Down      => self.buttons.down   = state,
+             KeyCode::Left      => self.buttons.left   = state,
+             KeyCode::Right     => self.buttons.right  = state,
+             KeyCode::LCtrl     => self.buttons.a      = state,
+             KeyCode::LAlt      => self.buttons.b      = state,
+             KeyCode::Return    => self.buttons.start  = state,
+             KeyCode::Backspace => self.buttons.select = state,
+             _                  => (),
+         }
+    }
+}
+
+impl super::Controller for Controller {
+    fn update(&mut self) {
+        loop {
+            match ::sdl2::event::poll_event() {
+                None =>
+                    break,
+                KeyDown(_, _, key, _, _, _) => {
+                    self.update_key(key, ButtonState::Down);
+                },
+                KeyUp(_, _, key, _, _, _) =>
+                    self.update_key(key, ButtonState::Up),
+                _ => (),
+            }
+        }
+    }
+
+    fn state(&self) -> super::Buttons {
+        self.buttons
     }
 }

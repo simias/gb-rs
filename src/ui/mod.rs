@@ -14,17 +14,47 @@ pub trait Display {
     fn flip(&mut self);
 }
 
-/// Dummy Display that does nothing, for testing purposes
-#[allow(dead_code)]
-pub struct DummyDisplay;
+/// GB controller
+pub trait Controller {
+    /// Sample the controller input and update internal state
+    fn update(&mut self);
+    /// Return the internal controller state.
+    fn state(&self) -> Buttons;
+}
 
-impl Display for DummyDisplay {
-    fn clear(&mut self) {
-    }
+/// Description of a button's state
+#[deriving(Show)]
+pub enum ButtonState {
+    /// Key is pushed down
+    Down,
+    /// Key is up
+    Up,
+}
 
-    fn set_pixel(&mut self, _: u32, _: u32, _: u8) {
-    }
+/// State of all the GB buttons
+#[deriving(Show)]
+pub struct Buttons {
+    pub up:     ButtonState,
+    pub down:   ButtonState,
+    pub left:   ButtonState,
+    pub right:  ButtonState,
+    pub a:      ButtonState,
+    pub b:      ButtonState,
+    pub start:  ButtonState,
+    pub select: ButtonState,
+}
 
-    fn flip(&mut self) {
+impl Buttons {
+    pub fn new(default_state: ButtonState) -> Buttons {
+        Buttons {
+            a:      default_state,
+            b:      default_state,
+            start:  default_state,
+            select: default_state,
+            up:     default_state,
+            down:   default_state,
+            left:   default_state,
+            right:  default_state,
+        }
     }
 }

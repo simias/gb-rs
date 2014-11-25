@@ -16,8 +16,7 @@ mod gpu;
 mod ui;
 
 fn main() {
-    let mut display = ui::sdl2::Display::new();
-    //let mut display = ui::DummyDisplay;
+    let mut display    = ui::sdl2::Display::new();
 
     let argv = std::os::args();
 
@@ -37,7 +36,9 @@ fn main() {
 
     let gpu = gpu::Gpu::new(&mut display);
 
-    let inter = io::Interconnect::new(rom, gpu);
+    let mut controller = ui::sdl2::Controller::new();
+
+    let inter = io::Interconnect::new(rom, gpu, &mut controller);
 
     let mut cpu = cpu::Cpu::new(inter);
 
