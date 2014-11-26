@@ -4,6 +4,7 @@
 //! Opcode map: http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
 //! JS emulator: http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-The-CPU
 //! Lots of info about GC quircks: http://www.devrs.com/gb/files/faqs.html
+//! Accuracy tests: http://tasvideos.org/EmulatorResources/GBAccuracyTests.html
 
 #![feature(if_let)]
 #![warn(missing_docs)]

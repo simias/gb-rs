@@ -430,10 +430,10 @@ impl<'a> Gpu<'a> {
     /// Get byte from OAM
     pub fn get_oam(&self, addr: u16) -> u8 {
         // Each sprite takes 4 byte in OAM
-        let index     = (addr / 4) as u8;
+        let index     = (addr / 4) as uint;
         let attribute = addr % 4;
 
-        let sprite = self.oam[index as uint];
+        let sprite = self.sprite(index);
 
         match attribute {
             0 => sprite.y_pos(),
@@ -450,19 +450,41 @@ impl<'a> Gpu<'a> {
         let index     = (addr / 4) as uint;
         let attribute = addr % 4;
 
-        {
-            let sprite = &mut self.oam[index];
+        let update_cache = {
+            let sprite = self.sprite_mut(index);
 
             match attribute {
-                0 => sprite.set_y_pos(val),
-                1 => sprite.set_x_pos(val),
-                2 => sprite.set_tile(val),
-                3 => sprite.set_flags(val),
+                0 => {
+                    if sprite.y_pos() != val {
+                        sprite.set_y_pos(val);
+                        true
+                    } else {
+                        false
+                    }
+                }
+                1 => {
+                    if sprite.x_pos() != val {
+                        sprite.set_x_pos(val);
+                        true
+                    } else {
+                        false
+                    }
+                }
+                2 => {
+                    sprite.set_tile(val);
+                    false
+                }
+                3 => {
+                    sprite.set_flags(val);
+                    false
+                }
                 _ => panic!("unreachable"),
             }
-        }
+        };
 
-        if attribute == 0 || attribute == 1 {
+        // We need to invalidate the cache only if the sprite location
+        // has changed
+        if update_cache {
             self.rebuild_line_cache();
         }
     }
@@ -538,6 +560,14 @@ impl<'a> Gpu<'a> {
                 }
             }
         }
+    }
+
+    fn sprite(&self, index: uint) -> &Sprite {
+        &self.oam[index]
+    }
+
+    fn sprite_mut(&mut self, index: uint) -> &mut Sprite {
+        &mut self.oam[index]
     }
 
     /// Return `true` if the pixel at (`x`, `y`) is in the window
@@ -628,7 +658,8 @@ impl<'a> Gpu<'a> {
         msb << 1 | lsb
     }
 
-    /// Rebuild the entire Sprite cache for each line.
+    /// Rebuild the entire Sprite cache for each line. This is pretty
+    /// expensive.
     fn rebuild_line_cache(&mut self) {
         // Clear the cache
         self.line_cache = [[None, ..10], ..144];
@@ -658,33 +689,33 @@ impl<'a> Gpu<'a> {
             // the sprites from left to right and from highest to
             // lowest priority.
             for i in range(0u, 10) {
-
                 match self.line_cache[y][i] {
                     None => {
                         // This cache entry is empty, use it to hold
                         // our sprite and move on to the next line
-                        self.line_cache[y][i] = Some(index as u8);
+                        self.line_cache[y][i] = Some(index);
                         break;
                     }
                     Some(other) => {
-                        let other_sprite = &self.oam[index as uint];
+                        let other_sprite = &self.oam[other as uint];
 
                         // When sprites overlap the one with the
                         // smallest x pos is on top. If the x values
                         // are equal then the offset in OAM is used.
                         if sprite.x_pos() < other_sprite.x_pos() ||
-                            (sprite.x_pos() == other_sprite.x_pos() &&
-                             index < other) {
+                           (sprite.x_pos() == other_sprite.x_pos() &&
+                            index < other) {
                             // Our sprite is higher priority, move the
-                            // rest of the cacheline ahead (discarding
-                            // the last item if necessary) and insert
-                            // the new entry.
-                            for j in range(i, 9) {
+                            // rest of the cacheline one place
+                            // (discarding the last item if necessary)
+                            // and insert the new entry.
+                            for j in range(i, 9).rev() {
                                 self.line_cache[y][j + 1] =
                                     self.line_cache[y][j];
                             }
 
                             self.line_cache[y][i] = Some(index);
+                            break;
                         }
                     }
                 }
@@ -714,10 +745,9 @@ impl<'a> Gpu<'a> {
     }
 
     fn render_sprite(&self, x: u8, y: u8, bg_col: u8) -> u8 {
-
         for i in range(0, 10) {
             match self.line_cache[y as uint][i] {
-                None    => return bg_col, // Nothing left in cache
+                None        => break, // Nothing left in cache
                 Some(index) => {
                     let sprite = &self.oam[index as uint];
 
@@ -725,7 +755,7 @@ impl<'a> Gpu<'a> {
 
                     if sprite_x >= 8 {
                         // Sprite was earlier on the line
-                        continue;
+                        continue
                     }
 
                     if sprite_x < 0 {
@@ -783,7 +813,6 @@ impl<'a> Gpu<'a> {
         }
 
         bg_col
-
     }
 
 }
