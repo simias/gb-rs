@@ -441,9 +441,19 @@ impl<'a> Cpu<'a> {
         self.flags.c = s;
     }
 
+    /// Get value of 'H' flag
+    fn halfcarry(&self) -> bool {
+        self.flags.h
+    }
+
     /// Set value of 'H' flag
     fn set_halfcarry(&mut self, s: bool) {
         self.flags.h = s;
+    }
+
+    /// Get value of 'N' flag
+    fn substract(&self) -> bool {
+        self.flags.n
     }
 
     /// Set value of 'N' flag

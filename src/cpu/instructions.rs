@@ -85,7 +85,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu), &'static str), ..0x100] = [
     (1, inc_h,      "INC H"),
     (1, dec_h,      "DEC H"),
     (2, ld_h_n,     "LD H, N"),
-    (1, nop,        "DAA"),        // TODO: DAA, decimal adjust for BCD.
+    (1, daa,        "DAA"),
     (2, jr_z_sn,    "JR Z, SN"),
     (2, add_hl_hl,  "ADD HL, HL"),
     (2, ldi_a_mhl,  "LDI A, [HL]"),
@@ -419,6 +419,43 @@ fn cpl(cpu: &mut Cpu) {
 
     cpu.set_substract(true);
     cpu.set_halfcarry(true);
+}
+
+/// Decimal adjust `A` for BCD operations.
+///
+/// I'm not sure my implementation is completely correct but it seems
+/// to work properly so far. In particular I have no idea how this
+/// instruction behaves for nonsensical input values (states that
+/// cannot be reached with actual valid BCD addition/substraction)
+fn daa(cpu: &mut Cpu) {
+    let mut a = cpu.a();
+
+    if cpu.substract() {
+        if a & 0xf > 9 || cpu.halfcarry() {
+            // Low nibble underflowed during substraction
+            a -= 6;
+        }
+        if a & 0xf0 > 0x90 || cpu.carry() {
+            // High nibble underflowed during substraction
+            a -= 0x60;
+            cpu.set_carry(true);
+        }
+    } else {
+        if a & 0xf > 9 || cpu.halfcarry() {
+            // Low nibble overflowed during addition
+            a += 6;
+        }
+
+        if a & 0xf0 > 0x90 || cpu.carry() {
+            // High nibble overflowed during addition
+            a += 0x60;
+            cpu.set_carry(true);
+        }
+    }
+
+    cpu.set_a(a);
+    cpu.set_zero(a == 0);
+    cpu.set_halfcarry(false);
 }
 
 /// Complement carry flag
