@@ -147,9 +147,8 @@ impl<'a> Interconnect<'a> {
 
     /// Store `val` into peripheral mapped at `addr`
     pub fn set_byte(&mut self, addr: u16, val: u8) {
-        if let Some(_) = map::in_range(addr, map::ROM) {
-            println!("Writing to ROM: {:04x}: {:02x}", addr, val);
-            return;
+        if let Some(off) = map::in_range(addr, map::ROM) {
+            return self.rom.set_byte(off, val);
         }
 
         if let Some(off) = map::in_range(addr, map::VRAM) {
