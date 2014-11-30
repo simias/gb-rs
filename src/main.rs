@@ -20,7 +20,7 @@ mod gpu;
 mod ui;
 
 fn main() {
-    let mut display = ui::sdl2::Display::new();
+    let mut display = ui::sdl2::Display::new(2);
 
     let argv = std::os::args();
 

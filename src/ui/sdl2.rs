@@ -1,7 +1,7 @@
 use sdl2::video::Window;
 use sdl2::render::Renderer;
 use sdl2::pixels::RGB;
-use sdl2::rect::Point;
+use sdl2::rect::{Point, Rect};
 
 use sdl2::event::{None, KeyDown, KeyUp};
 use sdl2::keycode::KeyCode;
@@ -10,16 +10,23 @@ use super::ButtonState;
 
 pub struct Display {
     renderer: Renderer,
+    /// Upscaling factor, log2.
+    upscale:  uint,
 }
 
 impl Display {
-    pub fn new() -> Display {
+    pub fn new(upscale: uint) -> Display {
         ::sdl2::init(::sdl2::INIT_VIDEO);
+
+        let up = 1 << upscale;
+
+        let xres = 160 * up;
+        let yres = 144 * up;
 
         let window = match Window::new("gb-rs",
                                        ::sdl2::video::PosCentered,
                                        ::sdl2::video::PosCentered,
-                                       160, 144, ::sdl2::video::OPENGL) {
+                                       xres, yres, ::sdl2::video::OPENGL) {
             Ok(window) => window,
             Err(err)   => panic!("failed to create SDL2 window: {}", err)
         };
@@ -32,7 +39,7 @@ impl Display {
             Err(err) => panic!("failed to create SDL2 renderer: {}", err)
         };
 
-        Display { renderer: renderer }
+        Display { renderer: renderer, upscale: upscale }
     }
 }
 
@@ -53,7 +60,17 @@ impl super::Display for Display {
 
         let _ = self.renderer.set_draw_color(col);
 
-        let _ = self.renderer.draw_point(Point::new(x as i32, y as i32));
+        if self.upscale == 0 {
+            let _ = self.renderer.draw_point(Point::new(x as i32, y as i32));
+        } else {
+            let up = 1 << self.upscale;
+
+            // Translate coordinates
+            let x = x as i32 * up;
+            let y = y as i32 * up;
+
+            let _ = self.renderer.fill_rect(&Rect::new(x, y, up, up));
+        }
     }
 
     fn flip(&mut self) {
