@@ -639,7 +639,7 @@ impl<'a> Gpu<'a> {
     /// between 0 and 3.
     fn get_pix_value(&self, tile: u8, x: u8, y: u8, set: TileSet) -> u8 {
 
-        if x >= 8 || y >= 8 {
+        if x >= 8 || y >= 16 {
             panic!("tile pos out of range ({}, {})", x, y);
         }
 
@@ -772,8 +772,14 @@ impl<'a> Gpu<'a> {
 
                     let sprite_y = (y as i32) - sprite.top_line();
 
+                    let (height, tile) = match self.sprite_size {
+                        SpriteSize::Sz8x8  => (7, sprite.tile()),
+                        // For 16pix tiles the LSB is ignored
+                        SpriteSize::Sz8x16 => (15, sprite.tile() & 0xfe),
+                    };
+
                     let sprite_y = match sprite.y_flip() {
-                        true  => 15 - sprite_y,
+                        true  => height - sprite_y,
                         false => sprite_y,
                     };
 
@@ -782,18 +788,9 @@ impl<'a> Gpu<'a> {
                         false => sprite_x,
                     };
 
-                    let tile = match self.sprite_size {
-                        SpriteSize::Sz8x8  => sprite.tile(),
-                        SpriteSize::Sz8x16 => {
-                            let off = (sprite_y >> 3) & 1;
-
-                            (sprite.tile() & 0xe) | (off as u8)
-                        }
-                    };
-
                     let pix = self.get_pix_value(tile,
-                                                 sprite_x         as u8,
-                                                 (sprite_y & 0x7) as u8,
+                                                 sprite_x as u8,
+                                                 sprite_y as u8,
                                                  TileSet::Set1);
 
                     if pix != 0 {
