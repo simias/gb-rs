@@ -585,7 +585,7 @@ impl<'a> Gpu<'a> {
     fn get_window_pixel(&mut self, x: u8, y: u8) -> u8 {
         // Window X value is offset by 7 for some reason
         let px = x - self.wx + 7;
-        let py = y - self.wx;
+        let py = y - self.wy;
 
         let map = self.window_tile_map;
         let set = self.bg_win_tile_set;
