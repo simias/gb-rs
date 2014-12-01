@@ -31,14 +31,14 @@ pub struct Interconnect<'a> {
     /// Current DMA index in OAM
     dma_idx:    u16,
     /// Controller interface
-    controller: &'a mut Controller + 'a,
+    controller: &'a mut (Controller + 'a),
 }
 
 impl<'a> Interconnect<'a> {
     /// Create a new Interconnect
     pub fn new<'n>(rom:        rom::Rom,
                    gpu:        Gpu<'n>,
-                   controller: &'n mut Controller + 'n) -> Interconnect<'n> {
+                   controller: &'n mut (Controller + 'n)) -> Interconnect<'n> {
 
         let ram = ram::Ram::new(0x2000);
         let iram = ram::Ram::new(0x2000);

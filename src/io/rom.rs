@@ -69,7 +69,7 @@ impl Rom {
             }
 
             // Append new character
-            name.grow(1, c.to_char());
+            name.grow(1, c.as_char());
         }
 
         Some(name)

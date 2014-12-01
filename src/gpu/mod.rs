@@ -9,7 +9,7 @@ mod sprite;
 /// GPU state.
 pub struct Gpu<'a> {
     /// Emulator Display
-    display: &'a mut Display + 'a,
+    display: &'a mut (Display + 'a),
     /// Current line. [0,143] is active video, [144,153] is blanking.
     line: u8,
     /// Position on the current line.

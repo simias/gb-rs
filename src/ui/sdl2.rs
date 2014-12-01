@@ -1,9 +1,9 @@
 use sdl2::video::Window;
 use sdl2::render::Renderer;
-use sdl2::pixels::RGB;
+use sdl2::pixels::Color::RGB;
 use sdl2::rect::{Point, Rect};
 
-use sdl2::event::{None, KeyDown, KeyUp};
+use sdl2::event::Event::{None, KeyDown, KeyUp};
 use sdl2::keycode::KeyCode;
 
 use super::ButtonState;
@@ -24,8 +24,8 @@ impl Display {
         let yres = 144 * up;
 
         let window = match Window::new("gb-rs",
-                                       ::sdl2::video::PosCentered,
-                                       ::sdl2::video::PosCentered,
+                                       ::sdl2::video::WindowPos::PosCentered,
+                                       ::sdl2::video::WindowPos::PosCentered,
                                        xres, yres, ::sdl2::video::OPENGL) {
             Ok(window) => window,
             Err(err)   => panic!("failed to create SDL2 window: {}", err)
