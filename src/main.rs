@@ -6,8 +6,11 @@
 //! Lots of info about GC quircks: http://www.devrs.com/gb/files/faqs.html
 //! Accuracy tests: http://tasvideos.org/EmulatorResources/GBAccuracyTests.html
 
-#![feature(if_let)]
+#![feature(if_let, phase)]
 #![warn(missing_docs)]
+
+#[phase(plugin, link)]
+extern crate log;
 
 extern crate sdl2;
 
@@ -18,6 +21,7 @@ mod cpu;
 mod io;
 mod gpu;
 mod ui;
+mod cartridge;
 
 fn main() {
     let mut display = ui::sdl2::Display::new(2);
@@ -31,18 +35,18 @@ fn main() {
 
     let romfile = &argv[1];
 
-    let rom = match io::rom::Rom::from_file(&Path::new(romfile)) {
+    let cartridge = match cartridge::Cartridge::from_file(&Path::new(romfile)) {
         Ok(r)  => r,
         Err(e) => panic!("Failed to load ROM: {}", e),
     };
 
-    println!("Loaded ROM {}", rom);
+    println!("Loaded ROM {}", cartridge);
 
     let gpu = gpu::Gpu::new(&mut display);
 
     let mut controller = ui::sdl2::Controller::new();
 
-    let inter = io::Interconnect::new(rom, gpu, &mut controller);
+    let inter = io::Interconnect::new(cartridge, gpu, &mut controller);
 
     let mut cpu = cpu::Cpu::new(inter);
 

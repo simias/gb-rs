@@ -2,15 +2,16 @@
 
 use gpu::Gpu;
 use ui::{Controller, ButtonState};
+use cartridge::Cartridge;
 
-pub mod rom;
 pub mod ram;
 pub mod timer;
 
 /// Interconnect struct used by the CPU and GPU to access the ROM, RAM
 /// and registers
 pub struct Interconnect<'a> {
-    rom:        rom::Rom,
+    /// Cartridge interface
+    cartridge:  Cartridge,
     /// Bankable RAM
     ram:        ram::Ram,
     /// internal RAM
@@ -36,7 +37,7 @@ pub struct Interconnect<'a> {
 
 impl<'a> Interconnect<'a> {
     /// Create a new Interconnect
-    pub fn new<'n>(rom:        rom::Rom,
+    pub fn new<'n>(cartridge:  Cartridge,
                    gpu:        Gpu<'n>,
                    controller: &'n mut (Controller + 'n)) -> Interconnect<'n> {
 
@@ -49,7 +50,7 @@ impl<'a> Interconnect<'a> {
 
         let it_enabled = Interrupts::from_register(0);
 
-        Interconnect { rom:        rom,
+        Interconnect { cartridge:  cartridge,
                        ram:        ram,
                        iram:       iram,
                        zpage:      zpage,
@@ -64,6 +65,7 @@ impl<'a> Interconnect<'a> {
     }
 
     pub fn reset(&mut self) {
+        self.cartridge.reset();
         self.ram.reset();
         self.iram.reset();
         self.gpu.reset();
@@ -106,7 +108,7 @@ impl<'a> Interconnect<'a> {
     pub fn get_byte(&self, addr: u16) -> u8 {
 
         if let Some(off) = map::in_range(addr, map::ROM) {
-            return self.rom.get_byte(off);
+            return self.cartridge.rom_byte(off);
         }
 
         if let Some(off) = map::in_range(addr, map::VRAM) {
@@ -141,14 +143,14 @@ impl<'a> Interconnect<'a> {
             return self.it_enabled.as_register();
         }
 
-        println!("Read from unmapped memory {:04x}", addr);
+        debug!("Read from unmapped memory {:04x}", addr);
         0
     }
 
     /// Store `val` into peripheral mapped at `addr`
     pub fn set_byte(&mut self, addr: u16, val: u8) {
         if let Some(off) = map::in_range(addr, map::ROM) {
-            return self.rom.set_byte(off, val);
+            return self.cartridge.set_rom_byte(off, val);
         }
 
         if let Some(off) = map::in_range(addr, map::VRAM) {
@@ -183,7 +185,7 @@ impl<'a> Interconnect<'a> {
             return self.it_enabled = Interrupts::from_register(val);
         }
 
-        println!("Write to unmapped memory {:04x}: {:02x}", addr, val);
+        debug!("Write to unmapped memory {:04x}: {:02x}", addr, val);
     }
 
     /// Return the highest priority `Interrupt` (after acknowledging it)
@@ -319,7 +321,7 @@ impl<'a> Interconnect<'a> {
                 return self.gpu.wx()
             }
             _ => {
-                println!("Unhandled IO read from 0x{:04x}", 0xff00 | addr);
+                debug!("Unhandled IO read from 0x{:04x}", 0xff00 | addr);
             }
         }
 
@@ -389,8 +391,8 @@ impl<'a> Interconnect<'a> {
                 return self.gpu.set_wx(val);
             }
             _ => {
-                println!("Unhandled IO write to 0x{:04x}: 0x{:02x}",
-                         0xff00 | addr, val);
+                debug!("Unhandled IO write to 0x{:04x}: 0x{:02x}",
+                       0xff00 | addr, val);
             }
         }
     }

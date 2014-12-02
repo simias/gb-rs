@@ -1,25 +1,32 @@
-//! ROM (cartridge) emulation
+//! Cartridge emulation. There are multiple cartridge types with
+//! different capabilities (bankable ROM/RAM, battery, RTC etc...).
 
 use std::fmt::{Show, Formatter, Error};
 use std::io::{File, Reader, IoResult};
 
-/// ROM image
-pub struct Rom {
-    /// Full cartridge data
-    data: Vec<u8>,
-    /// Current bank offset for the "high" bank.
+/// Common state for all cartridge types
+pub struct Cartridge {
+    /// Cartridge ROM data
+    data:      Vec<u8>,
+    /// Current bank offset for the bank mapped at [0x4000, 0x7fff].
+    /// This value is added to ROM register addresses when they're in
+    /// that range.
     high_bank: uint,
 }
 
-impl Rom {
-    /// Load the ROM from a `Reader`
-    pub fn from_reader(source: &mut Reader) -> IoResult<Rom> {
+impl Cartridge {
+    pub fn reset(&mut self) {
+        self.high_bank = 0;
+    }
+
+    /// Load a Cartridge from a `Reader`
+    pub fn from_reader(source: &mut Reader) -> IoResult<Cartridge> {
         // There must always be at least two ROM banks
         let data = try!(source.read_exact(2 * ROM_BANK_SIZE));
 
-        let mut rom = Rom { data: data, high_bank: 0 };
+        let mut cartridge = Cartridge { data: data, high_bank: 0 };
 
-        let nbanks = match rom.rom_banks() {
+        let nbanks = match cartridge.rom_banks() {
             Some(n) => n,
             None    => panic!("Can't determine ROM bank number"),
         };
@@ -31,27 +38,27 @@ impl Rom {
             let mut remsz = remb * ROM_BANK_SIZE;
 
             // Reserve space for the remaining banks
-            rom.data.grow(remsz, 0);
+            cartridge.data.grow(remsz, 0);
 
             while remsz > 0 {
-                let r = try!(source.read(rom.data.slice_from_mut(off)));
+                let r = try!(source.read(cartridge.data.slice_from_mut(off)));
 
                 remsz -= r;
                 off   += r;
             }
         }
 
-        Ok(rom)
+        Ok(cartridge)
     }
 
-    /// Load the ROM from a file
-    pub fn from_file(path: &Path) -> IoResult<Rom> {
+    /// Load the Cartridge from a file
+    pub fn from_file(path: &Path) -> IoResult<Cartridge> {
         let mut file_reader = try!(File::open(path));
 
-        Rom::from_reader(&mut file_reader)
+        Cartridge::from_reader(&mut file_reader)
     }
 
-    /// Attempt to retreive the rom's name
+        /// Attempt to retreive the rom's name
     pub fn name(&self) -> Option<String> {
         let mut name = String::with_capacity(16);
 
@@ -77,7 +84,7 @@ impl Rom {
 
     /// Return the number of ROM banks for this ROM. Each bank is 16KB.
     pub fn rom_banks(&self) -> Option<uint> {
-        let id = self.get_byte(offsets::ROM_SIZE as u16);
+        let id = self.rom_byte(offsets::ROM_SIZE as u16);
 
         let nbanks =
             match id {
@@ -101,7 +108,7 @@ impl Rom {
     /// Return the number of RAM banks for this ROM along with the
     /// size of each bank in bytes.
     pub fn ram_banks(&self) -> Option<(uint, uint)> {
-        let id = self.get_byte(offsets::RAM_SIZE as u16);
+        let id = self.rom_byte(offsets::RAM_SIZE as u16);
 
         let (nbanks, bank_size_kb) =
             match id {
@@ -117,32 +124,37 @@ impl Rom {
         Some((nbanks, bank_size_kb * 1024))
     }
 
-    pub fn get_byte(&self, offset: u16) -> u8 {
+    pub fn rom_byte(&self, offset: u16) -> u8 {
         let off = offset as uint;
 
         if off < ROM_BANK_SIZE {
             self.data[off]
         } else {
-            self.data[self.high_bank + off]
+            self.data[self.high_bank as uint + off]
         }
     }
 
-    pub fn set_byte(&mut self, offset: u16, val: u8) {
-        if offset >= 0x2000 && offset < 0x8000 {
+    pub fn set_rom_byte(&mut self, offset: u16, val: u8) {
+        if val & 0x1f != val {
+            println!("would have crashed: {:04x} {:02x}", offset, val);
+        }
+
+        if offset >= 0x2000 && offset < 0x4000 {
             // Select a new rom bank
             self.high_bank = ROM_BANK_SIZE *
-                match val {
+                match val & 0x1f {
                     /// We can't select bank 0, it defaults to 1
                     0 => 0,
                     n => (n - 1) as uint,
                 };
         } else {
-            println!("Unhandled ROM write: {:04x} {:02x}", offset, val);
+            debug!("Unhandled ROM write: {:04x} {:02x}", offset, val);
         }
     }
+
 }
 
-impl Show for Rom {
+impl Show for Cartridge {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         let name = match self.name() {
             Some(s) => s,
