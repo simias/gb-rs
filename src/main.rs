@@ -35,18 +35,18 @@ fn main() {
 
     let romfile = &argv[1];
 
-    let cartridge = match cartridge::Cartridge::from_file(&Path::new(romfile)) {
+    let cart = match cartridge::Cartridge::from_file(&Path::new(romfile)) {
         Ok(r)  => r,
         Err(e) => panic!("Failed to load ROM: {}", e),
     };
 
-    println!("Loaded ROM {}", cartridge);
+    println!("Loaded ROM {}", cart);
 
     let gpu = gpu::Gpu::new(&mut display);
 
     let mut controller = ui::sdl2::Controller::new();
 
-    let inter = io::Interconnect::new(cartridge, gpu, &mut controller);
+    let inter = io::Interconnect::new(cart, gpu, &mut controller);
 
     let mut cpu = cpu::Cpu::new(inter);
 

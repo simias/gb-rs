@@ -4,6 +4,8 @@
 use std::fmt::{Show, Formatter, Error};
 use std::io::{File, Reader, IoResult};
 
+mod models;
+
 /// Common state for all cartridge types
 pub struct Cartridge {
     /// Cartridge ROM data
@@ -12,6 +14,8 @@ pub struct Cartridge {
     /// This value is added to ROM register addresses when they're in
     /// that range.
     high_bank: uint,
+    /// Trait object used to handle model specific functions
+    model:     &'static (models::Model + 'static),
 }
 
 impl Cartridge {
@@ -24,7 +28,11 @@ impl Cartridge {
         // There must always be at least two ROM banks
         let data = try!(source.read_exact(2 * ROM_BANK_SIZE));
 
-        let mut cartridge = Cartridge { data: data, high_bank: 0 };
+        let mut cartridge = Cartridge {
+            data:      data,
+            high_bank: 0,
+            model:     &models::MBC1,
+        };
 
         let nbanks = match cartridge.rom_banks() {
             Some(n) => n,
@@ -135,23 +143,13 @@ impl Cartridge {
     }
 
     pub fn set_rom_byte(&mut self, offset: u16, val: u8) {
-        if val & 0x1f != val {
-            println!("would have crashed: {:04x} {:02x}", offset, val);
-        }
-
-        if offset >= 0x2000 && offset < 0x4000 {
-            // Select a new rom bank
-            self.high_bank = ROM_BANK_SIZE *
-                match val & 0x1f {
-                    /// We can't select bank 0, it defaults to 1
-                    0 => 0,
-                    n => (n - 1) as uint,
-                };
-        } else {
-            debug!("Unhandled ROM write: {:04x} {:02x}", offset, val);
-        }
+        // Let specialized cartridge type handle that
+        self.model.write(self, offset, val)
     }
 
+    fn set_high_bank(&mut self, hb: uint) {
+        self.high_bank = hb
+    }
 }
 
 impl Show for Cartridge {
@@ -172,8 +170,11 @@ impl Show for Cartridge {
         };
 
         try!(write!(f,
-                    "'{}' (ROM banks: {}, RAM banks: {}, RAM bank size: {}KB)",
-                    name, rombanks, rambanks, rambanksize));
+                    "'{}' (Model: {}, \
+                           ROM banks: {}, \
+                           RAM banks: {}, \
+                           RAM bank size: {}KB)",
+                    name, self.model.name(), rombanks, rambanks, rambanksize));
 
         Ok(())
     }
