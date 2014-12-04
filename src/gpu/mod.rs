@@ -257,8 +257,10 @@ impl<'a> Gpu<'a> {
         self.bg_enabled      = lcdc & 0x01 != 0;
 
         if !self.enabled {
-            self.line = 0;
-            self.col  = 0;
+            // Put ourselves at the last pixel so that we'll start
+            // back at the first pixel when we're re-enabled.
+            self.line = timings::VTOTAL;
+            self.col  = timings::HTOTAL;
         }
 
         if new_sprite_size != self.sprite_size {
