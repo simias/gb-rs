@@ -9,18 +9,20 @@ mod models;
 /// Common state for all cartridge types
 pub struct Cartridge {
     /// Cartridge ROM data
-    data:      Vec<u8>,
+    data:       Vec<u8>,
+    /// Current number of the rom bank mapped at [0x4000, 0x7fff]
+    rom_bank:   u8,
     /// Current bank offset for the bank mapped at [0x4000, 0x7fff].
     /// This value is added to ROM register addresses when they're in
     /// that range.
-    high_bank: uint,
-    /// Trait object used to handle model specific functions
-    model:     &'static (models::Model + 'static),
+    rom_offset: uint,
+    /// struct used to handle model specific functions
+    model:      models::Model,
 }
 
 impl Cartridge {
     pub fn reset(&mut self) {
-        self.high_bank = 0;
+        self.rom_offset = 0;
     }
 
     /// Load a Cartridge from a `Reader`
@@ -28,10 +30,14 @@ impl Cartridge {
         // There must always be at least two ROM banks
         let data = try!(source.read_exact(2 * ROM_BANK_SIZE));
 
+        let model = models::from_id(data[offsets::TYPE]);
+
         let mut cartridge = Cartridge {
-            data:      data,
-            high_bank: 0,
-            model:     &models::MBC1,
+            data:       data,
+            // Default to bank 1 for bankable region
+            rom_bank:   1,
+            rom_offset: 0,
+            model:      model,
         };
 
         let nbanks = match cartridge.rom_banks() {
@@ -138,17 +144,33 @@ impl Cartridge {
         if off < ROM_BANK_SIZE {
             self.data[off]
         } else {
-            self.data[self.high_bank as uint + off]
+            self.data[self.rom_offset as uint + off]
         }
+    }
+
+    // Retrieve current ROM bank number for the bankable range at
+    // [0x4000, 0x7fff]
+    pub fn rom_bank(&self) -> u8 {
+        self.rom_bank
+    }
+
+    // Set new ROM bank number for the bankable range at
+    // [0x4000, 0x7fff]
+    pub fn set_rom_bank(&mut self, bank: u8) {
+        self.rom_bank = bank;
+
+        // Recompute offset value to avoid doing it at each ROM read.
+        self.rom_offset = ROM_BANK_SIZE *
+            match self.rom_bank {
+                /// We can't select bank 0, it defaults to 1
+                0 => 0,
+                n => (n - 1) as uint,
+            };
     }
 
     pub fn set_rom_byte(&mut self, offset: u16, val: u8) {
         // Let specialized cartridge type handle that
-        self.model.write(self, offset, val)
-    }
-
-    fn set_high_bank(&mut self, hb: uint) {
-        self.high_bank = hb
+        (self.model.write)(self, offset, val)
     }
 }
 
@@ -174,7 +196,7 @@ impl Show for Cartridge {
                            ROM banks: {}, \
                            RAM banks: {}, \
                            RAM bank size: {}KB)",
-                    name, self.model.name(), rombanks, rambanks, rambanksize));
+                    name, self.model.name, rombanks, rambanks, rambanksize));
 
         Ok(())
     }
@@ -188,6 +210,8 @@ mod offsets {
 
     /// Title. Upper case ASCII 16bytes long, padded with 0s if shorter
     pub const TITLE:    uint = 0x134;
+    /// Cartridge type
+    pub const TYPE:     uint = 0x147;
     pub const ROM_SIZE: uint = 0x148;
     pub const RAM_SIZE: uint = 0x149;
 }

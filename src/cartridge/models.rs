@@ -1,38 +1,58 @@
 //! Cartridge model specific emulation
 
 use super::Cartridge;
-use super::ROM_BANK_SIZE;
 
-/// Trait interface to model-specific operations
-pub trait Model {
-    /// Return string identifier
-    fn name(&self) -> &'static str;
+/// Interface to model-specific operations
+pub struct Model {
+    /// String identifier
+    pub name: &'static str,
     /// Handle ROM write
-    fn write(&self, cart: &mut Cartridge, addr: u16, val: u8);
+    pub write: fn(cart: &mut Cartridge, addr: u16, val: u8),
 }
 
-struct Mbc1;
+mod mbc0 {
+    use super::Model;
+    use cartridge::Cartridge;
 
-impl Model for Mbc1 {
-    fn name(&self) -> &'static str {
-        "MBC1"
+    fn write(_: &mut Cartridge, addr: u16, val: u8) {
+        debug!("Unhandled ROM write: {:04x} {:02x}", addr, val);
     }
 
-    fn write(&self, cart: &mut Cartridge, addr: u16, val: u8) {
-        if addr >= 0x2000 && addr < 0x4000 {
-            // Select a new rom bank
-            let high_bank_offset = ROM_BANK_SIZE *
-                match val & 0x1f {
-                    /// We can't select bank 0, it defaults to 1
-                    0 => 0,
-                    n => (n - 1) as uint,
-                };
+    pub static MODEL: Model = Model { name: "MBC0", write: write };
+}
 
-            cart.set_high_bank(high_bank_offset);
+mod mbc1 {
+    use super::Model;
+    use cartridge::Cartridge;
+
+    fn write(cart: &mut Cartridge, addr: u16, val: u8) {
+        if addr >= 0x2000 && addr < 0x4000 {
+            // Select a new ROM bank, bits [4:0]
+            let cur_bank = cart.rom_bank() & !0x1f;
+
+            cart.set_rom_bank(cur_bank | (val & 0x1f));
+        } else if addr >= 0x4000 && addr < 0x6000 {
+            // Select a new ROM bank, bits [6:5]
+            let cur_bank = cart.rom_bank() & !0x60;
+
+            cart.set_rom_bank(cur_bank | ((val << 5) & 0x60));
+        } else if addr >= 0x6000 && addr < 0x8000 {
+            // Switch RAM/ROM split mode
+            if val & 1 != 0 {
+                panic!("Unsupported MBC1 mode");
+            }
         } else {
             debug!("Unhandled ROM write: {:04x} {:02x}", addr, val);
         }
     }
+
+    pub static MODEL: Model = Model { name: "MBC1", write: write };
 }
 
-pub static MBC1: Mbc1 = Mbc1;
+pub fn from_id(id: u8) -> Model {
+    match id {
+        0     => mbc0::MODEL,
+        1...3 => mbc1::MODEL,
+        _     => panic!("Unknown cartridge model {:02x}", id),
+    }
+}
