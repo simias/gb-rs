@@ -32,4 +32,4 @@ impl Ram {
 }
 
 /// Default value of each RAM Cell on reset
-const RAM_DEFAULT: u8 = 0xca;
+const RAM_DEFAULT: u8 = 0x0;

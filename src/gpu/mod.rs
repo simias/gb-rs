@@ -120,7 +120,7 @@ impl<'a> Gpu<'a> {
         Gpu { line:                   0,
               col:                    0,
               oam:                    [Sprite::new(), ..0xa0],
-              vram:                   [0xca, ..0x2000],
+              vram:                   [0, ..0x2000],
               display:                display,
               enabled:                true,
               window_tile_map:        TileMap::Low,
@@ -153,7 +153,7 @@ impl<'a> Gpu<'a> {
         self.line                   = 0;
         self.col                    = 0;
         self.oam                    = [Sprite::new(), ..0xa0];
-        self.vram                   = [0xca, ..0x2000];
+        self.vram                   = [0, ..0x2000];
         self.enabled                = true;
         self.window_tile_map        = TileMap::Low;
         self.window_enabled         = false;
