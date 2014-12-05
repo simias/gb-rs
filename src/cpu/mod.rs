@@ -18,6 +18,8 @@ pub struct Cpu<'a> {
     flags:               Flags,
     /// Interrupt enabled flag
     iten:                bool,
+    /// True if interrupts should be enabled after next instruction
+    iten_enable_next:    bool,
     /// CPU halted flag
     halted:              bool,
     /// Interconnect to access external ressources (RAM, ROM, peripherals...)
@@ -85,9 +87,10 @@ impl<'a> Cpu<'a> {
                            h: false,
                            c: false,
             },
-            inter:  inter,
-            iten:   true,
-            halted: false,
+            inter:            inter,
+            iten:             true,
+            iten_enable_next: true,
+            halted:           false,
         };
 
         cpu.reset();
@@ -99,8 +102,9 @@ impl<'a> Cpu<'a> {
     pub fn reset(&mut self) {
         self.inter.reset();
 
-        self.iten = true;
-        self.halted = false;
+        self.iten             = true;
+        self.iten_enable_next = true;
+        self.halted           = false;
 
         self.instruction_delay = 0;
 
@@ -147,6 +151,10 @@ impl<'a> Cpu<'a> {
                 // `iten` is set to false in `self.interrupt`
                 return;
             }
+        } else {
+            // If an interrupt enable is pending we update the iten
+            // flag
+            self.iten = self.iten_enable_next;
         }
 
         if self.halted {
@@ -172,7 +180,7 @@ impl<'a> Cpu<'a> {
         // If the CPU was halted it's time to wake it up.
         self.halted = false;
         // Interrupt are disabled when entering an interrupt handler.
-        self.iten   = false;
+        self.disable_interrupts();
 
         // Switching context takes 32 cycles
         self.instruction_delay = 32;
@@ -461,14 +469,22 @@ impl<'a> Cpu<'a> {
         self.flags.n = s;
     }
 
-    /// Disable Interrupts
+    /// Disable Interrupts. Takes effect immediately and cancels any
+    /// pending interrupt enable request.
     fn disable_interrupts(&mut self) {
-        self.iten = false;
+        self.iten             = false;
+        self.iten_enable_next = false;
     }
 
-    /// Enable Interrupts
+    /// Enable Interrupts immediately
     fn enable_interrupts(&mut self) {
-        self.iten = true;
+        self.iten             = true;
+        self.iten_enable_next = true;
+    }
+
+    /// Enable Interrupts after the next instruction.
+    fn enable_interrupts_next(&mut self) {
+        self.iten_enable_next = true;
     }
 
     /// Halt and wait for interrupts

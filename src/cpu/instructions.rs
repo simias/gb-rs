@@ -2769,13 +2769,8 @@ fn di(cpu: &mut Cpu) {
 
 /// Enable interrupts
 fn ei(cpu: &mut Cpu) {
-    // This is actually not accurate: the interrupt should only be
-    // re-enabled at the beginning of the next instruction. This
-    // means that on the gameboy *no* interrupt can occur if
-    // interrupts are disabled and the CPU executes "EI; DI;" since
-    // the DI will disable interrupts before the EI has had the time
-    // to re-enable them.
-    cpu.enable_interrupts();
+    // Enable interrupts after the next instruction
+    cpu.enable_interrupts_next();
 }
 
 /// Halt and wait for interrupt
