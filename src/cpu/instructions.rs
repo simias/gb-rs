@@ -422,39 +422,49 @@ fn cpl(cpu: &mut Cpu) {
 }
 
 /// Decimal adjust `A` for BCD operations.
-///
-/// I'm not sure my implementation is completely correct but it seems
-/// to work properly so far. In particular I have no idea how this
-/// instruction behaves for nonsensical input values (states that
-/// cannot be reached with actual valid BCD addition/substraction)
 fn daa(cpu: &mut Cpu) {
-    let mut a = cpu.a();
+    let a          = cpu.a();
+    let mut adjust = 0;
 
-    if cpu.substract() {
-        if a & 0xf > 9 || cpu.halfcarry() {
-            // Low nibble underflowed during substraction
-            a -= 6;
-        }
-        if a & 0xf0 > 0x90 || cpu.carry() {
-            // High nibble underflowed during substraction
-            a -= 0x60;
-            cpu.set_carry(true);
-        }
-    } else {
-        if a & 0xf > 9 || cpu.halfcarry() {
-            // Low nibble overflowed during addition
-            a += 6;
-        }
-
-        if a & 0xf0 > 0x90 || cpu.carry() {
-            // High nibble overflowed during addition
-            a += 0x60;
-            cpu.set_carry(true);
-        }
+    // See if we had a carry/borrow for the low nibble in the last
+    // operation
+    if cpu.halfcarry() {
+        // Yes, we have to adjust it.
+        adjust |= 0x06;
     }
 
-    cpu.set_a(a);
-    cpu.set_zero(a == 0);
+    // See if we had a carry/borrow for the high nibble in the last
+    // operation
+    if cpu.carry() {
+        // Yes, we have to adjust it.
+        adjust |= 0x60;
+    }
+
+    let res =
+        if cpu.substract() {
+            // If the operation was a substraction we're done since we
+            // can never end up in the A-F range by substracting
+            // without generating a (half)carry.
+            a - adjust
+        } else {
+            // Additions are a bit more tricky because we might have
+            // to adjust even if we haven't overflowed (and no carry
+            // is present). For instance: 0x8 + 0x4 -> 0xc.
+	    if a & 0x0F > 0x09 {
+                adjust |= 0x06;
+            }
+
+	    if a > 0x99 {
+                adjust |= 0x60;
+            }
+
+	    a + adjust
+        };
+
+    cpu.set_a(res);
+
+    cpu.set_zero(res == 0);
+    cpu.set_carry(adjust & 0x60 != 0);
     cpu.set_halfcarry(false);
 }
 
