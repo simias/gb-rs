@@ -143,7 +143,7 @@ impl<'a> Cpu<'a> {
         }
 
         if self.iten {
-            if let Some(it) = self.inter.next_interrupt() {
+            if let Some(it) = self.inter.next_interrupt_ack() {
                 // We have a pending interrupt!
                 self.interrupt(it);
                 // Wait until the context switch delay is over. We're
@@ -158,8 +158,15 @@ impl<'a> Cpu<'a> {
         }
 
         if self.halted {
-            // CPU is halted, wait for interrupt
-            return;
+            // Check if we have a pending interrupt because even if
+            // `iten` is false HALT returns when an IT is triggered
+            // (but the IT handler doesn't run)
+            if !self.iten && self.inter.next_interrupt().is_some() {
+                self.halted = false;
+            } else {
+                // Wait for interrupt
+                return;
+            }
         }
 
         // Now we fetch the next instruction
@@ -489,10 +496,6 @@ impl<'a> Cpu<'a> {
 
     /// Halt and wait for interrupts
     fn halt(&mut self) {
-        if !self.iten {
-            println!("Halt while interrupts are disabled!");
-        }
-
         self.halted = true;
     }
 

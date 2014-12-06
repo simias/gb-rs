@@ -2773,7 +2773,8 @@ fn ei(cpu: &mut Cpu) {
     cpu.enable_interrupts_next();
 }
 
-/// Halt and wait for interrupt
+/// Halt and wait for interrupt. Interrupt will wake us up even if
+/// they are disabled.
 fn halt(cpu: &mut Cpu) {
     cpu.halt();
 }

@@ -188,9 +188,9 @@ impl<'a> Interconnect<'a> {
         debug!("Write to unmapped memory {:04x}: {:02x}", addr, val);
     }
 
-    /// Return the highest priority `Interrupt` (after acknowledging it)
-    /// currently triggered. If no interrupt is pending return `None`.
-    pub fn next_interrupt(&mut self) -> Option<Interrupt> {
+    /// Return the highest priority active interrupt after
+    /// acknowledging it. If no interrupt is pending return `None`.
+    pub fn next_interrupt_ack(&mut self) -> Option<Interrupt> {
         if self.it_enabled.vblank && self.gpu.it_vblank() {
             self.gpu.ack_it_vblank();
             Some(Interrupt::VBlank)
@@ -199,6 +199,20 @@ impl<'a> Interconnect<'a> {
             Some(Interrupt::Lcdc)
         } else if self.it_enabled.timer && self.timer.interrupt() {
             self.timer.ack_interrupt();
+            Some(Interrupt::Timer)
+        } else {
+            None
+        }
+    }
+
+    /// Return the highest priority active Interrupt without
+    /// acknowledging it. If no interrupt is pending return `None`.
+    pub fn next_interrupt(&mut self) -> Option<Interrupt> {
+        if self.it_enabled.vblank && self.gpu.it_vblank() {
+            Some(Interrupt::VBlank)
+        } else if self.it_enabled.lcdc && self.gpu.it_lcd() {
+            Some(Interrupt::Lcdc)
+        } else if self.it_enabled.timer && self.timer.interrupt() {
             Some(Interrupt::Timer)
         } else {
             None
@@ -281,8 +295,8 @@ impl<'a> Interconnect<'a> {
             io_map::IF => {
                 return Interrupts {
                     vblank: self.gpu.it_vblank(),
-                    lcdc:   false,
-                    timer:  false,
+                    lcdc:   self.gpu.it_lcd(),
+                    timer:  self.timer.interrupt(),
                     serial: false,
                     button: false,
                 }.as_register();
