@@ -129,6 +129,11 @@ impl Timer {
     pub fn ack_interrupt(&mut self) {
         self.interrupt = false;
     }
+
+    /// Force interrupt state
+    pub fn force_interrupt(&mut self, set: bool) {
+        self.interrupt = set;
+    }
 }
 
 /// Possible divider values usable as timer clock source.

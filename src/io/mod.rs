@@ -354,8 +354,11 @@ impl<'a> Interconnect<'a> {
             io_map::IF => {
                 let f = Interrupts::from_register(val);
 
+                // Explicit writes to the Interrupt Flag register
+                // force the interrupt status
                 self.gpu.force_it_vblank(f.vblank);
                 self.gpu.force_it_lcd(f.lcdc);
+                self.timer.force_interrupt(f.timer);
             }
             io_map::LCD_STAT => {
                 return self.gpu.set_stat(val);
