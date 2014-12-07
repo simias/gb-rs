@@ -103,6 +103,9 @@ going to list the errors I've found here for now:
   `HALT`. Be careful that the instruction following an HALT is glitchy
   but that's well documented.
 
+* `ADD SP,N` (opcode 0xe8) and `LDHL SP,N` (opcode 0xf8): the values
+  of the carry and halfcarry are computed on the low 8bits.
+
 * Instruction timings: The GameBoy CPU manual gets all the timings of
   conditional branches wrong: it doesn't say that the number of cycles
   taken by the instruction to execute depends on whether or not the

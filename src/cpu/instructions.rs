@@ -856,8 +856,10 @@ fn ld_hl_sp_sn(cpu: &mut Cpu) {
     let r = sp + nn;
 
     cpu.set_substract(false);
-    cpu.set_carry(r & 0x10000 != 0);
-    cpu.set_halfcarry((sp ^ nn ^ r) & 0x1000 != 0);
+    cpu.set_carry((sp ^ nn ^ r) & 0x100 != 0);
+    cpu.set_halfcarry((sp ^ nn ^ r) & 0x10 != 0);
+    cpu.set_zero(false);
+
     cpu.set_hl(r as u16);
 }
 
@@ -2379,13 +2381,13 @@ fn add_sp_sn(cpu: &mut Cpu) {
 
     let r = sp + nn;
 
-    cpu.set_substract(false);
-    cpu.set_carry(r & 0x10000 != 0);
-    cpu.set_halfcarry((sp ^ nn ^ r) & 0x1000 != 0);
+    // Carry and halfcarry are for the low byte
+    cpu.set_carry((sp ^ nn ^ r) & 0x100 != 0);
+    cpu.set_halfcarry((sp ^ nn ^ r) & 0x10 != 0);
     cpu.set_sp(r as u16);
 
-    // pastraiser's page say that this 16bit add clears `Z` but other
-    // sources disagree.
+    cpu.set_substract(false);
+    cpu.set_zero(false);
 }
 
 /// AND `A` with `A`
