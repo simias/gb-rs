@@ -100,11 +100,17 @@ going to list the errors I've found here for now:
   instruction) the CPU will still be awoken by any interrupt enabled
   in the `IE` register, however the interrupt handler will *not* be
   run and the control will be given back to the code that called the
-  `HALT`. Be careful that the instruction following an HALT is glitchy
-  but that's well documented.
+  `HALT`. Be careful that the instruction following an `HALT` is
+  glitchy but that's well documented.
 
 * `ADD SP,N` (opcode 0xe8) and `LDHL SP,N` (opcode 0xf8): the values
   of the carry and halfcarry are computed on the low 8bits.
+
+* `RLCA`, `RLA`, `RRCA`, `RRA` instructions: the flags are described
+   wrong in the CPU manual: after the execution `C` contains the
+   rotated bit while `N`, `H` and `Z` are always 0. The equivalent
+   instructions in the extended `CB` opcode space however set `Z` if
+   the result is 0 and that's correctly documented.
 
 * Instruction timings: The GameBoy CPU manual gets all the timings of
   conditional branches wrong: it doesn't say that the number of cycles

@@ -358,19 +358,10 @@ fn rlca(cpu: &mut Cpu) {
 
     cpu.set_a((a << 1) | c);
 
-    // Not sure about whether or not to set the Z flag and looking at
-    // other emulators I'm not the only one.
-    //
-    // The Z80 doc says Z is untouched, the unofficial "Game Boy CPU
-    // manual" says it's set if the result is 0, unset otherwise.
-    //
-    // http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html on
-    // the other hand says it's set to 0 along with N and H.
-    //
-    // VisualBoyAdvance follows the Z80 doc and doesn't touch any flag
-    // except for C, I'm going to assume they know what they're doing
-    // and do the same.
     cpu.set_carry(c != 0);
+    cpu.set_zero(false);
+    cpu.set_halfcarry(false);
+    cpu.set_substract(false);
 }
 
 /// Rotate `A` left through carry
@@ -382,8 +373,10 @@ fn rla(cpu: &mut Cpu) {
 
     cpu.set_a((a << 1) | oldcarry);
 
-    // Same remark as RLCA regarding other flags
     cpu.set_carry(newcarry);
+    cpu.set_zero(false);
+    cpu.set_halfcarry(false);
+    cpu.set_substract(false);
 }
 
 /// Rotate `A` right
@@ -394,8 +387,11 @@ fn rrca(cpu: &mut Cpu) {
 
     cpu.set_a((a >> 1) | (c << 7));
 
-    // Same remark as RLCA regarding other flags
+
     cpu.set_carry(c != 0);
+    cpu.set_zero(false);
+    cpu.set_halfcarry(false);
+    cpu.set_substract(false);
 }
 
 /// Rotate `A` right through carry
@@ -407,8 +403,10 @@ fn rra(cpu: &mut Cpu) {
 
     cpu.set_a((a >> 1) | (oldcarry << 7));
 
-    // Same remark as RLCA regarding other flags
     cpu.set_carry(newcarry);
+    cpu.set_zero(false);
+    cpu.set_halfcarry(false);
+    cpu.set_substract(false);
 }
 
 /// Complement `A`
