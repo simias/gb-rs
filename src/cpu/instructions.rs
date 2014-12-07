@@ -822,7 +822,7 @@ fn ld_mnn_sp(cpu: &mut Cpu) {
     let n = next_word(cpu);
 
     cpu.store_byte(n, sp as u8);
-    cpu.store_byte(n, (sp >> 8) as u8);
+    cpu.store_byte(n + 1, (sp >> 8) as u8);
 }
 
 /// Load 16bits immediate value into `BC`
