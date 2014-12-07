@@ -251,7 +251,7 @@ pub static OPCODES: [(u32, fn (&mut Cpu), &'static str), ..0x100] = [
     (2, ret_nz,     "RET NZ"),
     (3, pop_bc,     "POP BC"),
     (3, jp_nz_nn,   "JP NZ, NN"),
-    (3, jp_nn,      "JP NN"),
+    (4, jp_nn,      "JP NN"),
     (3, call_nz_nn, "CALL NZ, NN"),
     (4, push_bc,    "PUSH BC"),
     (2, add_a_n,    "ADD A, N"),
@@ -307,9 +307,9 @@ pub static OPCODES: [(u32, fn (&mut Cpu), &'static str), ..0x100] = [
     (4, push_af,    "PUSH AF"),
     (2, or_a_n,     "OR A, N"),
     (4, rst_30,     "RST 30"),
-    (3, ld_hl_sp_sn, "LD HL, SP, SN"),
+    (3, ld_hl_sp_sn,"LD HL, SP, SN"),
     (2, ld_sp_hl,   "LD SP, HL"),
-    (2, ld_a_mnn,   "LD A, [NN]"),
+    (4, ld_a_mnn,   "LD A, [NN]"),
     (1, ei,         "EI"),
     (1, undefined,  "UNDEFINED"),
     (1, undefined,  "UNDEFINED"),
@@ -1162,6 +1162,7 @@ fn jp_nz_nn(cpu: &mut Cpu) {
 
     if !cpu.zero() {
         cpu.set_pc(addr);
+        cpu.additional_delay(1);
     }
 }
 
@@ -1171,6 +1172,7 @@ fn jp_z_nn(cpu: &mut Cpu) {
 
     if cpu.zero() {
         cpu.set_pc(addr);
+        cpu.additional_delay(1);
     }
 }
 
@@ -1180,6 +1182,7 @@ fn jp_nc_nn(cpu: &mut Cpu) {
 
     if !cpu.carry() {
         cpu.set_pc(addr);
+        cpu.additional_delay(1);
     }
 }
 
@@ -1189,6 +1192,7 @@ fn jp_c_nn(cpu: &mut Cpu) {
 
     if cpu.carry() {
         cpu.set_pc(addr);
+        cpu.additional_delay(1);
     }
 }
 
@@ -2884,7 +2888,7 @@ mod bitops {
         (2, bit_e_0,    "BIT E, 0"),
         (2, bit_h_0,    "BIT H, 0"),
         (2, bit_l_0,    "BIT L, 0"),
-        (4, bit_mhl_0,  "BIT [HL], 0"),
+        (3, bit_mhl_0,  "BIT [HL], 0"),
         (2, bit_a_0,    "BIT A, 0"),
         (2, bit_b_1,    "BIT B, 1"),
         (2, bit_c_1,    "BIT C, 1"),
@@ -2892,7 +2896,7 @@ mod bitops {
         (2, bit_e_1,    "BIT E, 1"),
         (2, bit_h_1,    "BIT H, 1"),
         (2, bit_l_1,    "BIT L, 1"),
-        (4, bit_mhl_1,  "BIT [HL], 1"),
+        (3, bit_mhl_1,  "BIT [HL], 1"),
         (2, bit_a_1,    "BIT A, 1"),
         // Opcodes CB 5X
         (2, bit_b_2,    "BIT B, 2"),
@@ -2901,7 +2905,7 @@ mod bitops {
         (2, bit_e_2,    "BIT E, 2"),
         (2, bit_h_2,    "BIT H, 2"),
         (2, bit_l_2,    "BIT L, 2"),
-        (4, bit_mhl_2,  "BIT [HL], 2"),
+        (3, bit_mhl_2,  "BIT [HL], 2"),
         (2, bit_a_2,    "BIT A, 2"),
         (2, bit_b_3,    "BIT B, 3"),
         (2, bit_c_3,    "BIT C, 3"),
@@ -2909,7 +2913,7 @@ mod bitops {
         (2, bit_e_3,    "BIT E, 3"),
         (2, bit_h_3,    "BIT H, 3"),
         (2, bit_l_3,    "BIT L, 3"),
-        (4, bit_mhl_3,  "BIT [HL], 3"),
+        (3, bit_mhl_3,  "BIT [HL], 3"),
         (2, bit_a_3,    "BIT A, 3"),
         // Opcodes CB 6X
         (2, bit_b_4,    "BIT B, 4"),
@@ -2918,7 +2922,7 @@ mod bitops {
         (2, bit_e_4,    "BIT E, 4"),
         (2, bit_h_4,    "BIT H, 4"),
         (2, bit_l_4,    "BIT L, 4"),
-        (4, bit_mhl_4,  "BIT [HL], 4"),
+        (3, bit_mhl_4,  "BIT [HL], 4"),
         (2, bit_a_4,    "BIT A, 4"),
         (2, bit_b_5,    "BIT B, 5"),
         (2, bit_c_5,    "BIT C, 5"),
@@ -2926,7 +2930,7 @@ mod bitops {
         (2, bit_e_5,    "BIT E, 5"),
         (2, bit_h_5,    "BIT H, 5"),
         (2, bit_l_5,    "BIT L, 5"),
-        (4, bit_mhl_5,  "BIT [HL], 5"),
+        (3, bit_mhl_5,  "BIT [HL], 5"),
         (2, bit_a_5,    "BIT A, 5"),
         // Opcodes CB 7X
         (2, bit_b_6,    "BIT B, 6"),
@@ -2935,7 +2939,7 @@ mod bitops {
         (2, bit_e_6,    "BIT E, 6"),
         (2, bit_h_6,    "BIT H, 6"),
         (2, bit_l_6,    "BIT L, 6"),
-        (4, bit_mhl_6,  "BIT [HL], 6"),
+        (3, bit_mhl_6,  "BIT [HL], 6"),
         (2, bit_a_6,    "BIT A, 6"),
         (2, bit_b_7,    "BIT B, 7"),
         (2, bit_c_7,    "BIT C, 7"),
@@ -2943,7 +2947,7 @@ mod bitops {
         (2, bit_e_7,    "BIT E, 7"),
         (2, bit_h_7,    "BIT H, 7"),
         (2, bit_l_7,    "BIT L, 7"),
-        (4, bit_mhl_7,  "BIT [HL], 7"),
+        (3, bit_mhl_7,  "BIT [HL], 7"),
         (2, bit_a_7,    "BIT A, 7"),
         // Opcodes CB 8X
         (2, res_b_0,    "RES B, 0"),
