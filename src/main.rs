@@ -6,7 +6,7 @@
 //! Lots of info about GC quircks: http://www.devrs.com/gb/files/faqs.html
 //! Accuracy tests: http://tasvideos.org/EmulatorResources/GBAccuracyTests.html
 
-#![feature(if_let, phase)]
+#![feature(phase)]
 #![warn(missing_docs)]
 
 #[phase(plugin, link)]
