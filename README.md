@@ -70,3 +70,48 @@ Games that are broken somehow:
 * Super Mario 4: the world map works but the levels are messed up.
 * Bomberman: the intro and menu display correctly but the input
   doesn't seem to register.
+
+Ressources
+----------
+
+The game boy CPU manual: http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf
+
+Opcode map: http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
+
+Infos about many GB quircks: http://www.devrs.com/gb/files/faqs.html
+
+Some extremely useful accuracy tests made by Shay Green:
+http://tasvideos.org/EmulatorResources/GBAccuracyTests.html
+
+An introduction to GB emulation in Javascript:
+http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-The-CPU
+
+There are many small errors or discrepancies in the docs listed above,
+unfortunately I don't know if/how those docs are maintained so I'm
+going to list the errors I've found here for now:
+
+* `RLCA` instruction: various sources disagree on whether the `Z` flag
+  should be modified by the operation. After some research I'm pretty
+  sure it shouldn't be modified (the Z80 processor for instance does
+  not modify `Z`).
+
+* `HALT` instruction: when this instruction is executed while
+  interrupts are disabled in the CPU (for instance by a `DI`
+  instruction) the CPU will still be awoken by any interrupt enabled
+  in the `IE` register, however the interrupt handler will *not* be
+  run and the control will be given back to the code that called the
+  `HALT`. Be careful that the instruction following an HALT is glitchy
+  but that's well documented.
+
+* Instruction timings: The GameBoy CPU manual gets all the timings of
+  conditional branches wrong: it doesn't say that the number of cycles
+  taken by the instruction to execute depends on whether or not the
+  branch is taken. More generally, both this manual and the opcode map
+  linked above have some discrepencies when it comes to instruction
+  timings. In the end it's probably safer to use the timings directly
+  from the assembly source for the accuracy tests.
+
+* The actual state machine for the configurable GPU LCD interrupt
+  seems not well described anywhere. I tried to put a lot of comments
+  in my code to describe my approach, however I'm not sure whether
+  it's 100% accurate.
