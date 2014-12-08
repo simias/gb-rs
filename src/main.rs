@@ -24,7 +24,7 @@ mod ui;
 mod cartridge;
 
 fn main() {
-    let mut display = ui::sdl2::Display::new(2);
+    let mut display = ui::sdl2::Display::new(1);
 
     let argv = std::os::args();
 
@@ -70,9 +70,12 @@ fn main() {
 
     let tick = timer.periodic(batch_duration);
 
-    loop {
+    'main_loop: loop {
         for _ in range(0, GRANULARITY) {
-            cpu.step();
+            match cpu.step() {
+                ui::Event::PowerOff => break 'main_loop,
+                _ => ()
+            }
         }
         // Sleep until next batch cycle
         tick.recv();

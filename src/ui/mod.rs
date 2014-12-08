@@ -16,10 +16,19 @@ pub trait Display {
 
 /// GB controller
 pub trait Controller {
-    /// Sample the controller input and update internal state
-    fn update(&mut self);
+    /// Sample the controller input and update internal state.
+    fn update(&mut self) -> Event;
     /// Return the internal controller state.
     fn state(&self) -> Buttons;
+}
+
+/// Special events that need to be handled synchronously (instead of
+/// waiting for the GB program to come check the INPUT register)
+pub enum Event {
+    /// No event
+    None,
+    /// Shutdown the emulator
+    PowerOff,
 }
 
 /// Description of a button's state

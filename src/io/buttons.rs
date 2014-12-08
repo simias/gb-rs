@@ -30,12 +30,17 @@ impl<'a> Buttons<'a> {
         }
     }
 
-    pub fn step(&mut self) {
-        if self.next_update == 0 {
-            self.controller.update();
-        }
+    pub fn step(&mut self) -> ::ui::Event {
+        let r =
+            if self.next_update == 0 {
+                self.controller.update()
+            } else {
+                ::ui::Event::None
+            };
 
         self.next_update = (self.next_update + 1) % UPDATE_FREQ;
+
+        r
     }
 
     pub fn input(&self) -> u8 {

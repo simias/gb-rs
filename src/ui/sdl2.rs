@@ -3,10 +3,10 @@ use sdl2::render::Renderer;
 use sdl2::pixels::Color::RGB;
 use sdl2::rect::{Point, Rect};
 
-use sdl2::event::Event::{None, KeyDown, KeyUp};
+use sdl2::event::Event;
 use sdl2::keycode::KeyCode;
 
-use super::ButtonState;
+use super::{ButtonState};
 
 pub struct Display {
     renderer: Renderer,
@@ -107,19 +107,24 @@ impl Controller {
 }
 
 impl super::Controller for Controller {
-    fn update(&mut self) {
+    fn update(&mut self) -> super::Event {
+        let mut event = super::Event::None;
+
         loop {
             match ::sdl2::event::poll_event() {
-                None =>
+                Event::None =>
                     break,
-                KeyDown(_, _, key, _, _, _) => {
-                    self.update_key(key, ButtonState::Down);
-                },
-                KeyUp(_, _, key, _, _, _) =>
+                Event::KeyDown(_, _, KeyCode::Escape, _, _, _) =>
+                    event = super::Event::PowerOff,
+                Event::KeyDown(_, _, key, _, _, _) =>
+                    self.update_key(key, ButtonState::Down),
+                Event::KeyUp(_, _, key, _, _, _) =>
                     self.update_key(key, ButtonState::Up),
-                _ => (),
+                _ => ()
             }
         }
+
+        event
     }
 
     fn state(&self) -> super::Buttons {

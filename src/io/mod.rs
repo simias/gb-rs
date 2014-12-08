@@ -81,11 +81,12 @@ impl<'a> Interconnect<'a> {
         }
     }
 
-    pub fn step(&mut self) {
+    pub fn step(&mut self) -> ::ui::Event {
         self.gpu.step();
         self.dma_step();
         self.timer.step();
-        self.buttons.step();
+
+        self.buttons.step()
     }
 
     pub fn dma_step(&mut self) {
