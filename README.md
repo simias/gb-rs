@@ -42,6 +42,8 @@ The defaults are:
 | Left            | Left          |
 | Right           | Right         |
 
+The `Escape` key exits the emulator.
+
 Game Support
 ------------
 
@@ -57,12 +59,10 @@ Games that are playable:
 * Bubble Ghost
 * Castelian
 * Earthworm Jim
+* Super Mario Land
 
 Games that are broken somehow:
 
-* Super Mario Land: the game is playable for a while (a few levels)
-  but it'll always crash at some point due to a badly handled ROM
-  access.
 * Pokemon Blue: the world map seems accurate but all the models used
   in battles are completely broken.
 * Space Invaders: the menu works but the actual levels are completely
