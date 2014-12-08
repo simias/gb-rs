@@ -126,8 +126,6 @@ impl<'a> Cpu<'a> {
         self.set_substract(false);
         self.set_halfcarry(true);
         self.set_carry(true);
-
-        self.clear_flags();
     }
 
     /// Called at each tick of the system clock. Move the emulated
@@ -428,14 +426,6 @@ impl<'a> Cpu<'a> {
     /// Set value of the `L` register
     fn set_l(&mut self, v: u8) {
         self.regs.l = v;
-    }
-
-    /// Clear all flags
-    fn clear_flags(&mut self) {
-        self.flags.z = false;
-        self.flags.n = false;
-        self.flags.h = false;
-        self.flags.c = false;
     }
 
     /// Get value of 'Z' flag

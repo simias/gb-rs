@@ -2637,11 +2637,25 @@ fn or_a_n(cpu: &mut Cpu) {
     cpu.set_a(r);
 }
 
+/// xor two u8 together, update CPU flags and return the result
+fn xor(cpu: &mut Cpu, n: u8, m: u8) -> u8 {
+    let r = n ^ m;
+
+    cpu.set_carry(false);
+    cpu.set_halfcarry(false);
+    cpu.set_substract(false);
+    cpu.set_zero(r == 0);
+
+    r
+}
+
 /// XOR `A` with itself (set `A` to `0`)
 fn xor_a_a(cpu: &mut Cpu) {
     cpu.set_a(0);
 
-    cpu.clear_flags();
+    cpu.set_carry(false);
+    cpu.set_halfcarry(false);
+    cpu.set_substract(false);
     cpu.set_zero(true);
 }
 
@@ -2650,12 +2664,9 @@ fn xor_a_b(cpu: &mut Cpu) {
     let a = cpu.a();
     let b = cpu.b();
 
-    let r = a ^ b;
+    let r = xor(cpu, a, b);
 
     cpu.set_a(r);
-
-    cpu.clear_flags();
-    cpu.set_zero(r == 0);
 }
 
 /// XOR `C` into `A`
@@ -2663,12 +2674,9 @@ fn xor_a_c(cpu: &mut Cpu) {
     let a = cpu.a();
     let c = cpu.c();
 
-    let r = a ^ c;
+    let r = xor(cpu, a, c);
 
     cpu.set_a(r);
-
-    cpu.clear_flags();
-    cpu.set_zero(r == 0);
 }
 
 /// XOR `D` into `A`
@@ -2676,12 +2684,9 @@ fn xor_a_d(cpu: &mut Cpu) {
     let a = cpu.a();
     let d = cpu.d();
 
-    let r = a ^ d;
+    let r = xor(cpu, a, d);
 
     cpu.set_a(r);
-
-    cpu.clear_flags();
-    cpu.set_zero(r == 0);
 }
 
 /// XOR `E` into `A`
@@ -2689,12 +2694,9 @@ fn xor_a_e(cpu: &mut Cpu) {
     let a = cpu.a();
     let e = cpu.e();
 
-    let r = a ^ e;
+    let r = xor(cpu, a, e);
 
     cpu.set_a(r);
-
-    cpu.clear_flags();
-    cpu.set_zero(r == 0);
 }
 
 /// XOR `H` into `A`
@@ -2702,12 +2704,9 @@ fn xor_a_h(cpu: &mut Cpu) {
     let a = cpu.a();
     let h = cpu.h();
 
-    let r = a ^ h;
+    let r = xor(cpu, a, h);
 
     cpu.set_a(r);
-
-    cpu.clear_flags();
-    cpu.set_zero(r == 0);
 }
 
 /// XOR `L` into `A`
@@ -2715,12 +2714,9 @@ fn xor_a_l(cpu: &mut Cpu) {
     let a = cpu.a();
     let l = cpu.l();
 
-    let r = a ^ l;
+    let r = xor(cpu, a, l);
 
     cpu.set_a(r);
-
-    cpu.clear_flags();
-    cpu.set_zero(r == 0);
 }
 
 /// XOR `[HL]` into `A`
@@ -2730,12 +2726,9 @@ fn xor_a_mhl(cpu: &mut Cpu) {
     let hl = cpu.hl();
     let n  = cpu.fetch_byte(hl);
 
-    let r = a ^ n;
+    let r = xor(cpu, a, n);
 
     cpu.set_a(r);
-
-    cpu.clear_flags();
-    cpu.set_zero(r == 0);
 }
 
 /// XOR `N` with `A`
@@ -2743,12 +2736,9 @@ fn xor_a_n(cpu: &mut Cpu) {
     let a = cpu.a();
     let n = next_byte(cpu);
 
-    let r = a ^ n;
+    let r = xor(cpu, a, n);
 
     cpu.set_a(r);
-
-    cpu.clear_flags();
-    cpu.set_zero(r == 0);
 }
 
 /// OR `L` with `A`
