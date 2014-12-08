@@ -1,11 +1,12 @@
 //! Input/Output abstraction for memory, ROM and I/O mapped registers
 
 use gpu::Gpu;
-use ui::{Controller, ButtonState};
+use ui::Controller;
 use cartridge::Cartridge;
 
 pub mod ram;
 pub mod timer;
+pub mod buttons;
 
 /// Interconnect struct used by the CPU and GPU to access the ROM, RAM
 /// and registers
@@ -30,7 +31,7 @@ pub struct Interconnect<'a> {
     /// Current DMA index in OAM
     dma_idx:    u16,
     /// Controller interface
-    controller: &'a mut (Controller + 'a),
+    buttons:    buttons::Buttons<'a>,
 }
 
 impl<'a> Interconnect<'a> {
@@ -47,6 +48,8 @@ impl<'a> Interconnect<'a> {
 
         let it_enabled = Interrupts::from_register(0);
 
+        let buttons = buttons::Buttons::new(controller);
+
         Interconnect { cartridge:  cartridge,
                        iram:       iram,
                        zpage:      zpage,
@@ -56,7 +59,7 @@ impl<'a> Interconnect<'a> {
                        it_enabled: it_enabled,
                        dma_src:    0,
                        dma_idx:    map::range_size(map::OAM),
-                       controller: controller,
+                       buttons:    buttons,
         }
     }
 
@@ -82,6 +85,7 @@ impl<'a> Interconnect<'a> {
         self.gpu.step();
         self.dma_step();
         self.timer.step();
+        self.buttons.step();
     }
 
     pub fn dma_step(&mut self) {
@@ -218,59 +222,7 @@ impl<'a> Interconnect<'a> {
     fn io(&self, addr: u16) -> u8 {
         match addr {
             io_map::INPUT => {
-                let v = self.io[0];
-
-                let buttons = self.controller.state();
-
-                let mut r = 0;
-
-                if v & 0x10 == 0 {
-                    r |= match buttons.right {
-                        ButtonState::Up => 1,
-                        _               => 0,
-                    } << 0;
-
-                    r |= match buttons.left {
-                        ButtonState::Up => 1,
-                        _               => 0,
-                    } << 1;
-
-                    r |= match buttons.up {
-                        ButtonState::Up => 1,
-                        _               => 0,
-                    } << 2;
-
-
-                    r |= match buttons.down {
-                        ButtonState::Up => 1,
-                        _               => 0,
-                    } << 3;
-                }
-
-                if v & 0x20 == 0 {
-                    r |= match buttons.a {
-                        ButtonState::Up => 1,
-                        _               => 0,
-                    } << 0;
-
-                    r |= match buttons.b {
-                        ButtonState::Up => 1,
-                        _               => 0,
-                    } << 1;
-
-                    r |= match buttons.select {
-                        ButtonState::Up => 1,
-                        _               => 0,
-                    } << 2;
-
-
-                    r |= match buttons.start {
-                        ButtonState::Up => 1,
-                        _               => 0,
-                    } << 3;
-                }
-
-                return r;
+                return self.buttons.input();
             }
             io_map::DIV => {
                 return self.timer.div();
@@ -343,7 +295,7 @@ impl<'a> Interconnect<'a> {
 
         match addr {
             io_map::INPUT => {
-                self.controller.update();
+                self.buttons.set_input(val);
             }
             io_map::DIV => {
                 return self.timer.reset_div();

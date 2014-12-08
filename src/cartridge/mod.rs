@@ -70,19 +70,20 @@ impl Cartridge {
             None    => panic!("Can't determine RAM size"),
         };
 
+        // Allocate cartridge RAM
         cartridge.ram.grow(rambanks * banksize, 0);
 
         Ok(cartridge)
     }
 
-    /// Load the Cartridge from a file
+    /// Load the Cartridge from a file located at `path`
     pub fn from_file(path: &Path) -> IoResult<Cartridge> {
         let mut file_reader = try!(File::open(path));
 
         Cartridge::from_reader(&mut file_reader)
     }
 
-        /// Attempt to retreive the rom's name
+    /// Attempt to retreive the rom's name
     pub fn name(&self) -> Option<String> {
         let mut name = String::with_capacity(16);
 
@@ -192,7 +193,6 @@ impl Cartridge {
                 n => (n - 1) as uint,
             };
     }
-
 }
 
 impl Show for Cartridge {
