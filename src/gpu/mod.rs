@@ -218,7 +218,7 @@ impl<'a> Gpu<'a> {
     }
 
     /// Return current GPU mode
-    pub fn get_mode(&self) -> Mode {
+    pub fn mode(&self) -> Mode {
         if self.line < timings::VSYNC_ON {
             if self.col < timings::HACTIVE_ON {
                 Mode::Prelude
@@ -311,7 +311,7 @@ impl<'a> Gpu<'a> {
 
         // Apparently mode is 0 when disabled
         if self.enabled {
-            r |= self.get_mode() as u8;
+            r |= self.mode() as u8;
         }
 
         r
@@ -420,7 +420,7 @@ impl<'a> Gpu<'a> {
     }
 
     /// Get byte from VRAM
-    pub fn get_vram(&self, addr: u16) -> u8 {
+    pub fn vram(&self, addr: u16) -> u8 {
         self.vram[addr as uint]
     }
 
@@ -430,7 +430,7 @@ impl<'a> Gpu<'a> {
     }
 
     /// Get byte from OAM
-    pub fn get_oam(&self, addr: u16) -> u8 {
+    pub fn oam(&self, addr: u16) -> u8 {
         // Each sprite takes 4 byte in OAM
         let index     = (addr / 4) as uint;
         let attribute = addr % 4;
@@ -530,7 +530,7 @@ impl<'a> Gpu<'a> {
     /// Return the current level of the LCD interrupt (`true` if one
     /// of the interrupt conditions is met and is enabled).
     fn lcd_interrupt_level(&self) -> bool {
-        let mode = self.get_mode();
+        let mode = self.mode();
 
         (self.iten_lyc     && self.lyc == self.line) ||
             (self.iten_prelude && mode == Mode::Prelude) ||
@@ -584,7 +584,7 @@ impl<'a> Gpu<'a> {
 
     /// Get pixel in the window. Assumes (`x`, `y`) is inside the
     /// window.
-    fn get_window_pixel(&mut self, x: u8, y: u8) -> u8 {
+    fn window_pixel(&mut self, x: u8, y: u8) -> u8 {
         // Window X value is offset by 7 for some reason
         let px = x - self.wx + 7;
         let py = y - self.wy;
@@ -592,21 +592,21 @@ impl<'a> Gpu<'a> {
         let map = self.window_tile_map;
         let set = self.bg_win_tile_set;
 
-        self.get_pixel(px, py, map, set)
+        self.pixel(px, py, map, set)
     }
 
-    fn get_background_pixel(&mut self, x: u8, y: u8) -> u8 {
+    fn background_pixel(&mut self, x: u8, y: u8) -> u8 {
         let px = x + self.scx;
         let py = y + self.scy;
 
         let map = self.bg_tile_map;
         let set = self.bg_win_tile_set;
 
-        self.get_pixel(px, py, map, set)
+        self.pixel(px, py, map, set)
     }
 
     /// Get one pixel from either the window or the background.
-    fn get_pixel(&self, x: u8, y: u8, map: TileMap, set: TileSet) -> u8 {
+    fn pixel(&self, x: u8, y: u8, map: TileMap, set: TileSet) -> u8 {
         let tile_map_x = x / 8;
         let tile_map_y = y / 8;
         let tile_x     = x % 8;
@@ -619,7 +619,7 @@ impl<'a> Gpu<'a> {
         // set.
         let tile_index = self.tile_index(tile_map_x, tile_map_y, map);
 
-        let tile_pix_value = self.get_pix_value(tile_index, tile_x, tile_y, set);
+        let tile_pix_value = self.pix_value(tile_index, tile_x, tile_y, set);
 
         // Use tile_pix_value as index in the bgp
         palette_conversion(tile_pix_value, self.bgp)
@@ -639,7 +639,7 @@ impl<'a> Gpu<'a> {
 
     /// Get the value of pixel (`x`, `y`) in `tile`. Return a value
     /// between 0 and 3.
-    fn get_pix_value(&self, tile: u8, x: u8, y: u8, set: TileSet) -> u8 {
+    fn pix_value(&self, tile: u8, x: u8, y: u8, set: TileSet) -> u8 {
 
         if x >= 8 || y >= 16 {
             panic!("tile pos out of range ({}, {})", x, y);
@@ -730,9 +730,9 @@ impl<'a> Gpu<'a> {
         let bg_col =
             // Window is always on top of background
             if self.window_enabled && self.in_window(x, y) {
-                self.get_window_pixel(x, y)
+                self.window_pixel(x, y)
             } else if self.bg_enabled && self.bg_enabled {
-                self.get_background_pixel(x, y)
+                self.background_pixel(x, y)
             } else {
                 0
             };
@@ -790,10 +790,10 @@ impl<'a> Gpu<'a> {
                         false => sprite_x,
                     };
 
-                    let pix = self.get_pix_value(tile,
-                                                 sprite_x as u8,
-                                                 sprite_y as u8,
-                                                 TileSet::Set1);
+                    let pix = self.pix_value(tile,
+                                             sprite_x as u8,
+                                             sprite_y as u8,
+                                             TileSet::Set1);
 
                     if pix != 0 {
                         // Pixel is not transparent, compute the color
@@ -818,7 +818,7 @@ impl<'a> Gpu<'a> {
 
 impl<'a> Show for Gpu<'a> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        try!(write!(f, "Gpu at ({}, {}) [{}] ", self.col, self.line, self.get_mode()));
+        try!(write!(f, "Gpu at ({}, {}) [{}] ", self.col, self.line, self.mode()));
 
         Ok(())
     }

@@ -12,8 +12,6 @@ pub mod timer;
 pub struct Interconnect<'a> {
     /// Cartridge interface
     cartridge:  Cartridge,
-    /// Bankable RAM
-    ram:        ram::Ram,
     /// internal RAM
     iram:       ram::Ram,
     /// 0-page RAM
@@ -41,7 +39,6 @@ impl<'a> Interconnect<'a> {
                    gpu:        Gpu<'n>,
                    controller: &'n mut (Controller + 'n)) -> Interconnect<'n> {
 
-        let ram = ram::Ram::new(0x2000);
         let iram = ram::Ram::new(0x2000);
         let zpage = ram::Ram::new(0x7f);
         let io = [0, ..0x4c];
@@ -51,7 +48,6 @@ impl<'a> Interconnect<'a> {
         let it_enabled = Interrupts::from_register(0);
 
         Interconnect { cartridge:  cartridge,
-                       ram:        ram,
                        iram:       iram,
                        zpage:      zpage,
                        timer:      timer,
@@ -66,7 +62,6 @@ impl<'a> Interconnect<'a> {
 
     pub fn reset(&mut self) {
         self.cartridge.reset();
-        self.ram.reset();
         self.iram.reset();
         self.gpu.reset();
         self.zpage.reset();
@@ -97,7 +92,7 @@ impl<'a> Interconnect<'a> {
             return;
         }
 
-        let b = self.get_byte(self.dma_src);
+        let b = self.fetch_byte(self.dma_src);
         self.gpu.set_oam(self.dma_idx, b);
 
         self.dma_src += 1;
@@ -105,38 +100,38 @@ impl<'a> Interconnect<'a> {
     }
 
     /// Get byte from peripheral mapped at `addr`
-    pub fn get_byte(&self, addr: u16) -> u8 {
+    pub fn fetch_byte(&self, addr: u16) -> u8 {
 
         if let Some(off) = map::in_range(addr, map::ROM) {
             return self.cartridge.rom_byte(off);
         }
 
         if let Some(off) = map::in_range(addr, map::VRAM) {
-            return self.gpu.get_vram(off);
+            return self.gpu.vram(off);
         }
 
         if let Some(off) = map::in_range(addr, map::RAM_BANK) {
-            return self.ram.get_byte(off);
+            return self.cartridge.ram_byte(off);
         }
 
         if let Some(off) = map::in_range(addr, map::IRAM) {
-            return self.iram.get_byte(off);
+            return self.iram.byte(off);
         }
 
         if let Some(off) = map::in_range(addr, map::IRAM_ECHO) {
-            return self.iram.get_byte(off);
+            return self.iram.byte(off);
         }
 
         if let Some(off) = map::in_range(addr, map::OAM) {
-            return self.gpu.get_oam(off);
+            return self.gpu.oam(off);
         }
 
         if let Some(off) = map::in_range(addr, map::IO) {
-            return self.get_io(off);
+            return self.io(off);
         }
 
         if let Some(off) = map::in_range(addr, map::ZERO_PAGE) {
-            return self.zpage.get_byte(off);
+            return self.zpage.byte(off);
         }
 
         if addr == map::IEN {
@@ -148,7 +143,7 @@ impl<'a> Interconnect<'a> {
     }
 
     /// Store `val` into peripheral mapped at `addr`
-    pub fn set_byte(&mut self, addr: u16, val: u8) {
+    pub fn store_byte(&mut self, addr: u16, val: u8) {
         if let Some(off) = map::in_range(addr, map::ROM) {
             return self.cartridge.set_rom_byte(off, val);
         }
@@ -158,7 +153,7 @@ impl<'a> Interconnect<'a> {
         }
 
         if let Some(off) = map::in_range(addr, map::RAM_BANK) {
-            return self.ram.set_byte(off, val);
+            return self.cartridge.set_ram_byte(off, val);
         }
 
         if let Some(off) = map::in_range(addr, map::IRAM) {
@@ -220,7 +215,7 @@ impl<'a> Interconnect<'a> {
     }
 
     /// Retrieve value from IO port
-    fn get_io(&self, addr: u16) -> u8 {
+    fn io(&self, addr: u16) -> u8 {
         match addr {
             io_map::INPUT => {
                 let v = self.io[0];

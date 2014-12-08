@@ -22,7 +22,7 @@ impl Ram {
         }
     }
 
-    pub fn get_byte(&self, offset: u16) -> u8 {
+    pub fn byte(&self, offset: u16) -> u8 {
         self.data[offset as uint]
     }
 

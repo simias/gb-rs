@@ -207,12 +207,12 @@ impl<'a> Cpu<'a> {
 
     /// Fetch byte at `addr` from the interconnect
     fn fetch_byte(&self, addr: u16) -> u8 {
-        self.inter.get_byte(addr)
+        self.inter.fetch_byte(addr)
     }
 
     /// Store byte `val` at `addr` in the interconnect
     fn store_byte(&mut self, addr: u16, val: u8) {
-        self.inter.set_byte(addr, val)
+        self.inter.store_byte(addr, val)
     }
 
     /// Push one byte onto the stack and decrement the stack pointer

@@ -9,7 +9,9 @@ mod models;
 /// Common state for all cartridge types
 pub struct Cartridge {
     /// Cartridge ROM data
-    data:       Vec<u8>,
+    rom:       Vec<u8>,
+    /// Cartridge RAM data
+    ram:       Vec<u8>,
     /// Current number of the rom bank mapped at [0x4000, 0x7fff]
     rom_bank:   u8,
     /// Current bank offset for the bank mapped at [0x4000, 0x7fff].
@@ -28,39 +30,47 @@ impl Cartridge {
     /// Load a Cartridge from a `Reader`
     pub fn from_reader(source: &mut Reader) -> IoResult<Cartridge> {
         // There must always be at least two ROM banks
-        let data = try!(source.read_exact(2 * ROM_BANK_SIZE));
+        let rom = try!(source.read_exact(2 * ROM_BANK_SIZE));
 
-        let model = models::from_id(data[offsets::TYPE]);
+        let model = models::from_id(rom[offsets::TYPE]);
 
         let mut cartridge = Cartridge {
-            data:       data,
+            rom:        rom,
+            ram:        Vec::new(),
             // Default to bank 1 for bankable region
             rom_bank:   1,
             rom_offset: 0,
             model:      model,
         };
 
-        let nbanks = match cartridge.rom_banks() {
+        let rombanks = match cartridge.rom_banks() {
             Some(n) => n,
-            None    => panic!("Can't determine ROM bank number"),
+            None    => panic!("Can't determine ROM size"),
         };
 
         // Read the remaining roms banks
-        if nbanks > 2 {
-            let remb      = nbanks - 2;
+        if rombanks > 2 {
+            let remb      = rombanks - 2;
             let mut off   = 2    * ROM_BANK_SIZE;
             let mut remsz = remb * ROM_BANK_SIZE;
 
             // Reserve space for the remaining banks
-            cartridge.data.grow(remsz, 0);
+            cartridge.rom.grow(remsz, 0);
 
             while remsz > 0 {
-                let r = try!(source.read(cartridge.data.slice_from_mut(off)));
+                let r = try!(source.read(cartridge.rom.slice_from_mut(off)));
 
                 remsz -= r;
                 off   += r;
             }
         }
+
+        let (rambanks, banksize) = match cartridge.ram_banks() {
+            Some(v) => v,
+            None    => panic!("Can't determine RAM size"),
+        };
+
+        cartridge.ram.grow(rambanks * banksize, 0);
 
         Ok(cartridge)
     }
@@ -77,7 +87,7 @@ impl Cartridge {
         let mut name = String::with_capacity(16);
 
         for i in range(0, 16) {
-            let c = self.data[offsets::TITLE + i].to_ascii();
+            let c = self.rom[offsets::TITLE + i].to_ascii();
 
             // If the name is shorter than 16bytes it's padded with 0s
             if c == 0.to_ascii() {
@@ -142,9 +152,24 @@ impl Cartridge {
         let off = offset as uint;
 
         if off < ROM_BANK_SIZE {
-            self.data[off]
+            self.rom[off]
         } else {
-            self.data[self.rom_offset as uint + off]
+            self.rom[self.rom_offset as uint + off]
+        }
+    }
+
+    pub fn set_rom_byte(&mut self, offset: u16, val: u8) {
+        // Let specialized cartridge type handle that
+        (self.model.write)(self, offset, val)
+    }
+
+    pub fn ram_byte(&self, offset: u16) -> u8 {
+        *self.ram.get(offset as uint).unwrap_or(&0)
+    }
+
+    pub fn set_ram_byte(&mut self, offset: u16, val: u8) {
+        if let Some(b) = self.ram.get_mut(offset as uint) {
+            *b = val;
         }
     }
 
@@ -168,10 +193,6 @@ impl Cartridge {
             };
     }
 
-    pub fn set_rom_byte(&mut self, offset: u16, val: u8) {
-        // Let specialized cartridge type handle that
-        (self.model.write)(self, offset, val)
-    }
 }
 
 impl Show for Cartridge {
