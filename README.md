@@ -6,14 +6,16 @@ gb-rs
 
 Game Boy emulator written in rust. No unsafe code so far.
 
-It's still quite buggy but it can run a few games well enough to be playable.
+It's still quite buggy but it can run a few games well enough to be
+playable. The CPU passes all the instruction tests as well as the
+timing tests (see the "Ressources" section below for the links to the
+tests).
 
 Things that remain to be implemented:
-* Saving (right now you lose all progress everytime you restart the emulator)
+* Saving (in progress)
 * Sound
 * Serial link
 * Support for various types of cartridges
-* Bugfixes galore...
 * Maybe GameBoy Color support?
 
 The emulator is not optimized at all but thanks to the GB's measly
