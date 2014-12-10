@@ -34,16 +34,6 @@ impl Timer {
         }
     }
 
-    pub fn reset(&mut self) {
-        self.counter     = 0;
-        self.modulo      = 0;
-        self.enabled     = false;
-        self.divider     = Divider::Div1024;
-        self.clk         = 0;
-        self.counter_16k = 0;
-        self.interrupt   = false;
-    }
-
     pub fn step(&mut self) {
         self.clk         += 1;
         self.counter_16k += 1;

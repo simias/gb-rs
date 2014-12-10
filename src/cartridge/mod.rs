@@ -28,10 +28,6 @@ pub struct Cartridge {
 }
 
 impl Cartridge {
-    pub fn reset(&mut self) {
-        self.rom_offset = 0;
-    }
-
     /// Load a Cartridge ROM from `path`.
     pub fn from_path(rom_path: &Path) -> IoResult<Cartridge> {
         let mut source = try!(File::open(rom_path));

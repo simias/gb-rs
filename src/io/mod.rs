@@ -63,24 +63,6 @@ impl<'a> Interconnect<'a> {
         }
     }
 
-    pub fn reset(&mut self) {
-        self.cartridge.reset();
-        self.iram.reset();
-        self.gpu.reset();
-        self.zpage.reset();
-
-        self.timer.reset();
-
-        self.it_enabled = Interrupts::from_register(0);
-
-        self.dma_src = 0;
-        self.dma_idx = map::range_size(map::OAM);
-
-        for b in self.io.iter_mut() {
-            *b = 0;
-        }
-    }
-
     pub fn step(&mut self) -> ::ui::Event {
         self.gpu.step();
         self.dma_step();

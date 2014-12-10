@@ -148,36 +148,6 @@ impl<'a> Gpu<'a> {
         }
     }
 
-    /// Reset the GPU state to power up values
-    pub fn reset(&mut self) {
-        self.line                   = 0;
-        self.col                    = 0;
-        self.oam                    = [Sprite::new(), ..0xa0];
-        self.vram                   = [0, ..0x2000];
-        self.enabled                = true;
-        self.window_tile_map        = TileMap::Low;
-        self.window_enabled         = false;
-        self.bg_win_tile_set        = TileSet::Set0;
-        self.bg_tile_map            = TileMap::Low;
-        self.sprite_size            = SpriteSize::Sz8x8;
-        self.sprites_enabled        = false;
-        self.bg_enabled             = true;
-        self.bgp                    = 0xfc;
-        self.obp0                   = 0xff;
-        self.obp1                   = 0xff;
-        self.lyc                    = 0;
-        self.it_vblank              = false;
-        self.it_vblank              = false;
-        self.iten_lyc               = false;
-        self.iten_prelude           = false;
-        self.iten_vblank            = false;
-        self.iten_hblank            = false;
-        self.lcd_it_status          = LcdItStatus::Inactive;
-        self.scy                    = 0;
-        self.scx                    = 0;
-        self.line_cache             = [[None, ..10], ..144];
-    }
-
     /// Called at each tick of the system clock. Move the emulated
     /// state one step forward.
     pub fn step(&mut self) {

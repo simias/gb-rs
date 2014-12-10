@@ -49,8 +49,6 @@ fn main() {
 
     let mut cpu = cpu::Cpu::new(inter);
 
-    cpu.reset();
-
     // In order to synchronize the emulation speed with the wall clock
     // we need to wait at some point so that we don't go too
     // fast. Waiting between each cycle would mean a storm of syscalls

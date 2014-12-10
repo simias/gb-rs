@@ -7,8 +7,7 @@ use cpu::instructions::next_instruction;
 
 mod instructions;
 
-/// CPU state. Should be considered undetermined as long as
-/// `Cpu::reset()` hasn't been called.
+/// CPU state.
 pub struct Cpu<'a> {
     /// Time remaining for the current instruction to finish
     instruction_delay:   u32,
@@ -70,62 +69,33 @@ struct Flags {
 impl<'a> Cpu<'a> {
     /// Create a new Cpu instance and reset it
     pub fn new<'n>(inter: Interconnect<'n>) -> Cpu<'n> {
-        let mut cpu = Cpu {
-            instruction_delay:    0,
-            regs: Registers { pc: 0,
-                              sp: 0,
-                              a : 0,
-                              b : 0,
-                              c : 0,
-                              d : 0,
-                              e : 0,
-                              h : 0,
-                              l : 0,
-            },
-            flags: Flags { z: false,
+        // Default register values at startup. Taken from the
+        // unofficial Game Boy CPU manual.
+        let regs = Registers {
+            pc: 0x100,
+            sp: 0xfff2,
+            a : 0x01,
+            b : 0x00,
+            c : 0x13,
+            d : 0x00,
+            e : 0xd8,
+            h : 0x01,
+            l : 0x4d,
+        };
+
+        Cpu {
+            instruction_delay: 0,
+            regs: regs,
+            flags: Flags { z: true,
                            n: false,
-                           h: false,
-                           c: false,
+                           h: true,
+                           c: true,
             },
             inter:            inter,
             iten:             true,
             iten_enable_next: true,
             halted:           false,
-        };
-
-        cpu.reset();
-
-        cpu
-    }
-
-    /// Reset CPU state to power up values
-    pub fn reset(&mut self) {
-        self.inter.reset();
-
-        self.iten             = true;
-        self.iten_enable_next = true;
-        self.halted           = false;
-
-        self.instruction_delay = 0;
-
-        // Code always starts at 0x100
-        self.regs.pc = 0x100;
-        // Values after ROM execution as pulled from the unofficial GB
-        // CPU manual. Of course the program shouldn't rely on those
-        // values, but who knows...
-        self.regs.sp = 0xfffe;
-        self.regs.a  = 0x01;
-        self.regs.b  = 0x00;
-        self.regs.c  = 0x13;
-        self.regs.d  = 0x00;
-        self.regs.e  = 0xd8;
-        self.regs.h  = 0x01;
-        self.regs.l  = 0x4D;
-
-        self.set_zero(true);
-        self.set_substract(false);
-        self.set_halfcarry(true);
-        self.set_carry(true);
+        }
     }
 
     /// Called at each tick of the system clock. Move the emulated
