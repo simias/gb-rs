@@ -63,15 +63,14 @@ Games that are playable:
 * Bubble Ghost
 * Castelian
 * Earthworm Jim
-* Super Mario Land
+* Super Mario Land 1, 2 and 3
+* Pokemon Blue
 
 Games that are broken somehow:
 
-* Pokemon Blue: the world map seems accurate but all the models used
-  in battles are completely broken.
 * Space Invaders: the menu works but the actual levels are completely
   messed up.
-* Super Mario 4: the world map works but the levels are messed up.
+* Super Mario 4: technically playable but lot of visual glitches
 * Bomberman: the intro and menu display correctly but the input
   doesn't seem to register.
 

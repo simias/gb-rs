@@ -22,6 +22,9 @@ pub struct Cartridge {
     ram_offset: uint,
     /// If `true` RAM is write protected
     ram_wp:     bool,
+    /// Certain cartridges allow banking either the RAM or ROM
+    /// depending on the value of this flag.
+    bank_ram:   bool,
     /// struct used to handle model specific functions
     model:      models::Model,
     /// Path to the ROM image for this cartridge
@@ -49,6 +52,7 @@ impl Cartridge {
             rom_offset: 0,
             ram_offset: 0,
             ram_wp:     false,
+            bank_ram:   false,
             model:      model,
             path:       rom_path.clone(),
             save_file:  None,
@@ -263,6 +267,22 @@ impl Cartridge {
     /// Enable or disable RAM write protect
     pub fn set_ram_wp(&mut self, wp: bool) {
         self.ram_wp = wp
+    }
+
+    /// Return the value of the `bank_ram` flag
+    pub fn bank_ram(&self) -> bool {
+        self.bank_ram
+    }
+
+    /// Set the value of the `bank_ram` flag
+    pub fn set_bank_ram(&mut self, v: bool) {
+        self.bank_ram = v
+    }
+
+    /// Set new RAM bank number
+    pub fn set_ram_bank(&mut self, bank: u8) {
+        // Bankable RAM is always 8KB per bank
+        self.ram_offset = bank as uint * 8 * 1024;
     }
 }
 
