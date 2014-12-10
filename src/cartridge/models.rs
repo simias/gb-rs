@@ -26,7 +26,12 @@ mod mbc1 {
     use cartridge::Cartridge;
 
     fn write(cart: &mut Cartridge, addr: u16, val: u8) {
-        if addr >= 0x2000 && addr < 0x4000 {
+        if addr < 0x2000 {
+            // Writing a low nibble 0xa to anywhere in that address
+            // range removes RAM write protect, All other values
+            // enable it.
+            cart.set_ram_wp(val & 0xf != 0xa);
+        } else if addr >= 0x2000 && addr < 0x4000 {
             // Select a new ROM bank, bits [4:0]
             let cur_bank = cart.rom_bank() & !0x1f;
 

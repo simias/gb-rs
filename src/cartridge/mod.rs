@@ -9,15 +9,19 @@ mod models;
 /// Common state for all cartridge types
 pub struct Cartridge {
     /// Cartridge ROM data
-    rom:       Vec<u8>,
+    rom:        Vec<u8>,
     /// Cartridge RAM data
-    ram:       Vec<u8>,
+    ram:        Vec<u8>,
     /// Current number of the rom bank mapped at [0x4000, 0x7fff]
     rom_bank:   u8,
     /// Current bank offset for the bank mapped at [0x4000, 0x7fff].
     /// This value is added to ROM register addresses when they're in
     /// that range.
     rom_offset: uint,
+    /// Current bank offset for the RAM
+    ram_offset: uint,
+    /// If `true` RAM is write protected
+    ram_wp:     bool,
     /// struct used to handle model specific functions
     model:      models::Model,
     /// Path to the ROM image for this cartridge
@@ -43,6 +47,8 @@ impl Cartridge {
             // Default to bank 1 for bankable region
             rom_bank:   1,
             rom_offset: 0,
+            ram_offset: 0,
+            ram_wp:     false,
             model:      model,
             path:       rom_path.clone(),
             save_file:  None,
@@ -222,7 +228,14 @@ impl Cartridge {
     }
 
     pub fn set_ram_byte(&mut self, offset: u16, val: u8) {
-        if let Some(b) = self.ram.get_mut(offset as uint) {
+        let addr = self.ram_offset + offset as uint;
+
+        if self.ram_wp {
+            debug!("Attempt to write to cartridge RAM while protected");
+            return;
+        }
+
+        if let Some(b) = self.ram.get_mut(addr) {
             *b = val;
         }
     }
@@ -245,6 +258,11 @@ impl Cartridge {
                 0 => 0,
                 n => (n - 1) as uint,
             };
+    }
+
+    /// Enable or disable RAM write protect
+    pub fn set_ram_wp(&mut self, wp: bool) {
+        self.ram_wp = wp
     }
 }
 
