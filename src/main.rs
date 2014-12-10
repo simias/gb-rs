@@ -24,8 +24,6 @@ mod ui;
 mod cartridge;
 
 fn main() {
-    let mut display = ui::sdl2::Display::new(1);
-
     let argv = std::os::args();
 
     if argv.len() < 2 {
@@ -33,18 +31,19 @@ fn main() {
         return;
     }
 
-    let romfile = &argv[1];
+    let rompath = Path::new(&argv[1]);
 
-    let cart = match cartridge::Cartridge::from_file(&Path::new(romfile)) {
+    let cart = match cartridge::Cartridge::from_path(&rompath) {
         Ok(r)  => r,
         Err(e) => panic!("Failed to load ROM: {}", e),
     };
 
     println!("Loaded ROM {}", cart);
 
-    let gpu = gpu::Gpu::new(&mut display);
-
+    let mut display    = ui::sdl2::Display::new(1);
     let mut controller = ui::sdl2::Controller::new();
+
+    let gpu = gpu::Gpu::new(&mut display);
 
     let inter = io::Interconnect::new(cart, gpu, &mut controller);
 

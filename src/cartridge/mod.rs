@@ -2,7 +2,7 @@
 //! different capabilities (bankable ROM/RAM, battery, RTC etc...).
 
 use std::fmt::{Show, Formatter, Error};
-use std::io::{File, Reader, IoResult};
+use std::io::{File, Reader, Writer, IoResult, Open, ReadWrite, SeekSet};
 
 mod models;
 
@@ -20,6 +20,11 @@ pub struct Cartridge {
     rom_offset: uint,
     /// struct used to handle model specific functions
     model:      models::Model,
+    /// Path to the ROM image for this cartridge
+    path:       Path,
+    /// optional save file used to store non-volatile RAM on emulator
+    /// shutdown
+    save_file:  Option<File>,
 }
 
 impl Cartridge {
@@ -27,8 +32,10 @@ impl Cartridge {
         self.rom_offset = 0;
     }
 
-    /// Load a Cartridge from a `Reader`
-    pub fn from_reader(source: &mut Reader) -> IoResult<Cartridge> {
+    /// Load a Cartridge ROM from `path`.
+    pub fn from_path(rom_path: &Path) -> IoResult<Cartridge> {
+        let mut source = try!(File::open(rom_path));
+
         // There must always be at least two ROM banks
         let rom = try!(source.read_exact(2 * ROM_BANK_SIZE));
 
@@ -41,6 +48,8 @@ impl Cartridge {
             rom_bank:   1,
             rom_offset: 0,
             model:      model,
+            path:       rom_path.clone(),
+            save_file:  None,
         };
 
         let rombanks = match cartridge.rom_banks() {
@@ -65,22 +74,70 @@ impl Cartridge {
             }
         }
 
-        let (rambanks, banksize) = match cartridge.ram_banks() {
-            Some(v) => v,
-            None    => panic!("Can't determine RAM size"),
-        };
-
-        // Allocate cartridge RAM
-        cartridge.ram.grow(rambanks * banksize, 0);
+        try!(cartridge.init_ram());
 
         Ok(cartridge)
     }
 
-    /// Load the Cartridge from a file located at `path`
-    pub fn from_file(path: &Path) -> IoResult<Cartridge> {
-        let mut file_reader = try!(File::open(path));
+    /// Init cartridge RAM and tie it with a `File` for saving if
+    /// necessary.
+    fn init_ram(&mut self) -> IoResult<()> {
+        let (rambanks, banksize) = match self.ram_banks() {
+            Some(v) => v,
+            None    => panic!("Can't determine RAM size"),
+        };
 
-        Cartridge::from_reader(&mut file_reader)
+        let ramsize = rambanks * banksize;
+
+        if ramsize == 0 {
+            // No RAM on this cartridge, we're done
+            return Ok(());
+        }
+
+        // We have some RAM, open the save file or create it if it
+        // doesn't exist yet
+        let mut savepath = self.path.clone();
+        savepath.set_extension("sav");
+
+        let mut save_file = try!(File::open_mode(&savepath,
+                                                Open,
+                                                ReadWrite));
+
+        let save_size = try!(save_file.stat()).size;
+
+        if save_size == 0 {
+            // The file is empty (probably new). initialize
+            // the RAM with 0s.
+            self.ram.grow(ramsize, 0);
+            // Then fill the file with the right amount of 0s
+            // to reserve enough space for saving later.
+            try!(save_file.write(self.ram.as_slice()));
+        } else if save_size == (ramsize as u64) {
+            // The file contains a RAM image
+            self.ram = try!(save_file.read_exact(ramsize as uint));
+        } else {
+            panic!("Unexpected save file size for {}: expected {} got {}",
+                   savepath.display(), ramsize, save_size);
+        }
+
+        // Store the file handle to save progress later
+        self.save_file = Some(save_file);
+
+        Ok(())
+    }
+
+    /// Update the save file
+    pub fn save_ram(&mut self) -> IoResult<()> {
+        if let Some(mut f) = self.save_file.as_mut() {
+            // Rewind to the beginning of the file and update its
+            // contents
+            println!("Saving to {}", f.path().display());
+
+            try!(f.seek(0, SeekSet));
+            try!(f.write(self.ram.as_slice()));
+        }
+
+        Ok(())
     }
 
     /// Attempt to retreive the rom's name
@@ -174,14 +231,14 @@ impl Cartridge {
         }
     }
 
-    // Retrieve current ROM bank number for the bankable range at
-    // [0x4000, 0x7fff]
+    /// Retrieve current ROM bank number for the bankable range at
+    /// [0x4000, 0x7fff]
     pub fn rom_bank(&self) -> u8 {
         self.rom_bank
     }
 
-    // Set new ROM bank number for the bankable range at
-    // [0x4000, 0x7fff]
+    /// Set new ROM bank number for the bankable range at
+    /// [0x4000, 0x7fff]
     pub fn set_rom_bank(&mut self, bank: u8) {
         self.rom_bank = bank;
 
@@ -192,6 +249,17 @@ impl Cartridge {
                 0 => 0,
                 n => (n - 1) as uint,
             };
+    }
+}
+
+impl Drop for Cartridge {
+    fn drop(&mut self) {
+        // Update save file when Cartridge is dropped
+        if let Err(e) = self.save_ram() {
+            // Display the error but don't panic since we might
+            // already be in the middle of a panic unwinding
+            println!("Couldn't save: {}", e);
+        }
     }
 }
 

@@ -11,8 +11,10 @@ playable. The CPU passes all the instruction tests as well as the
 timing tests (see the "Ressources" section below for the links to the
 tests).
 
+Saving is implemented, it creates a file with the ".sav" extension in
+the same directory as the ROM being executed if it supports saving.
+
 Things that remain to be implemented:
-* Saving (in progress)
 * Sound
 * Serial link
 * Support for various types of cartridges

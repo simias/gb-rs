@@ -49,6 +49,7 @@ mod mbc1 {
     pub static MODEL: Model = Model { name: "MBC1", write: write };
 }
 
+/// Return a cartridge instance for a given cartridge type
 pub fn from_id(id: u8) -> Model {
     match id {
         0     => mbc0::MODEL,
