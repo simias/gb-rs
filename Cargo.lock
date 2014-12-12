@@ -2,11 +2,11 @@
 name = "gb-rs"
 version = "0.0.1"
 dependencies = [
- "sdl2 0.0.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sdl2 0.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "sdl2"
-version = "0.0.7"
+version = "0.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 

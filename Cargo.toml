@@ -6,4 +6,4 @@ authors = ["Lionel Flandrin <lionel@svkt.org>"]
 
 [dependencies]
 
-sdl2 = "0.0.7"
+sdl2 = "0.0.8"
