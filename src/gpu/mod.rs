@@ -554,7 +554,7 @@ impl<'a> Gpu<'a> {
 
     /// Get pixel in the window. Assumes (`x`, `y`) is inside the
     /// window.
-    fn window_pixel(&mut self, x: u8, y: u8) -> AlphaPixel {
+    fn window_color(&mut self, x: u8, y: u8) -> AlphaColor {
         // Window X value is offset by 7 for some reason
         let px = x - self.wx + 7;
         let py = y - self.wy;
@@ -562,30 +562,30 @@ impl<'a> Gpu<'a> {
         let map = self.window_tile_map;
         let set = self.bg_win_tile_set;
 
-        let mut pix = self.bg_win_pixel(px, py, map, set);
+        let mut col = self.bg_win_color(px, py, map, set);
 
         // Window is always opaque
-        pix.opaque = true;
+        col.opaque = true;
 
-        pix
+        col
     }
 
-    fn background_pixel(&mut self, x: u8, y: u8) -> AlphaPixel {
+    fn background_color(&mut self, x: u8, y: u8) -> AlphaColor {
         let px = x + self.scx;
         let py = y + self.scy;
 
         let map = self.bg_tile_map;
         let set = self.bg_win_tile_set;
 
-        self.bg_win_pixel(px, py, map, set)
+        self.bg_win_color(px, py, map, set)
     }
 
     /// Get one pixel from either the window or the background.
-    fn bg_win_pixel(&self,
+    fn bg_win_color(&self,
                     x: u8,
                     y: u8,
                     map: TileMap,
-                    set: TileSet) -> AlphaPixel {
+                    set: TileSet) -> AlphaColor {
         let tile_map_x = x / 8;
         let tile_map_y = y / 8;
         let tile_x     = x % 8;
@@ -598,13 +598,13 @@ impl<'a> Gpu<'a> {
         // set.
         let tile_index = self.tile_index(tile_map_x, tile_map_y, map);
 
-        let tile_pix_value = self.pix_value(tile_index, tile_x, tile_y, set);
+        let tile_color = self.pix_color(tile_index, tile_x, tile_y, set);
 
-        AlphaPixel {
-            // Use tile_pix_value as index in the bgp
-            color:  self.bgp.transform(tile_pix_value),
+        AlphaColor {
+            // Transform tile_color through the palette
+            color:  self.bgp.transform(tile_color),
             // The pixel is transparent if the value pre-palette is white
-            opaque: tile_pix_value != Color::White,
+            opaque: tile_color != Color::White,
         }
     }
 
@@ -621,7 +621,7 @@ impl<'a> Gpu<'a> {
     }
 
     /// Get the color of pixel (`x`, `y`) in `tile`.
-    fn pix_value(&self, tile: u8, x: u8, y: u8, set: TileSet) -> Color {
+    fn pix_color(&self, tile: u8, x: u8, y: u8, set: TileSet) -> Color {
 
         if x >= 8 || y >= 16 {
             panic!("tile pos out of range ({}, {})", x, y);
@@ -712,12 +712,12 @@ impl<'a> Gpu<'a> {
         let bg_col =
             // Window is always on top of background
             if self.window_enabled && self.in_window(x, y) {
-                self.window_pixel(x, y)
+                self.window_color(x, y)
             } else if self.bg_enabled && self.bg_enabled {
-                self.background_pixel(x, y)
+                self.background_color(x, y)
             } else {
                 // No background or window
-                AlphaPixel { color: Color::White, opaque: false }
+                AlphaColor { color: Color::White, opaque: false }
             };
 
         let col = if self.sprites_enabled {
@@ -729,7 +729,7 @@ impl<'a> Gpu<'a> {
         self.display.set_pixel(x as u32, y as u32, col);
     }
 
-    fn render_sprite(&self, x: u8, y: u8, bg_col: AlphaPixel) -> Color {
+    fn render_sprite(&self, x: u8, y: u8, bg_col: AlphaColor) -> Color {
         for i in range(0, 10) {
             match self.line_cache[y as uint][i] {
                 None        => break, // Nothing left in cache
@@ -773,7 +773,7 @@ impl<'a> Gpu<'a> {
                         false => sprite_x,
                     };
 
-                    let pix = self.pix_value(tile,
+                    let pix = self.pix_color(tile,
                                              sprite_x as u8,
                                              sprite_y as u8,
                                              TileSet::Set1);
@@ -873,11 +873,11 @@ impl Palette {
     }
 }
 
-/// Struct used to describe pixels that can be transparent
-struct AlphaPixel {
+/// Struct used to describe colos that can be transparent
+struct AlphaColor {
     /// Pixel color
     color:  Color,
-    /// Is the pixel opaque?
+    /// Is the color opaque?
     opaque: bool,
 }
 
