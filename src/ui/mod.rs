@@ -32,7 +32,7 @@ pub enum Event {
 }
 
 /// Description of a button's state
-#[deriving(Show)]
+#[deriving(Show,Copy)]
 pub enum ButtonState {
     /// Key is pushed down
     Down,
@@ -41,7 +41,7 @@ pub enum ButtonState {
 }
 
 /// State of all the GB buttons
-#[deriving(Show)]
+#[deriving(Show,Copy)]
 pub struct Buttons {
     pub up:     ButtonState,
     pub down:   ButtonState,

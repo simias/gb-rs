@@ -1,6 +1,7 @@
 //! Game Boy GPU Sprite emulation
 
 /// Sprite metadata
+#[deriving(Copy)]
 pub struct Sprite {
     /// Top left corner x-coordinate + 8
     x: u8,
@@ -120,6 +121,7 @@ impl Sprite {
 }
 
 /// Sprites can use two palettes
+#[deriving(Copy)]
 pub enum Palette {
     /// Pallette OBP0
     Obp0,

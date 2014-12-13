@@ -797,6 +797,7 @@ impl<'a> Show for Gpu<'a> {
 /// There are two tile maps available on the GameBoy. Each map is
 /// 32x32x8bits large and contain index values into the tile set for
 /// each map.
+#[deriving(Copy)]
 enum TileMap {
     /// Low map at addresse range [0x9800, 0x9bff]
     Low,
@@ -817,6 +818,7 @@ impl TileMap {
 
 /// There are two overlapping tile sets on the Game Boy. Tile sets are
 /// 256x16byte large, entries are indexed into the `TileMap`.
+#[deriving(Copy)]
 enum TileSet {
     /// Tile set #0 in [0x8800, 0x9bff], index is signed [-128, 127]
     Set0,
@@ -839,7 +841,7 @@ impl TileSet {
 
 /// Sprites can be 8x8 pixels or 8x16 pixels (a pair of 8x8
 /// tiles). The setting is global for all sprites.
-#[deriving(PartialEq,Eq)]
+#[deriving(PartialEq,Eq,Copy)]
 enum SpriteSize {
     /// Sprites resolution is 8x8 (i.e. single tile)
     Sz8x8,

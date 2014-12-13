@@ -127,6 +127,7 @@ impl Timer {
 }
 
 /// Possible divider values usable as timer clock source.
+#[deriving(Copy)]
 enum Divider {
     /// Divide sysclk by 16. Timer clock is 262.144kHz
     Div16   = 4,
