@@ -35,11 +35,11 @@ pub struct Gpu<'a> {
     /// `true` if background display is enabled
     bg_enabled: bool,
     /// Background palette
-    bgp: u8,
+    bgp: Palette,
     /// Object palette 0
-    obp0: u8,
+    obp0: Palette,
     /// Object palette 1
-    obp1: u8,
+    obp1: Palette,
     /// Line compare
     lyc: u8,
     /// VBlank interrupt status
@@ -130,9 +130,9 @@ impl<'a> Gpu<'a> {
               sprite_size:            SpriteSize::Sz8x8,
               sprites_enabled:        false,
               bg_enabled:             true,
-              bgp:                    0xfc,
-              obp0:                   0xff,
-              obp1:                   0xff,
+              bgp:                    Palette::from_reg(0xfc),
+              obp0:                   Palette::from_reg(0xff),
+              obp1:                   Palette::from_reg(0xff),
               lyc:                    0x00,
               it_vblank:              false,
               iten_lyc:               false,
@@ -330,32 +330,32 @@ impl<'a> Gpu<'a> {
 
     /// Handle reconfiguration of the background palette
     pub fn set_bgp(&mut self, bgp: u8) {
-        self.bgp = bgp;
+        self.bgp = Palette::from_reg(bgp);
     }
 
     /// Return value of the background palette register
     pub fn bgp(&self) -> u8 {
-        self.bgp
+        self.bgp.into_reg()
     }
 
     /// Handle reconfiguration of the sprite palette 0
     pub fn set_obp0(&mut self, obp0: u8) {
-        self.obp0 = obp0;
+        self.obp0 = Palette::from_reg(obp0);
     }
 
     /// Return value of the background palette register
     pub fn obp0(&self) -> u8 {
-        self.obp0
+        self.obp0.into_reg()
     }
 
     /// Handle reconfiguration of the sprite palette 1
     pub fn set_obp1(&mut self, obp1: u8) {
-        self.obp1 = obp1;
+        self.obp1 = Palette::from_reg(obp1);
     }
 
     /// Return value of the background palette register
     pub fn obp1(&self) -> u8 {
-        self.obp1
+        self.obp1.into_reg()
     }
 
     /// Return number of line currently being drawn
@@ -602,7 +602,7 @@ impl<'a> Gpu<'a> {
 
         AlphaPixel {
             // Use tile_pix_value as index in the bgp
-            color:  palette_conversion(tile_pix_value, self.bgp),
+            color:  self.bgp.transform(tile_pix_value),
             // The pixel is transparent if the value pre-palette is white
             opaque: tile_pix_value != Color::White,
         }
@@ -788,7 +788,7 @@ impl<'a> Gpu<'a> {
                         };
 
 
-                        return palette_conversion(pix, palette);
+                        return palette.transform(pix);
                     }
                 }
             }
@@ -825,6 +825,51 @@ impl Color {
             3 => Color::Black,
             _ => panic!("Invalid color: 0x{:02x}", c),
         }
+    }
+}
+
+/// Palette description
+#[deriving(Copy)]
+struct Palette {
+    /// Each color can be mapped to an other one independently of the
+    /// others
+    map: [Color, ..4],
+}
+
+impl Palette {
+    /// Build a palette from a register value.
+    ///
+    /// Register value is 0bC3C2C1C0 where CX is the output
+    /// value for a given value X. So for instance
+    /// 0b00_01_10_11 is a palette that reverses the colors.
+    fn from_reg(r: u8) -> Palette {
+        let mut p = Palette {
+            map: [ Color::White,
+                   Color::White,
+                   Color::White,
+                   Color::White, ]
+        };
+
+        for i in range(0, p.map.len()) {
+            p.map[i] = Color::from_u8(((r >> (i * 2)) & 0x3) as u8)
+        }
+
+        p
+    }
+
+    /// Convert palette into register value
+    fn into_reg(&self) -> u8 {
+        let mut p = 0u8;
+
+        for i in range(0, self.map.len()) {
+            p |= (self.map[i] as u8) << (i * 2);
+        }
+
+        p
+    }
+
+    fn transform(&self, c: Color) -> Color {
+        self.map[c as uint]
     }
 }
 
@@ -901,13 +946,6 @@ impl SpriteSize {
     }
 }
 
-/// Transform `c` through `palette`
-fn palette_conversion(c: Color, palette: u8) -> Color {
-    let val = c as u8;
-
-    Color::from_u8((palette >> ((val * 2) as uint)) & 0x3)
-}
-
 mod timings {
     //! LCD timings
 
@@ -922,4 +960,30 @@ mod timings {
     pub const VTOTAL:   u8 = 154;
     /// Beginning of VSync period
     pub const VSYNC_ON: u8 = 144;
+}
+
+#[cfg(test)]
+mod tests {
+
+    /// Make sure the palette conversion to and from register values works
+    /// as expected
+    #[test]
+    fn palette_conversion() {
+        for i in range(0u, 0x100) {
+            let r = i as u8;
+
+            let p = super::Palette::from_reg(r);
+            assert!(p.into_reg() == r);
+        }
+    }
+
+    /// Make sure color conversion to and from symbolic values works
+    #[test]
+    fn color_conversion() {
+        for v in range(0, 4) {
+            let c = super::Color::from_u8(v);
+
+            assert!(c as u8 == v);
+        }
+    }
 }

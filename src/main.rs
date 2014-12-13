@@ -23,6 +23,7 @@ mod gpu;
 mod ui;
 mod cartridge;
 
+#[allow(dead_code)]
 fn main() {
     let argv = std::os::args();
 
