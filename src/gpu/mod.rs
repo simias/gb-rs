@@ -805,7 +805,6 @@ enum TileMap {
     High,
 }
 
-
 impl TileMap {
     /// Return tile map base offset in VRAM
     fn base(self) -> u16 {

@@ -6,28 +6,49 @@ use super::Cartridge;
 #[deriving(Copy)]
 pub struct Model {
     /// String identifier
-    pub name: &'static str,
+    pub name:      &'static str,
     /// Handle ROM write
-    pub write: fn(cart: &mut Cartridge, addr: u16, val: u8),
+    pub write_rom: fn(cart: &mut Cartridge, offset: u16, val: u8),
+    /// Handle RAM write
+    pub write_ram: fn(cart: &mut Cartridge, addr: uint, val: u8),
+    /// Handle RAM read
+    pub read_ram:  fn(cart: &Cartridge, addr: uint) -> u8,
+}
+
+/// Default implementation of write_ram, suitable for most cartridges
+fn write_ram(cart: &mut Cartridge, addr: uint, val: u8) {
+    if let Some(b) = cart.ram_byte_absolute_mut(addr) {
+        *b = val;
+    }
+}
+
+/// Default implementation of read_ram, suitable for most cartridges
+fn read_ram(cart: &Cartridge, addr: uint) -> u8 {
+    cart.ram_byte_absolute(addr)
 }
 
 mod mbc0 {
     use super::Model;
     use cartridge::Cartridge;
 
-    fn write(_: &mut Cartridge, addr: u16, val: u8) {
-        debug!("Unhandled ROM write: {:04x} {:02x}", addr, val);
+    fn write_rom(_: &mut Cartridge, offset: u16, val: u8) {
+        debug!("Unhandled ROM write: {:04x} {:02x}", offset, val);
     }
 
-    pub static MODEL: Model = Model { name: "MBC0", write: write };
+    pub static MODEL: Model =
+        Model { name:      "MBC0",
+                write_rom: write_rom,
+                write_ram: super::write_ram,
+                read_ram:  super::read_ram,
+        };
 }
 
 mod mbc1 {
     use super::Model;
     use cartridge::Cartridge;
 
-    fn write(cart: &mut Cartridge, addr: u16, val: u8) {
-        match addr {
+    fn write_rom(cart: &mut Cartridge, offset: u16, val: u8) {
+        match offset {
             0x0000...0x1fff =>
                 // Writing a low nibble 0xa to anywhere in that
                 // address range removes RAM write protect, All other
@@ -53,19 +74,24 @@ mod mbc1 {
                 // Switch RAM/ROM banking mode
                 cart.set_bank_ram(val & 1 != 0),
             _ =>
-                debug!("Unhandled ROM write: {:04x} {:02x}", addr, val),
+                debug!("Unhandled ROM write: {:04x} {:02x}", offset, val),
         }
     }
 
-    pub static MODEL: Model = Model { name: "MBC1", write: write };
+    pub static MODEL: Model =
+        Model { name:      "MBC1",
+                write_rom: write_rom,
+                write_ram: super::write_ram,
+                read_ram:  super::read_ram,
+        };
 }
 
 mod mbc3 {
     use super::Model;
     use cartridge::Cartridge;
 
-    fn write(cart: &mut Cartridge, addr: u16, val: u8) {
-        match addr {
+    fn write_rom(cart: &mut Cartridge, offset: u16, val: u8) {
+        match offset {
             0x0000...0x1fff =>
                 // Writing a low nibble 0xa to anywhere in that
                 // address range removes RAM write protect, All other
@@ -80,11 +106,16 @@ mod mbc3 {
             0x6000...0x7fff =>
                 debug!("Unhandled RTC access"),
             _ =>
-                debug!("Unhandled ROM write: {:04x} {:02x}", addr, val),
+                debug!("Unhandled ROM write: {:04x} {:02x}", offset, val),
         }
     }
 
-    pub static MODEL: Model = Model { name: "MBC1", write: write };
+    pub static MODEL: Model =
+        Model { name:     "MBC1",
+                write_rom: write_rom,
+                write_ram: super::write_ram,
+                read_ram:  super::read_ram,
+        };
 }
 
 /// Return a cartridge instance for a given cartridge type

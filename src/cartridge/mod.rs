@@ -223,16 +223,28 @@ impl Cartridge {
     }
 
     pub fn set_rom_byte(&mut self, offset: u16, val: u8) {
-        // Let specialized cartridge type handle that
-        (self.model.write)(self, offset, val)
+        (self.model.write_rom)(self, offset, val)
     }
 
+    /// Return the value of RAM byte at `offset` in the currently
+    /// selected RAM bank
     pub fn ram_byte(&self, offset: u16) -> u8 {
         let addr = self.ram_offset + offset as uint;
 
-        *self.ram.get(addr).unwrap_or(&0)
+        (self.model.read_ram)(self, addr)
     }
 
+    /// Return the value of a RAM byte at absolute address `addr`
+    fn ram_byte_absolute(&self, addr: uint) -> u8 {
+        *self.ram.get(addr as uint).unwrap_or(&0)
+    }
+
+    fn ram_byte_absolute_mut(&mut self, addr: uint) -> Option<&mut u8> {
+        self.ram.get_mut(addr as uint)
+    }
+
+    /// Set value of RAM byte at `offset` in the curretly selected RAM
+    /// bank
     pub fn set_ram_byte(&mut self, offset: u16, val: u8) {
         let addr = self.ram_offset + offset as uint;
 
@@ -241,9 +253,7 @@ impl Cartridge {
             return;
         }
 
-        if let Some(b) = self.ram.get_mut(addr) {
-            *b = val;
-        }
+        (self.model.write_ram)(self, addr, val);
     }
 
     /// Retrieve current ROM bank number for the bankable range at

@@ -77,7 +77,9 @@ Games that are broken somehow:
 Ressources
 ----------
 
-The game boy CPU manual: http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf
+The Game Boy CPU manual: http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf
+
+The Game Boy Programming manual: http://www.romhacking.net/documents/544/
 
 Opcode map: http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
 
