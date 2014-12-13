@@ -228,7 +228,9 @@ impl Cartridge {
     }
 
     pub fn ram_byte(&self, offset: u16) -> u8 {
-        *self.ram.get(offset as uint).unwrap_or(&0)
+        let addr = self.ram_offset + offset as uint;
+
+        *self.ram.get(addr).unwrap_or(&0)
     }
 
     pub fn set_ram_byte(&mut self, offset: u16, val: u8) {
