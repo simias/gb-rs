@@ -1,3 +1,5 @@
+use std::cell::Cell;
+
 use sdl2::video::Window;
 use sdl2::render::Renderer;
 use sdl2::pixels::Color::RGB;
@@ -80,34 +82,38 @@ impl super::Display for Display {
 }
 
 pub struct Controller {
-    buttons: super::Buttons,
+    buttons: Cell<super::Buttons>,
 }
 
 impl Controller {
     pub fn new() -> Controller {
         Controller {
-            buttons: super::Buttons::new(ButtonState::Up),
+            buttons: Cell::new(super::Buttons::new(ButtonState::Up)),
         }
     }
 
     /// Update key state. For now keybindings are hardcoded.
-    fn update_key(&mut self, key: KeyCode, state: ButtonState) {
-         match key {
-             KeyCode::Up        => self.buttons.up     = state,
-             KeyCode::Down      => self.buttons.down   = state,
-             KeyCode::Left      => self.buttons.left   = state,
-             KeyCode::Right     => self.buttons.right  = state,
-             KeyCode::LCtrl     => self.buttons.a      = state,
-             KeyCode::LAlt      => self.buttons.b      = state,
-             KeyCode::Return    => self.buttons.start  = state,
-             KeyCode::Backspace => self.buttons.select = state,
-             _                  => (),
-         }
+    fn update_key(&self, key: KeyCode, state: ButtonState) {
+        let mut b = self.buttons.get();
+
+        match key {
+            KeyCode::Up        => b.up     = state,
+            KeyCode::Down      => b.down   = state,
+            KeyCode::Left      => b.left   = state,
+            KeyCode::Right     => b.right  = state,
+            KeyCode::LCtrl     => b.a      = state,
+            KeyCode::LAlt      => b.b      = state,
+            KeyCode::Return    => b.start  = state,
+            KeyCode::Backspace => b.select = state,
+            _                  => (),
+        }
+
+        self.buttons.set(b);
     }
 }
 
 impl super::Controller for Controller {
-    fn update(&mut self) -> super::Event {
+    fn update(&self) -> super::Event {
         let mut event = super::Event::None;
 
         loop {
@@ -127,7 +133,7 @@ impl super::Controller for Controller {
         event
     }
 
-    fn state(&self) -> super::Buttons {
-        self.buttons
+    fn buttons(&self) -> &Cell<super::Buttons> {
+        &self.buttons
     }
 }

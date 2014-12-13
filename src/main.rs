@@ -15,6 +15,7 @@ extern crate sdl2;
 
 use std::io::Timer;
 use std::time::Duration;
+use ui::Controller;
 
 mod cpu;
 mod io;
@@ -39,12 +40,12 @@ fn main() {
 
     println!("Loaded ROM {}", cart);
 
-    let mut display    = ui::sdl2::Display::new(1);
-    let mut controller = ui::sdl2::Controller::new();
+    let mut display  = ui::sdl2::Display::new(1);
+    let controller = ui::sdl2::Controller::new();
 
     let gpu = gpu::Gpu::new(&mut display);
 
-    let inter = io::Interconnect::new(cart, gpu, &mut controller);
+    let inter = io::Interconnect::new(cart, gpu, controller.buttons());
 
     let mut cpu = cpu::Cpu::new(inter);
 
@@ -68,11 +69,15 @@ fn main() {
 
     'main_loop: loop {
         for _ in range(0, GRANULARITY) {
-            match cpu.step() {
-                ui::Event::PowerOff => break 'main_loop,
-                _ => ()
-            }
+            cpu.step();
         }
+
+        // Update controller status
+        match controller.update() {
+            ui::Event::PowerOff => break,
+            ui::Event::None     => (),
+        }
+
         // Sleep until next batch cycle
         tick.recv();
     }

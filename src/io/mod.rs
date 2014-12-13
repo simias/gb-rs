@@ -1,7 +1,7 @@
 //! Input/Output abstraction for memory, ROM and I/O mapped registers
 
 use gpu::Gpu;
-use ui::Controller;
+use std::cell::Cell;
 use cartridge::Cartridge;
 
 pub mod ram;
@@ -38,7 +38,7 @@ impl<'a> Interconnect<'a> {
     /// Create a new Interconnect
     pub fn new<'n>(cartridge:  Cartridge,
                    gpu:        Gpu<'n>,
-                   controller: &'n mut (Controller + 'n)) -> Interconnect<'n> {
+                   buttons:    &'n Cell<::ui::Buttons>) -> Interconnect<'n> {
 
         let iram = ram::Ram::new(0x2000);
         let zpage = ram::Ram::new(0x7f);
@@ -48,7 +48,7 @@ impl<'a> Interconnect<'a> {
 
         let it_enabled = Interrupts::from_register(0);
 
-        let buttons = buttons::Buttons::new(controller);
+        let buttons = buttons::Buttons::new(buttons);
 
         Interconnect { cartridge:  cartridge,
                        iram:       iram,
@@ -63,12 +63,10 @@ impl<'a> Interconnect<'a> {
         }
     }
 
-    pub fn step(&mut self) -> ::ui::Event {
+    pub fn step(&mut self) {
         self.gpu.step();
         self.dma_step();
         self.timer.step();
-
-        self.buttons.step()
     }
 
     pub fn dma_step(&mut self) {

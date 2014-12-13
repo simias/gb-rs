@@ -100,14 +100,14 @@ impl<'a> Cpu<'a> {
 
     /// Called at each tick of the system clock. Move the emulated
     /// state one step forward.
-    pub fn step(&mut self) -> ::ui::Event {
-        let event = self.inter.step();
+    pub fn step(&mut self) {
+        self.inter.step();
 
         // Are we done running the current instruction?
         if self.instruction_delay > 0 {
             // Nope, wait for the next cycle
             self.instruction_delay -= 1;
-            return event;
+            return;
         }
 
         if self.iten {
@@ -117,7 +117,7 @@ impl<'a> Cpu<'a> {
                 // Wait until the context switch delay is over. We're
                 // sure not to reenter here after that since the
                 // `iten` is set to false in `self.interrupt`
-                return event;
+                return;
             }
         } else {
             // If an interrupt enable is pending we update the iten
@@ -133,7 +133,7 @@ impl<'a> Cpu<'a> {
                 self.halted = false;
             } else {
                 // Wait for interrupt
-                return event;
+                return;
             }
         }
 
@@ -147,8 +147,6 @@ impl<'a> Cpu<'a> {
         // state including the `instruction_delay` above (using the
         // `additional_delay` method).
         (instruction)(self);
-
-        event
     }
 
     /// Execute interrupt handler for `it`
