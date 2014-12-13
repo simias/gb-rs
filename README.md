@@ -37,10 +37,10 @@ The defaults are:
 
 | GameBoy button  | Key           |
 | --------------- | ------------- |
-| A               | Left Control  |
-| B               | Left Alt      |
+| A               | Left Alt      |
+| B               | Left Control  |
 | Start           | Return        |
-| Select          | Backspace     |
+| Select          | Right Shift   |
 | Up              | Up            |
 | Down            | Down          |
 | Left            | Left          |
@@ -64,7 +64,7 @@ Games that are playable:
 * Castelian
 * Earthworm Jim
 * Super Mario Land 1, 2 and 3
-* Pokemon Blue
+* Pokemon Red/Blue
 
 Games that are broken somehow:
 

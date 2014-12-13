@@ -101,10 +101,10 @@ impl Controller {
             KeyCode::Down      => b.down   = state,
             KeyCode::Left      => b.left   = state,
             KeyCode::Right     => b.right  = state,
-            KeyCode::LCtrl     => b.a      = state,
-            KeyCode::LAlt      => b.b      = state,
+            KeyCode::LAlt      => b.a      = state,
+            KeyCode::LCtrl     => b.b      = state,
             KeyCode::Return    => b.start  = state,
-            KeyCode::Backspace => b.select = state,
+            KeyCode::RShift    => b.select = state,
             _                  => (),
         }
 
