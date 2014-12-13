@@ -562,12 +562,7 @@ impl<'a> Gpu<'a> {
         let map = self.window_tile_map;
         let set = self.bg_win_tile_set;
 
-        let mut col = self.bg_win_color(px, py, map, set);
-
-        // Window is always opaque
-        col.opaque = true;
-
-        col
+        self.bg_win_color(px, py, map, set)
     }
 
     fn background_color(&mut self, x: u8, y: u8) -> AlphaColor {
@@ -773,11 +768,14 @@ impl<'a> Gpu<'a> {
                         false => sprite_x,
                     };
 
+                    // Sprites always use TileSet 1
                     let pix = self.pix_color(tile,
                                              sprite_x as u8,
                                              sprite_y as u8,
                                              TileSet::Set1);
 
+                    // White color (0) pre-palette denotes a
+                    // transparent pixel
                     if pix != Color::White {
                         // Pixel is not transparent, compute the color
                         // and return that
@@ -817,6 +815,7 @@ pub enum Color {
 }
 
 impl Color {
+    /// Create a color from a u8 in the range 0...3
     fn from_u8(c: u8) -> Color {
         match c {
             0 => Color::White,
@@ -851,7 +850,7 @@ impl Palette {
         };
 
         for i in range(0, p.map.len()) {
-            p.map[i] = Color::from_u8(((r >> (i * 2)) & 0x3) as u8)
+            p.map[i] = Color::from_u8((r >> (i * 2)) & 0x3)
         }
 
         p
@@ -868,6 +867,7 @@ impl Palette {
         p
     }
 
+    /// Transform color `c` through the palette
     fn transform(&self, c: Color) -> Color {
         self.map[c as uint]
     }
@@ -877,7 +877,8 @@ impl Palette {
 struct AlphaColor {
     /// Pixel color
     color:  Color,
-    /// Is the color opaque?
+    /// If `true` the color is fully opaque, otherwise fully
+    /// transparent.
     opaque: bool,
 }
 
