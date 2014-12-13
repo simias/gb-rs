@@ -11,7 +11,7 @@ pub trait Display {
     fn clear(&mut self);
     /// Set pixel at (x, y). (0, 0) is top left. col is in the range
     /// [0, 3] where 0 is white and 3 is black.
-    fn set_pixel(&mut self, x: u32, y: u32, col: u8);
+    fn set_pixel(&mut self, x: u32, y: u32, col: ::gpu::Color);
     /// Current frame is done and can be displayed.
     fn flip(&mut self);
 }

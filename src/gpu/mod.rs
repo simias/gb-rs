@@ -554,7 +554,7 @@ impl<'a> Gpu<'a> {
 
     /// Get pixel in the window. Assumes (`x`, `y`) is inside the
     /// window.
-    fn window_pixel(&mut self, x: u8, y: u8) -> u8 {
+    fn window_pixel(&mut self, x: u8, y: u8) -> AlphaPixel {
         // Window X value is offset by 7 for some reason
         let px = x - self.wx + 7;
         let py = y - self.wy;
@@ -562,21 +562,30 @@ impl<'a> Gpu<'a> {
         let map = self.window_tile_map;
         let set = self.bg_win_tile_set;
 
-        self.pixel(px, py, map, set)
+        let mut pix = self.bg_win_pixel(px, py, map, set);
+
+        // Window is always opaque
+        pix.opaque = true;
+
+        pix
     }
 
-    fn background_pixel(&mut self, x: u8, y: u8) -> u8 {
+    fn background_pixel(&mut self, x: u8, y: u8) -> AlphaPixel {
         let px = x + self.scx;
         let py = y + self.scy;
 
         let map = self.bg_tile_map;
         let set = self.bg_win_tile_set;
 
-        self.pixel(px, py, map, set)
+        self.bg_win_pixel(px, py, map, set)
     }
 
     /// Get one pixel from either the window or the background.
-    fn pixel(&self, x: u8, y: u8, map: TileMap, set: TileSet) -> u8 {
+    fn bg_win_pixel(&self,
+                    x: u8,
+                    y: u8,
+                    map: TileMap,
+                    set: TileSet) -> AlphaPixel {
         let tile_map_x = x / 8;
         let tile_map_y = y / 8;
         let tile_x     = x % 8;
@@ -591,8 +600,12 @@ impl<'a> Gpu<'a> {
 
         let tile_pix_value = self.pix_value(tile_index, tile_x, tile_y, set);
 
-        // Use tile_pix_value as index in the bgp
-        palette_conversion(tile_pix_value, self.bgp)
+        AlphaPixel {
+            // Use tile_pix_value as index in the bgp
+            color:  palette_conversion(tile_pix_value, self.bgp),
+            // The pixel is transparent if the value pre-palette is white
+            opaque: tile_pix_value != Color::White,
+        }
     }
 
     /// Return the tile index for the tile at (`tx`, `ty`) in `map`
@@ -607,9 +620,8 @@ impl<'a> Gpu<'a> {
         self.vram[map_addr as uint]
     }
 
-    /// Get the value of pixel (`x`, `y`) in `tile`. Return a value
-    /// between 0 and 3.
-    fn pix_value(&self, tile: u8, x: u8, y: u8, set: TileSet) -> u8 {
+    /// Get the color of pixel (`x`, `y`) in `tile`.
+    fn pix_value(&self, tile: u8, x: u8, y: u8, set: TileSet) -> Color {
 
         if x >= 8 || y >= 16 {
             panic!("tile pos out of range ({}, {})", x, y);
@@ -627,7 +639,7 @@ impl<'a> Gpu<'a> {
         let lsb = (self.vram[addr]     >> x) & 1;
         let msb = (self.vram[addr + 1] >> x) & 1;
 
-        msb << 1 | lsb
+        Color::from_u8(msb << 1 | lsb)
     }
 
     /// Rebuild the entire Sprite cache for each line. This is pretty
@@ -704,19 +716,20 @@ impl<'a> Gpu<'a> {
             } else if self.bg_enabled && self.bg_enabled {
                 self.background_pixel(x, y)
             } else {
-                0
+                // No background or window
+                AlphaPixel { color: Color::White, opaque: false }
             };
 
         let col = if self.sprites_enabled {
             self.render_sprite(x, y, bg_col)
         } else {
-            bg_col
+            bg_col.color
         };
 
         self.display.set_pixel(x as u32, y as u32, col);
     }
 
-    fn render_sprite(&self, x: u8, y: u8, bg_col: u8) -> u8 {
+    fn render_sprite(&self, x: u8, y: u8, bg_col: AlphaPixel) -> Color {
         for i in range(0, 10) {
             match self.line_cache[y as uint][i] {
                 None        => break, // Nothing left in cache
@@ -737,7 +750,7 @@ impl<'a> Gpu<'a> {
                         break;
                     }
 
-                    if sprite.background() && bg_col != 0 {
+                    if sprite.background() && bg_col.opaque {
                         // Sprite is covered by the background
                         continue;
                     }
@@ -765,7 +778,7 @@ impl<'a> Gpu<'a> {
                                              sprite_y as u8,
                                              TileSet::Set1);
 
-                    if pix != 0 {
+                    if pix != Color::White {
                         // Pixel is not transparent, compute the color
                         // and return that
 
@@ -781,7 +794,7 @@ impl<'a> Gpu<'a> {
             }
         }
 
-        bg_col
+        bg_col.color
     }
 
 }
@@ -792,6 +805,35 @@ impl<'a> Show for Gpu<'a> {
 
         Ok(())
     }
+}
+
+/// All possible color values on the original game boy
+#[deriving(PartialEq,Eq,Copy)]
+pub enum Color {
+    White     = 0,
+    LightGrey = 1,
+    DarkGrey  = 2,
+    Black     = 3,
+}
+
+impl Color {
+    fn from_u8(c: u8) -> Color {
+        match c {
+            0 => Color::White,
+            1 => Color::LightGrey,
+            2 => Color::DarkGrey,
+            3 => Color::Black,
+            _ => panic!("Invalid color: 0x{:02x}", c),
+        }
+    }
+}
+
+/// Struct used to describe pixels that can be transparent
+struct AlphaPixel {
+    /// Pixel color
+    color:  Color,
+    /// Is the pixel opaque?
+    opaque: bool,
 }
 
 /// There are two tile maps available on the GameBoy. Each map is
@@ -859,9 +901,11 @@ impl SpriteSize {
     }
 }
 
-/// Transform `val` through `palette`
-fn palette_conversion(val: u8, palette: u8) -> u8 {
-    (palette >> ((val * 2) as uint)) & 0x3
+/// Transform `c` through `palette`
+fn palette_conversion(c: Color, palette: u8) -> Color {
+    let val = c as u8;
+
+    Color::from_u8((palette >> ((val * 2) as uint)) & 0x3)
 }
 
 mod timings {

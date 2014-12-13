@@ -9,6 +9,7 @@ use sdl2::event::Event;
 use sdl2::keycode::KeyCode;
 
 use super::{ButtonState};
+use gpu::Color;
 
 pub struct Display {
     renderer: Renderer,
@@ -51,13 +52,12 @@ impl super::Display for Display {
         let _ = self.renderer.clear();
     }
 
-    fn set_pixel(&mut self, x: u32, y: u32, col: u8) {
+    fn set_pixel(&mut self, x: u32, y: u32, col: Color) {
         let col = match col {
-            3     => RGB(0x00, 0x00, 0x00),
-            2     => RGB(0x55, 0x55, 0x55),
-            1     => RGB(0xab, 0xab, 0xab),
-            0     => RGB(0xff, 0xff, 0xff),
-            _     => panic!("Unexpected color: {}", col),
+            Color::Black     => RGB(0x00, 0x00, 0x00),
+            Color::DarkGrey  => RGB(0x55, 0x55, 0x55),
+            Color::LightGrey => RGB(0xab, 0xab, 0xab),
+            Color::White     => RGB(0xff, 0xff, 0xff),
         };
 
         let _ = self.renderer.set_draw_color(col);
