@@ -664,10 +664,12 @@ impl<'a> Gpu<'a> {
 
             let y = y as uint;
 
+            let l = self.line_cache[y].len();
+
             // Insert sprite into the cache for this line. We order
             // the sprites from left to right and from highest to
             // lowest priority.
-            for i in range(0u, 10) {
+            for i in range(0u, l) {
                 match self.line_cache[y][i] {
                     None => {
                         // This cache entry is empty, use it to hold
@@ -688,7 +690,7 @@ impl<'a> Gpu<'a> {
                             // rest of the cacheline one place
                             // (discarding the last item if necessary)
                             // and insert the new entry.
-                            for j in range(i, 9).rev() {
+                            for j in range(i, l - 1).rev() {
                                 self.line_cache[y][j + 1] =
                                     self.line_cache[y][j];
                             }
@@ -725,13 +727,15 @@ impl<'a> Gpu<'a> {
     }
 
     fn render_sprite(&self, x: u8, y: u8, bg_col: AlphaColor) -> Color {
-        for i in range(0, 10) {
-            match self.line_cache[y as uint][i] {
+
+        for &entry in self.line_cache[y as uint].iter() {
+            match entry {
                 None        => break, // Nothing left in cache
                 Some(index) => {
                     let sprite = &self.oam[index as uint];
 
                     let sprite_x = (x as i32) - sprite.left_column();
+
 
                     if sprite_x >= 8 {
                         // Sprite was earlier on the line
