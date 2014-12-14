@@ -68,7 +68,7 @@ fn main() {
 
     let tick = timer.periodic(batch_duration);
 
-    'main_loop: loop {
+    loop {
         for _ in range(0, GRANULARITY) {
             cpu.step();
         }

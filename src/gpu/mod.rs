@@ -666,6 +666,12 @@ impl<'a> Gpu<'a> {
 
             let l = self.line_cache[y].len();
 
+            if self.line_cache[y][l - 1].is_some() {
+                // We reached the sprite limit for that line, we can
+                // display no more.
+                continue;
+            }
+
             // Insert sprite into the cache for this line. We order
             // the sprites from left to right and from highest to
             // lowest priority.
@@ -687,9 +693,9 @@ impl<'a> Gpu<'a> {
                            (sprite.x_pos() == other_sprite.x_pos() &&
                             index < other) {
                             // Our sprite is higher priority, move the
-                            // rest of the cacheline one place
-                            // (discarding the last item if necessary)
-                            // and insert the new entry.
+                            // rest of the cacheline one place. We
+                            // know that the last item is None since
+                            // it's checked above.
                             for j in range(i, l - 1).rev() {
                                 self.line_cache[y][j + 1] =
                                     self.line_cache[y][j];
@@ -735,7 +741,6 @@ impl<'a> Gpu<'a> {
                     let sprite = &self.oam[index as uint];
 
                     let sprite_x = (x as i32) - sprite.left_column();
-
 
                     if sprite_x >= 8 {
                         // Sprite was earlier on the line

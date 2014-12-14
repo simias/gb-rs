@@ -129,3 +129,7 @@ going to list the errors I've found here for now:
   seems not well described anywhere. I tried to put a lot of comments
   in my code to describe my approach, however I'm not sure whether
   it's 100% accurate.
+
+* When there are more than 10 sprites on a line only the 10 first in
+  OAM order are displayed. The sprite's X coordinates and priority
+  don't matter, only the position in OAM.
