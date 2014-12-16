@@ -12,6 +12,7 @@
 #[phase(plugin, link)]
 extern crate log;
 extern crate sdl2;
+extern crate time;
 
 use std::io::Timer;
 use std::time::Duration;

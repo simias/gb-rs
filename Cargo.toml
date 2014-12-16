@@ -7,3 +7,4 @@ authors = ["Lionel Flandrin <lionel@svkt.org>"]
 [dependencies]
 
 sdl2 = "0.0.10"
+time = "0.1.3"

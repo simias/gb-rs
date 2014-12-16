@@ -5,6 +5,7 @@ use std::fmt::{Show, Formatter, Error};
 use std::io::{File, Reader, Writer, IoResult, Open, ReadWrite, SeekSet};
 
 mod models;
+mod rtc;
 
 /// Common state for all cartridge types
 pub struct Cartridge {
@@ -25,6 +26,10 @@ pub struct Cartridge {
     /// Certain cartridges allow banking either the RAM or ROM
     /// depending on the value of this flag.
     bank_ram:   bool,
+    /// Certain cartridge types contain an RTC
+    rtc:        rtc::Rtc,
+    /// When RTC latch is active, contains the latched value
+    rtc_latch:  Option<rtc::Date>,
     /// struct used to handle model specific functions
     model:      models::Model,
     /// Path to the ROM image for this cartridge
@@ -53,6 +58,8 @@ impl Cartridge {
             ram_offset: 0,
             ram_wp:     false,
             bank_ram:   false,
+            rtc:        rtc::Rtc::new(),
+            rtc_latch:  None,
             model:      model,
             path:       rom_path.clone(),
             save_file:  None,
@@ -230,9 +237,9 @@ impl Cartridge {
     /// Return the value of RAM byte at `offset` in the currently
     /// selected RAM bank
     pub fn ram_byte(&self, offset: u16) -> u8 {
-        let addr = self.ram_offset + offset as uint;
+        let index = self.ram_offset + offset as uint;
 
-        (self.model.read_ram)(self, addr)
+        (self.model.read_ram)(self, index)
     }
 
     /// Return the value of a RAM byte at absolute address `addr`
@@ -247,14 +254,14 @@ impl Cartridge {
     /// Set value of RAM byte at `offset` in the curretly selected RAM
     /// bank
     pub fn set_ram_byte(&mut self, offset: u16, val: u8) {
-        let addr = self.ram_offset + offset as uint;
+        let index = self.ram_offset + offset as uint;
 
         if self.ram_wp {
             debug!("Attempt to write to cartridge RAM while protected");
             return;
         }
 
-        (self.model.write_ram)(self, addr, val);
+        (self.model.write_ram)(self, index, val);
     }
 
     /// Retrieve current ROM bank number for the bankable range at
@@ -292,11 +299,41 @@ impl Cartridge {
         self.bank_ram = v
     }
 
+    /// Retrieve the number of the currently selected ram bank
+    pub fn ram_bank(&self) -> u8 {
+        (self.ram_offset / (8 * 1024)) as u8
+    }
+
     /// Set new RAM bank number
     pub fn set_ram_bank(&mut self, bank: u8) {
         // Bankable RAM is always 8KB per bank
         self.ram_offset = bank as uint * 8 * 1024;
     }
+
+    /// Latch the current RTC value if it's not already latched
+    pub fn rtc_latch(&mut self) {
+        if self.rtc_latch.is_some() {
+            // We're already latched
+            return;
+        }
+
+        self.rtc_latch = Some(self.rtc.date());
+    }
+
+    /// Unlatch the RTC
+    pub fn rtc_freerun(&mut self) {
+        self.rtc_latch = None;
+    }
+
+    /// If the latch is active return the latched value, otherwise
+    /// return the current
+    pub fn rtc_active_date(&self) -> rtc::Date {
+        match self.rtc_latch {
+            Some(v) => v,
+            None    => self.rtc.date(),
+        }
+    }
+
 }
 
 impl Drop for Cartridge {
