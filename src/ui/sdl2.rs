@@ -52,15 +52,15 @@ impl super::Display for Display {
         let _ = self.renderer.clear();
     }
 
-    fn set_pixel(&mut self, x: u32, y: u32, col: Color) {
-        let col = match col {
+    fn set_pixel(&mut self, x: u32, y: u32, color: Color) {
+        let color = match color {
             Color::Black     => RGB(0x00, 0x00, 0x00),
             Color::DarkGrey  => RGB(0x55, 0x55, 0x55),
             Color::LightGrey => RGB(0xab, 0xab, 0xab),
             Color::White     => RGB(0xff, 0xff, 0xff),
         };
 
-        let _ = self.renderer.set_draw_color(col);
+        let _ = self.renderer.set_draw_color(color);
 
         if self.upscale == 0 {
             let _ = self.renderer.draw_point(Point::new(x as i32, y as i32));

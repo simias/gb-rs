@@ -12,8 +12,8 @@ pub struct Gpu<'a> {
     display: &'a mut (Display + 'a),
     /// Current line. [0,143] is active video, [144,153] is blanking.
     line: u8,
-    /// Position on the current line.
-    col: u16,
+    /// Counter for the horizontal period
+    htick: u16,
     /// Object attritube memory
     oam: [Sprite, ..0xa0],
     /// Video Ram
@@ -118,7 +118,7 @@ impl<'a> Gpu<'a> {
     pub fn new<'n>(display: &'n mut Display) -> Gpu<'n> {
 
         Gpu { line:                   0,
-              col:                    0,
+              htick:                  0,
               oam:                    [Sprite::new(), ..0xa0],
               vram:                   [0, ..0x2000],
               display:                display,
@@ -156,43 +156,47 @@ impl<'a> Gpu<'a> {
             return;
         }
 
-        if self.col < timings::HTOTAL {
-            self.col += 1;
-        } else {
-            // Move on to the next line
-            self.col = 0;
+        self.htick = (self.htick + 1) % timings::HTOTAL;
 
-            if self.line < timings::VTOTAL {
-                self.line += 1;
+        if self.htick == timings::HSYNC_ON {
+            // Entering horizontal blanking
 
-                if self.line == timings::VSYNC_ON {
-                    // We're entering blanking, we're done drawing the
-                    // current frame
-                    self.end_of_frame()
-                }
+            self.line = (self.line + 1) % timings::VTOTAL;
 
-            } else {
-                // New frame
-                self.line = 0;
+            if self.line == timings::VSYNC_ON {
+                // We're entering vertical blanking, we're done drawing the
+                // current frame
+                self.end_of_frame()
             }
         }
 
-        if self.col < 160 && self.line < 144 {
-            let x = self.col as u8;
+        // Compute at which cycle the first pixel will actually be
+        // output on the screen. I don't know where this comes from
+        // but it's what GearBoy seems to use. Using 48 for the first
+        // line messes up The Legend of Zelda's intro.
+        let line_start = match self.line {
+                0 => 160,
+                _ => 48,
+        };
+
+        if self.htick == line_start && self.line < timings::VSYNC_ON {
+            // It's time to draw the current line
+
             let y = self.line;
 
-            self.render_pixel(x, y);
+            for x in range(0, 160) {
+                self.render_pixel(x, y);
+            }
         }
-
         self.update_ldc_interrupt();
     }
 
     /// Return current GPU mode
     pub fn mode(&self) -> Mode {
         if self.line < timings::VSYNC_ON {
-            if self.col < timings::HACTIVE_ON {
+            if self.htick < timings::HACTIVE_ON {
                 Mode::Prelude
-            } else if self.col < timings::HSYNC_ON {
+            } else if self.htick < timings::HSYNC_ON {
                 Mode::Active
             } else {
                 Mode::HBlank
@@ -227,10 +231,10 @@ impl<'a> Gpu<'a> {
         self.bg_enabled      = lcdc & 0x01 != 0;
 
         if !self.enabled {
-            // Put ourselves at the last pixel so that we'll start
-            // back at the first pixel when we're re-enabled.
-            self.line = timings::VTOTAL;
-            self.col  = timings::HTOTAL;
+            // Reset to the first pixel to start back here once we're
+            // re-enabled.
+            self.line  = 0;
+            self.htick = 0;
         }
 
         if new_sprite_size != self.sprite_size {
@@ -808,7 +812,8 @@ impl<'a> Gpu<'a> {
 
 impl<'a> Show for Gpu<'a> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        try!(write!(f, "Gpu at ({}, {}) [{}] ", self.col, self.line, self.mode()));
+        try!(write!(f, "Gpu at ({}, {}) [{}] ",
+                    self.htick, self.line, self.mode()));
 
         Ok(())
     }

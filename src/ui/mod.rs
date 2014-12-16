@@ -9,9 +9,8 @@ pub mod sdl2;
 pub trait Display {
     /// Clear the display
     fn clear(&mut self);
-    /// Set pixel at (x, y). (0, 0) is top left. col is in the range
-    /// [0, 3] where 0 is white and 3 is black.
-    fn set_pixel(&mut self, x: u32, y: u32, col: ::gpu::Color);
+    /// Paint pixel at (x, y) using `color`. (0, 0) is top left.
+    fn set_pixel(&mut self, x: u32, y: u32, color: ::gpu::Color);
     /// Current frame is done and can be displayed.
     fn flip(&mut self);
 }
