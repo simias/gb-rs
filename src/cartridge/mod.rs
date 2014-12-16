@@ -158,8 +158,9 @@ impl Cartridge {
                 break;
             }
 
-            // Only uppercase ASCII is valid
-            if !(c.is_uppercase() || c.is_blank() || c.is_punctuation()) {
+            // Only uppercase ASCII is valid, but let's be a little
+            // more lenient
+            if !c.is_print() {
                 return None;
             }
 
