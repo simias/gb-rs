@@ -73,6 +73,10 @@ pub static BOOTROM: [u8, ..0x100] = [
 
     // init_scroll:
     0x67,             // LD     H A
+    // Changing the following value to from 0x64 to 0x01 skips the
+    // whole scrolling logo by displaying it directly in the middle of
+    // the screen which makes the intro much shorter while having no
+    // side effect that I know of.
     0x3E, 0x64,       // LD     A 0x64
     0x57,             // LD     D A
     0xE0, 0x42,       // LD     [0xff00 + #SCY] A
@@ -118,7 +122,7 @@ pub static BOOTROM: [u8, ..0x100] = [
     0x15,             // DEC    D
     0x20, 0xD2,       // JR NZ  scroll_loop
     0x05,             // DEC    B
-    0x20, 0x4F,       // JN NZ  validate_cart
+    0x20, 0x4F,       // JR NZ  validate_cart
     0x16, 0x20,       // LD     D 0x20
     0x18, 0xCB,       // JR     scroll_loop
 
