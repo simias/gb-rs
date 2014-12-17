@@ -72,24 +72,24 @@ impl<'a> Cpu<'a> {
         // Default register values at startup. Taken from the
         // unofficial Game Boy CPU manual.
         let regs = Registers {
-            pc: 0x100,
-            sp: 0xfff2,
-            a : 0x01,
-            b : 0x00,
-            c : 0x13,
-            d : 0x00,
-            e : 0xd8,
-            h : 0x01,
-            l : 0x4d,
+            pc: 0,
+            sp: 0,
+            a : 0,
+            b : 0,
+            c : 0,
+            d : 0,
+            e : 0,
+            h : 0,
+            l : 0,
         };
 
         Cpu {
             instruction_delay: 0,
             regs: regs,
-            flags: Flags { z: true,
+            flags: Flags { z: false,
                            n: false,
-                           h: true,
-                           c: true,
+                           h: false,
+                           c: false,
             },
             inter:            inter,
             iten:             true,

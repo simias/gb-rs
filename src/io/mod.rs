@@ -8,6 +8,8 @@ pub mod ram;
 pub mod timer;
 pub mod buttons;
 
+mod bootrom;
+
 /// Interconnect struct used by the CPU and GPU to access the ROM, RAM
 /// and registers
 pub struct Interconnect<'a> {
@@ -32,6 +34,10 @@ pub struct Interconnect<'a> {
     dma_idx:    u16,
     /// Controller interface
     buttons:    buttons::Buttons<'a>,
+    /// The game boy starts up mapping the bootrom at address 0. Once
+    /// it's run it gets unmapped (by writing 0x01 to UNMAP_BOOTROM)
+    /// and remains inaccessible until the next reboot.
+    bootrom:    bool,
 }
 
 impl<'a> Interconnect<'a> {
@@ -60,6 +66,7 @@ impl<'a> Interconnect<'a> {
                        dma_src:    0,
                        dma_idx:    map::range_size(map::OAM),
                        buttons:    buttons,
+                       bootrom:    true,
         }
     }
 
@@ -88,6 +95,11 @@ impl<'a> Interconnect<'a> {
     pub fn fetch_byte(&self, addr: u16) -> u8 {
 
         if let Some(off) = map::in_range(addr, map::ROM) {
+            if self.bootrom && off < 0x100 {
+                // Read from the bootrom
+                return bootrom::BOOTROM[off as uint];
+            }
+
             return self.cartridge.rom_byte(off);
         }
 
@@ -163,6 +175,13 @@ impl<'a> Interconnect<'a> {
 
         if addr == map::IEN {
             return self.it_enabled = Interrupts::from_register(val);
+        }
+
+        if self.bootrom && addr == map::UNMAP_BOOTROM {
+            if val ==  1 {
+                self.bootrom = false;
+            }
+            return;
         }
 
         debug!("Write to unmapped memory {:04x}: {:02x}", addr, val);
@@ -412,23 +431,26 @@ mod map {
     //! Game Boy memory map. Memory ranges are inclusive.
 
     /// ROM
-    pub const ROM:       (u16, u16) = (0x0000, 0x7fff);
+    pub const ROM:           (u16, u16) = (0x0000, 0x7fff);
     /// Video RAM
-    pub const VRAM:      (u16, u16) = (0x8000, 0x9fff);
+    pub const VRAM:          (u16, u16) = (0x8000, 0x9fff);
     /// RAM Bank N
-    pub const RAM_BANK:  (u16, u16) = (0xa000, 0xbfff);
+    pub const RAM_BANK:      (u16, u16) = (0xa000, 0xbfff);
     /// Internal RAM
-    pub const IRAM:      (u16, u16) = (0xc000, 0xdfff);
+    pub const IRAM:          (u16, u16) = (0xc000, 0xdfff);
     /// Internal RAM echo
-    pub const IRAM_ECHO: (u16, u16) = (0xe000, 0xfdff);
+    pub const IRAM_ECHO:     (u16, u16) = (0xe000, 0xfdff);
     /// Object Attribute Memory
-    pub const OAM:       (u16, u16) = (0xfe00, 0xfe9f);
+    pub const OAM:           (u16, u16) = (0xfe00, 0xfe9f);
     /// IO ports
-    pub const IO:        (u16, u16) = (0xff00, 0xff4b);
+    pub const IO:            (u16, u16) = (0xff00, 0xff4b);
+    /// Register used to unmap the bootrom. Should not be used by
+    /// regular games.
+    pub const UNMAP_BOOTROM: u16        = 0xff50;
     /// Zero page memory
-    pub const ZERO_PAGE: (u16, u16) = (0xff80, 0xfffe);
+    pub const ZERO_PAGE:     (u16, u16) = (0xff80, 0xfffe);
     /// Interrupt Enable register
-    pub const IEN:       u16        = 0xffff;
+    pub const IEN:           u16        = 0xffff;
 
     /// Return `Some(offset)` if the given address is in the inclusive
     /// range `range`, Where `offset` is an u16 equal to the offset of
@@ -491,5 +513,4 @@ mod io_map {
     pub const LCD_WY:   u16 = 0x4a;
     /// Window X position + 7
     pub const LCD_WX:   u16 = 0x4b;
-
 }

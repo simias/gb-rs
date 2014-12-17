@@ -7,9 +7,9 @@ pub struct Ram {
 
 impl Ram {
     /// Create a new RAM. The default RAM values are undetermined so I
-    /// just fill it with 0s
+    /// just fill it with garbage
     pub fn new(size: uint) -> Ram {
-        let data = Vec::from_elem(size, 0);
+        let data = Vec::from_elem(size, 0xca);
 
         Ram { data: data }
     }
