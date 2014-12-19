@@ -295,7 +295,7 @@ impl<'a> Gpu<'a> {
         self.iten_lyc     = stat & 0x40 != 0;
         self.iten_prelude = stat & 0x20 != 0;
         self.iten_vblank  = stat & 0x10 != 0;
-        self.iten_hblank  = stat & 0x03 != 0;
+        self.iten_hblank  = stat & 0x08 != 0;
         // Other fields are R/O
 
         // Update interrupt status with new stat params
