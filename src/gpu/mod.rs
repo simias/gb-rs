@@ -1,6 +1,5 @@
 //! Game Boy GPU emulation
 
-use std::fmt::{Show, Formatter, Error};
 use ui::Display;
 use gpu::sprite::Sprite;
 
@@ -810,15 +809,6 @@ impl<'a> Gpu<'a> {
 
 }
 
-impl<'a> Show for Gpu<'a> {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        try!(write!(f, "Gpu at ({}, {}) [{}] ",
-                    self.htick, self.line, self.mode()));
-
-        Ok(())
-    }
-}
-
 /// All possible color values on the original game boy
 #[deriving(PartialEq,Eq,Copy)]
 pub enum Color {
@@ -1000,5 +990,48 @@ mod tests {
 
             assert!(c as u8 == v);
         }
+    }
+
+    /// Dummy display interface for testing purpose
+    struct DummyDisplay;
+
+    impl ::ui::Display for DummyDisplay {
+        fn clear(&mut self) {
+        }
+
+        fn set_pixel(&mut self, _: u32, _: u32, _: super::Color) {
+        }
+
+        fn flip(&mut self) {
+        }
+    }
+
+    /// Test that the GPU state remains the same after a fixed number
+    /// of steps. The point is to help spot regressions.
+    #[test]
+    fn gpu_step() {
+        let mut d = DummyDisplay;
+        let mut gpu = super::Gpu::new(&mut d);
+
+        for _ in range(0u, 1000) {
+            gpu.step();
+        }
+
+        assert!(gpu.line == 0);
+        assert!(gpu.htick == 0);
+        assert!(gpu.mode() == super::Mode::Prelude);
+        assert!(gpu.it_vblank == false);
+
+        // Enable the LCD
+        gpu.set_lcdc(0xff);
+
+        for _ in range(0u, 100000) {
+            gpu.step();
+        }
+
+        assert!(gpu.line == 65);
+        assert!(gpu.htick == 136);
+        assert!(gpu.mode() == super::Mode::Active);
+        assert!(gpu.it_vblank == true);
     }
 }

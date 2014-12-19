@@ -71,11 +71,10 @@ Games that are playable:
 * Earthworm Jim
 * Super Mario Land 1, 2 and 3
 * Pokemon Red/Blue
+* Space Invaders
 
 Games that are broken somehow:
 
-* Space Invaders: the menu works but the actual levels are completely
-  messed up.
 * Super Mario 4: technically playable but lot of visual glitches
 * Bomberman: the intro and menu display correctly but the input
   doesn't seem to register.
