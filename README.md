@@ -48,6 +48,12 @@ The defaults are:
 
 The `Escape` key exits the emulator.
 
+By default the emulator is built with the original Gameboy bootrom
+which scrolls the logo down the screen before actually jumping into
+the game. By building with the `--features sgb_bootrom` option you can
+opt to use the Super Game Boy bootrom instead which is much faster to
+boot up.
+
 Game Support
 ------------
 

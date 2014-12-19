@@ -4,6 +4,23 @@ name = "gb-rs"
 version = "0.0.1"
 authors = ["Lionel Flandrin <lionel@svkt.org>"]
 
+keywords = ["emulator", "gameboy"]
+
+readme = "README.md"
+
+description = "GameBoy emulator"
+
+license = "MIT"
+
+[features]
+
+# Select the Super Gameboy bootrom instead of the classic one. It
+# doesn't have the scrolling logo and starts up faster. None of the
+# SGB-specific features will be handled but that shouldn't cause any
+# compatibility issues besides the fact that it will accept to run
+# ROMs with invalid headers unlike the original bootrom.
+sgb_bootrom = []
+
 [dependencies]
 
 sdl2 = "0.0.11"
