@@ -73,3 +73,46 @@ impl Buttons {
         }
     }
 }
+
+#[cfg(test)]
+pub mod dummy {
+    //! Dummy implementations of the user interface for use in tests
+    //! and benchmarks
+
+    use std::cell::Cell;
+
+    pub struct DummyDisplay;
+
+    impl super::Display for DummyDisplay {
+        fn clear(&mut self) {
+        }
+
+        fn set_pixel(&mut self, _: u32, _: u32, _: ::gpu::Color) {
+        }
+
+        fn flip(&mut self) {
+        }
+    }
+
+    pub struct DummyController {
+        buttons: Cell<super::Buttons>,
+    }
+
+    impl DummyController {
+        pub fn new() -> DummyController {
+            DummyController {
+                buttons: Cell::new(super::Buttons::new(super::ButtonState::Up)),
+            }
+        }
+    }
+
+    impl super::Controller for DummyController {
+        fn update(&self) -> super::Event {
+            super::Event::None
+        }
+
+        fn buttons(&self) -> &Cell<super::Buttons> {
+            &self.buttons
+        }
+    }
+}

@@ -51,7 +51,7 @@ impl Cartridge {
             rom_bank:   1,
             rom_offset: 0,
             ram_offset: 0,
-            ram_wp:     false,
+            ram_wp:     true,
             bank_ram:   false,
             model:      model,
             path:       rom_path.clone(),
@@ -296,6 +296,25 @@ impl Cartridge {
     pub fn set_ram_bank(&mut self, bank: u8) {
         // Bankable RAM is always 8KB per bank
         self.ram_offset = bank as uint * 8 * 1024;
+    }
+
+    /// Create a Cartridge instance from a ROM provided in a
+    /// Vec<u8>. Usefull for tests. Creates a MBC0 model without
+    /// banking.
+    #[cfg(test)]
+    pub fn from_vec(rom: Vec<u8>) -> Cartridge {
+        Cartridge {
+            rom:        rom,
+            ram:        Vec::new(),
+            rom_bank:   1,
+            rom_offset: 0,
+            ram_offset: 0,
+            ram_wp:     true,
+            bank_ram:   false,
+            model:      models::from_id(0x00),
+            path:       Path::new("dummy"),
+            save_file:  None,
+        }
     }
 }
 

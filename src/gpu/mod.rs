@@ -992,25 +992,11 @@ mod tests {
         }
     }
 
-    /// Dummy display interface for testing purpose
-    struct DummyDisplay;
-
-    impl ::ui::Display for DummyDisplay {
-        fn clear(&mut self) {
-        }
-
-        fn set_pixel(&mut self, _: u32, _: u32, _: super::Color) {
-        }
-
-        fn flip(&mut self) {
-        }
-    }
-
     /// Test that the GPU state remains the same after a fixed number
     /// of steps. The point is to help spot regressions.
     #[test]
     fn gpu_step() {
-        let mut d = DummyDisplay;
+        let mut d = ::ui::dummy::DummyDisplay;
         let mut gpu = super::Gpu::new(&mut d);
 
         for _ in range(0u, 1000) {

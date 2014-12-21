@@ -13,6 +13,9 @@
 extern crate log;
 extern crate sdl2;
 
+#[cfg(test)]
+extern crate test;
+
 use std::io::Timer;
 use std::time::Duration;
 use ui::Controller;
@@ -91,3 +94,35 @@ const GRANULARITY:      i64 = 0x10000;
 
 /// Gameboy sysclk frequency: 4.19Mhz
 const SYSCLK_FREQ:      i64 = 0x400000;
+
+
+#[cfg(test)]
+mod benchmark {
+    use test::Bencher;
+    use ui::Controller;
+
+    #[bench]
+    fn bench_rom(b: &mut Bencher) {
+        let mut display = ::ui::dummy::DummyDisplay;
+        let controller  = ::ui::dummy::DummyController::new();
+
+        let rom = Vec::from_elem(0x4000, 0x00);
+        let cart = ::cartridge::Cartridge::from_vec(rom);
+
+        let gpu = ::gpu::Gpu::new(&mut display);
+
+        let inter = ::io::Interconnect::new(cart, gpu, controller.buttons());
+
+        let mut cpu = ::cpu::Cpu::new(inter);
+
+        b.iter(|| {
+            cpu.reset();
+
+            // Simulate 100ms of emulated time so that the benchmark
+            // doesn't run for too long.
+            for _ in range(0, super::SYSCLK_FREQ / 10) {
+                cpu.step();
+            }
+        });
+    }
+}

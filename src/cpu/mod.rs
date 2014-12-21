@@ -464,6 +464,12 @@ impl<'a> Cpu<'a> {
         println!("{}", *self);
         panic!("STOP is not implemented");
     }
+
+    // Partial reset procedure used for benchmarks
+    #[cfg(test)]
+    pub fn reset(&mut self) {
+        self.set_pc(0);
+    }
 }
 
 impl<'a> Show for Cpu<'a> {
