@@ -42,10 +42,9 @@ struct Registers {
     d:  u8,
     /// 8bit `E` register
     e:  u8,
-    /// 8bit `H` register
-    h:  u8,
-    /// 8bit `L` register
-    l:  u8,
+    /// 16bit `HL` register. This register can be split in `H` and `L`
+    /// like the others but it's often used as a 16bit memory pointer.
+    hl: u16,
 }
 
 /// Flags contain `bool`s which are set or unset as a side effect of
@@ -79,8 +78,7 @@ impl<'a> Cpu<'a> {
             c : 0,
             d : 0,
             e : 0,
-            h : 0,
-            l : 0,
+            hl: 0,
         };
 
         Cpu {
@@ -295,17 +293,12 @@ impl<'a> Cpu<'a> {
 
     /// Retrieve value of the `HL` register
     fn hl(&self) -> u16 {
-        let mut v = self.regs.l as u16;
-
-        v |= (self.regs.h as u16) << 8;
-
-        v
+        self.regs.hl
     }
 
     /// Set value of the `HL` register
     fn set_hl(&mut self, hl: u16) {
-        self.regs.h = (hl >> 8) as u8;
-        self.regs.l = hl as u8;
+        self.regs.hl = hl
     }
 
     /// Retrieve value of the `A` register
@@ -378,22 +371,32 @@ impl<'a> Cpu<'a> {
 
     /// Retrieve value of the `H` register
     fn h(&self) -> u8 {
-        self.regs.h
+        (self.regs.hl >> 8) as u8
     }
 
     /// Set value of the `H` register
     fn set_h(&mut self, v: u8) {
-        self.regs.h = v;
+        let mut hl = self.hl();
+
+        hl &= 0xff;
+        hl |= (v as u16) << 8;
+
+        self.set_hl(hl);
     }
 
     /// Retrieve value of the `L` register
     fn l(&self) -> u8 {
-        self.regs.l
+        self.regs.hl as u8
     }
 
     /// Set value of the `L` register
     fn set_l(&mut self, v: u8) {
-        self.regs.l = v;
+        let mut hl = self.hl();
+
+        hl &= 0xff00;
+        hl |= v as u16;
+
+        self.set_hl(hl);
     }
 
     /// Get value of 'Z' flag
