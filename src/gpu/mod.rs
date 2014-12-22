@@ -13,6 +13,8 @@ pub struct Gpu<'a> {
     line: u8,
     /// Counter for the horizontal period
     htick: u16,
+    /// Current display mode
+    mode: Mode,
     /// Object attritube memory
     oam: [Sprite, ..0xa0],
     /// Video Ram
@@ -70,7 +72,7 @@ pub struct Gpu<'a> {
 }
 
 /// Current GPU mode
-#[deriving(Show, PartialEq)]
+#[deriving(Show,PartialEq,Copy)]
 pub enum Mode {
     /// In horizontal blanking
     HBlank = 0,
@@ -118,6 +120,7 @@ impl<'a> Gpu<'a> {
 
         Gpu { line:                   0,
               htick:                  0,
+              mode:                   Mode::Prelude,
               oam:                    [Sprite::new(), ..0xa0],
               vram:                   [0xca, ..0x2000],
               display:                display,
@@ -157,28 +160,54 @@ impl<'a> Gpu<'a> {
 
         self.htick = (self.htick + 1) % timings::HTOTAL;
 
-        if self.htick == timings::HSYNC_ON {
-            // Entering horizontal blanking
+        let cur_mode = self.mode;
 
-            self.line = (self.line + 1) % timings::VTOTAL;
+        let new_mode =
+            if cur_mode == Mode::VBlank {
+                if self.htick == 0 {
+                    self.line = (self.line + 1) % timings::VTOTAL;
 
-            if self.line == timings::VSYNC_ON {
-                // We're entering vertical blanking, we're done drawing the
-                // current frame
-                self.end_of_frame()
-            }
-        }
+                    if self.line == 0 {
+                        Mode::Prelude
+                    } else {
+                        cur_mode
+                    }
+                } else {
+                    cur_mode
+                }
+            } else {
+                match self.htick {
+                    0 => {
+                        // New line
+                        self.line += 1;
+                        if self.line == timings::VSYNC_ON {
+                            // We're entering vertical blanking, we're
+                            // done drawing the current frame
+                            self.end_of_frame();
+                            Mode::VBlank
+                        } else {
+                            Mode::Prelude
+                        }
+                    }
+                    timings::HACTIVE_ON => Mode::Active,
+                    timings::HSYNC_ON   => Mode::HBlank,
+                    _                   => cur_mode,
+                }
+            };
+
+        self.mode = new_mode;
 
         // Compute at which cycle the first pixel will actually be
         // output on the screen. I don't know where this comes from
         // but it's what GearBoy seems to use. Using 48 for the first
         // line messes up The Legend of Zelda's intro.
-        let line_start = match self.line {
+        let line_start = timings::HACTIVE_ON +
+            match self.line {
                 0 => 160,
                 _ => 48,
-        };
+            };
 
-        if self.htick == line_start && self.line < timings::VSYNC_ON {
+        if self.htick == line_start && self.mode != Mode::VBlank {
             // It's time to draw the current line
 
             let y = self.line;
@@ -192,17 +221,7 @@ impl<'a> Gpu<'a> {
 
     /// Return current GPU mode
     pub fn mode(&self) -> Mode {
-        if self.line < timings::VSYNC_ON {
-            if self.htick < timings::HACTIVE_ON {
-                Mode::Prelude
-            } else if self.htick < timings::HSYNC_ON {
-                Mode::Active
-            } else {
-                Mode::HBlank
-            }
-        } else {
-            Mode::VBlank
-        }
+        self.mode
     }
 
     /// Handle reconfig through LCDC register
@@ -959,7 +978,7 @@ mod timings {
     /// Beginning of Active period
     pub const HACTIVE_ON: u16 = 80;
     /// Beginning of HSync period
-    pub const HSYNC_ON:   u16 = 173;
+    pub const HSYNC_ON:   u16 = 252;
 
     /// Total number of lines (including vblank)
     pub const VTOTAL:   u8 = 154;
