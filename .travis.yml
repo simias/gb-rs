@@ -13,7 +13,7 @@ install:
     - sudo make install
     - cd -
 before_script:
-  - rustc -v
+  - rustc --version
   - cargo -V
 script:
   - cargo build -v
