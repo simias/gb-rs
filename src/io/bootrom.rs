@@ -146,7 +146,7 @@ pub static BOOTROM: [u8, ..0x100] = [
     0x23,             // INC    HL
     0xC9,             // RET
 
-    // expected_csum: bytes
+    // expected_header: bytes
     0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B,
     0x03, 0x73, 0x00, 0x83, 0x00, 0x0C, 0x00, 0x0D,
     0x00, 0x08, 0x11, 0x1F, 0x88, 0x89, 0x00, 0x0E,
@@ -159,8 +159,8 @@ pub static BOOTROM: [u8, ..0x100] = [
 
     // validate_cart:
     0x21, 0x04, 0x01, // LD     HL, 0x0104
-    0x11, 0xA8, 0x00, // LD     DE, #expected_csum
-    // checksum_check:
+    0x11, 0xA8, 0x00, // LD     DE, #expected_header
+    // check_header:
     0x1A,             // LD     A [DE]
     0x13,             // INC    DE
     0xBE,             // CP     A [HL]
@@ -170,7 +170,7 @@ pub static BOOTROM: [u8, ..0x100] = [
     0x23,             // INC    HL
     0x7D,             // LD     A L
     0xFE, 0x34,       // CP     A 0x32
-    0x20, 0xF5,       // JR NZ  checksum_check
+    0x20, 0xF5,       // JR NZ  check_header
     0x06, 0x19,       // LD     B 0x19
     0x78,             // LD     A B
     // header_sum
