@@ -62,7 +62,7 @@ impl Cartridge {
             rom_bank:   1,
             rom_offset: 0,
             ram_offset: 0,
-            ram_wp:     true,
+            ram_wp:     false,
             bank_ram:   false,
             model:      model,
             path:       PathBuf::from(rom_path),
@@ -263,6 +263,8 @@ impl Cartridge {
     pub fn ram_byte(&self, offset: u16) -> u8 {
         let addr = self.ram_offset + offset as u32;
 
+        debug!("RAM read @ {:x}", addr);
+
         (self.model.read_ram)(self, addr)
     }
 
@@ -281,7 +283,8 @@ impl Cartridge {
         let addr = self.ram_offset + offset as u32;
 
         if self.ram_wp {
-            debug!("Attempt to write to cartridge RAM while protected");
+            debug!("Attempt to write to cartridge RAM \
+                    while protected: {:x} {:02x}", offset, val);
             return;
         }
 

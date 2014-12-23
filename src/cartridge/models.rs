@@ -206,6 +206,63 @@ mod mbc3 {
         };
 }
 
+mod camera {
+    //! Game Boy Camera cartridge emulation
+    use super::Model;
+    use cartridge::Cartridge;
+
+    fn write_rom(cart: &mut Cartridge, offset: u16, val: u8) {
+        match offset {
+            0x0000...0x1fff => {
+                // Writing a low nibble 0xa to anywhere in that
+                // address range removes RAM write protect, All other
+                // values enable it.
+                //println!("set ram_wp {:02x}", val);
+                cart.set_ram_wp(false);
+                //cart.set_ram_wp(val & 0xf != 0xa);
+            }
+            0x2000...0x3fff => {
+                // Select a new ROM bank
+                //println!("set rom bank {:02x}", val);
+                super::set_rom_bank(cart, val & 0x7f);
+            }
+            0x4000...0x5fff => {
+                //println!("set ram bank {:02x}", val);
+                // Select a new RAM bank
+                cart.set_ram_bank(val);
+            }
+            _ =>
+                debug!("Unhandled ROM write: {:04x} {:02x}", offset, val),
+        }
+    }
+
+    /// Default implementation of write_ram, suitable for most cartridges
+    fn write_ram(cart: &mut Cartridge, addr: u32, val: u8) {
+        if let Some(b) = cart.ram_byte_absolute_mut(addr) {
+            *b = val;
+        }
+    }
+
+    /// Default implementation of read_ram, suitable for most cartridges
+    fn read_ram(cart: &Cartridge, addr: u32) -> u8 {
+        let img = include_bytes!("img.gbcam");
+
+        if addr >= 0x100 && addr < 0x1000 {
+            *img.get(addr as usize - 0x100).unwrap_or(&0xff)
+        } else {
+            cart.ram_byte_absolute(addr)
+        }
+    }
+
+    pub static MODEL: Model =
+        Model { name:      "GB Camera",
+                write_rom: write_rom,
+                write_ram: write_ram,
+                read_ram:  read_ram,
+        };
+}
+
+
 /// Return a cartridge instance for a given cartridge type
 pub fn from_id(id: u8) -> Model {
     match id {
@@ -213,6 +270,7 @@ pub fn from_id(id: u8) -> Model {
         0x01...0x03 => mbc1::MODEL,
         0x05...0x06 => mbc2::MODEL,
         0x0f...0x13 => mbc3::MODEL,
+        0xfc        => camera::MODEL,
         _           => panic!("Unknown cartridge model 0x{:02x}", id),
     }
 }
