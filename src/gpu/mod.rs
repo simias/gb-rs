@@ -15,8 +15,8 @@ pub struct Gpu<'a> {
     htick: u16,
     /// Current display mode
     mode: Mode,
-    /// Object attritube memory
-    oam: [Sprite, ..0xa0],
+    /// Object attritube memory, 40 sprites long
+    oam: [Sprite, ..40],
     /// Video Ram
     vram: [u8, ..0x2000],
     /// `true` if the LCD is enabled.
@@ -121,7 +121,7 @@ impl<'a> Gpu<'a> {
         Gpu { line:                   0,
               htick:                  0,
               mode:                   Mode::Prelude,
-              oam:                    [Sprite::new(), ..0xa0],
+              oam:                    [Sprite::new(), ..40],
               vram:                   [0xca, ..0x2000],
               display:                display,
               enabled:                false,
@@ -226,6 +226,7 @@ impl<'a> Gpu<'a> {
 
     /// Handle reconfig through LCDC register
     pub fn set_lcdc(&mut self, lcdc: u8) {
+
         self.enabled          = lcdc & 0x80 != 0;
         self.window_tile_map  = match lcdc & 0x40 != 0 {
             true  => TileMap::High,
@@ -738,7 +739,7 @@ impl<'a> Gpu<'a> {
             // Window is always on top of background
             if self.window_enabled && self.in_window(x, y) {
                 self.window_color(x, y)
-            } else if self.bg_enabled && self.bg_enabled {
+            } else if self.bg_enabled {
                 self.background_color(x, y)
             } else {
                 // No background or window
