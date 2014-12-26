@@ -126,6 +126,8 @@ impl super::Controller for Controller {
                     self.update_key(key, ButtonState::Down),
                 Event::KeyUp(_, _, key, _, _, _) =>
                     self.update_key(key, ButtonState::Up),
+                Event::Quit(_) =>
+                    event = super::Event::PowerOff,
                 _ => ()
             }
         }
