@@ -96,7 +96,7 @@ impl Timer {
             1 => Divider::Div16,
             2 => Divider::Div64,
             3 => Divider::Div256,
-            _ => panic!("Unreachable"),
+            _ => unreachable!(),
         };
     }
 

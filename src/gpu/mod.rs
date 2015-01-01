@@ -435,7 +435,7 @@ impl<'a> Gpu<'a> {
             1 => sprite.x_pos(),
             2 => sprite.tile(),
             3 => sprite.flags(),
-            _ => panic!("unreachable"),
+            _ => unreachable!(),
         }
     }
 
@@ -473,7 +473,7 @@ impl<'a> Gpu<'a> {
                     sprite.set_flags(val);
                     false
                 }
-                _ => panic!("unreachable"),
+                _ => unreachable!(),
             }
         };
 
