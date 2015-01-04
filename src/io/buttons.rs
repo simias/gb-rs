@@ -8,7 +8,6 @@
 
 
 use std::cell::Cell;
-use ui::ButtonState;
 
 pub struct Buttons<'a> {
     /// `true` if the "directions" line is active
@@ -28,58 +27,35 @@ impl<'a> Buttons<'a> {
         }
     }
 
+    /// Return the value of the INPUT register. Lines are to 1 when
+    /// inactive.
     pub fn input(&self) -> u8 {
         let buttons = self.buttons.get();
 
-        let mut r = 0;
+        // For simplicity we'll mark the active lines with 1 and
+        // invert the value at the end
+        let mut active = 0;
 
         if self.directions_selected {
-            r |= match buttons.right {
-                ButtonState::Up => 1,
-                _               => 0,
-            } << 0;
+            active |= 0x10;
 
-            r |= match buttons.left {
-                ButtonState::Up => 1,
-                _               => 0,
-            } << 1;
-
-            r |= match buttons.up {
-                ButtonState::Up => 1,
-                _               => 0,
-            } << 2;
-
-
-            r |= match buttons.down {
-                ButtonState::Up => 1,
-                _               => 0,
-            } << 3;
+            active |= buttons.right.is_down() as u8 << 0;
+            active |= buttons.left .is_down() as u8 << 1;
+            active |= buttons.up   .is_down() as u8 << 2;
+            active |= buttons.down .is_down() as u8 << 3;
         }
 
         if self.buttons_selected {
-            r |= match buttons.a {
-                ButtonState::Up => 1,
-                _               => 0,
-            } << 0;
+            active |= 0x20;
 
-            r |= match buttons.b {
-                ButtonState::Up => 1,
-                _               => 0,
-            } << 1;
-
-            r |= match buttons.select {
-                ButtonState::Up => 1,
-                _               => 0,
-            } << 2;
-
-
-            r |= match buttons.start {
-                ButtonState::Up => 1,
-                _               => 0,
-            } << 3;
+            active |= buttons.a     .is_down() as u8 << 0;
+            active |= buttons.b     .is_down() as u8 << 1;
+            active |= buttons.select.is_down() as u8 << 2;
+            active |= buttons.start .is_down() as u8 << 3;
         }
 
-        r
+        // Now we can complement the value and return it
+        !active
     }
 
     pub fn set_input(&mut self, val: u8)  {

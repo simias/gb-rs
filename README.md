@@ -69,15 +69,16 @@ Games that are playable:
 * Bubble Ghost
 * Castelian
 * Earthworm Jim
-* Super Mario Land 1, 2 and 3
+* Super Mario Land 2 and 3 and 4 (homebrew)
 * Pokemon Red/Blue
 * Space Invaders
+* Bomberman
 
 Games that are broken somehow:
 
-* Super Mario 4: technically playable but lot of visual glitches
-* Bomberman: the intro and menu display correctly but the input
-  doesn't seem to register.
+* Super Mario 1: the game bugs out back to the home screen when
+  starting the first time, then seems to play correctly. It used to
+  work fine, there's a regression.
 
 Ressources
 ----------

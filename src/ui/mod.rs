@@ -42,6 +42,15 @@ pub enum ButtonState {
     Up,
 }
 
+impl ButtonState {
+    pub fn is_down(self) -> bool {
+        match self {
+            ButtonState::Down => true,
+            _                 => false,
+        }
+    }
+}
+
 /// State of all the GB buttons
 #[deriving(Show,Copy)]
 pub struct Buttons {
