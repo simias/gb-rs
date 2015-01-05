@@ -3,7 +3,7 @@
 use super::Cartridge;
 
 /// Interface to model-specific operations
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct Model {
     /// String identifier
     pub name:      &'static str,

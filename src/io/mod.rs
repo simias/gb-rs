@@ -25,7 +25,7 @@ pub struct Interconnect<'a> {
     gpu:        Gpu<'a>,
     /// Used to store the value of IO Port when not properly
     /// implemented.
-    io:         [u8, ..0x4c],
+    io:         [u8; 0x4c],
     /// Enabled interrupts
     it_enabled: Interrupts,
     /// Current DMA source address
@@ -48,7 +48,7 @@ impl<'a> Interconnect<'a> {
 
         let iram = ram::Ram::new(0x2000);
         let zpage = ram::Ram::new(0x7f);
-        let io = [0, ..0x4c];
+        let io = [0; 0x4c];
 
         let timer = timer::Timer::new();
 

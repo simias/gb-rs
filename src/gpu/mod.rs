@@ -16,9 +16,9 @@ pub struct Gpu<'a> {
     /// Current display mode
     mode: Mode,
     /// Object attritube memory, 40 sprites long
-    oam: [Sprite, ..40],
+    oam: [Sprite; 40],
     /// Video Ram
-    vram: [u8, ..0x2000],
+    vram: [u8; 0x2000],
     /// `true` if the LCD is enabled.
     enabled: bool,
     /// Which tile map the window uses
@@ -68,11 +68,11 @@ pub struct Gpu<'a> {
     /// Sprites displayed on each line. Contains an index into OAM or
     /// None. There can't be more than 10 sprites displayed on each
     /// line.
-    line_cache: [[Option<u8>, ..10], ..144],
+    line_cache: [[Option<u8>; 10]; 144],
 }
 
 /// Current GPU mode
-#[deriving(Show,PartialEq,Copy)]
+#[derive(Show,PartialEq,Copy)]
 pub enum Mode {
     /// In horizontal blanking
     HBlank = 0,
@@ -103,7 +103,7 @@ pub enum Mode {
 /// However, if the LYC register value is changed in the middle of the
 /// line and the LY == LYC is no longer true, the IT signal will go
 /// low and can be triggered again in the same line.
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 enum LcdItStatus {
     /// Interrupt is inactive
     Inactive,
@@ -121,8 +121,8 @@ impl<'a> Gpu<'a> {
         Gpu { line:                   0,
               htick:                  0,
               mode:                   Mode::Prelude,
-              oam:                    [Sprite::new(), ..40],
-              vram:                   [0xca, ..0x2000],
+              oam:                    [Sprite::new(); 40],
+              vram:                   [0xca; 0x2000],
               display:                display,
               enabled:                false,
               window_tile_map:        TileMap::Low,
@@ -146,7 +146,7 @@ impl<'a> Gpu<'a> {
               scx:                    0,
               wx:                     0,
               wy:                     0,
-              line_cache:             [[None, ..10], ..144],
+              line_cache:             [[None; 10]; 144],
         }
     }
 
@@ -664,7 +664,7 @@ impl<'a> Gpu<'a> {
     /// expensive.
     fn rebuild_line_cache(&mut self) {
         // Clear the cache
-        self.line_cache = [[None, ..10], ..144];
+        self.line_cache = [[None; 10]; 144];
 
         // Rebuild it
         for i in range(0, self.oam.len()) {
@@ -830,7 +830,7 @@ impl<'a> Gpu<'a> {
 }
 
 /// All possible color values on the original game boy
-#[deriving(PartialEq,Eq,Copy)]
+#[derive(PartialEq,Eq,Copy)]
 pub enum Color {
     White     = 0,
     LightGrey = 1,
@@ -852,11 +852,11 @@ impl Color {
 }
 
 /// Palette description
-#[deriving(Copy)]
+#[derive(Copy)]
 struct Palette {
     /// Each color can be mapped to an other one independently of the
     /// others
-    map: [Color, ..4],
+    map: [Color; 4],
 }
 
 impl Palette {
@@ -909,7 +909,7 @@ struct AlphaColor {
 /// There are two tile maps available on the GameBoy. Each map is
 /// 32x32x8bits large and contain index values into the tile set for
 /// each map.
-#[deriving(Copy)]
+#[derive(Copy)]
 enum TileMap {
     /// Low map at addresse range [0x9800, 0x9bff]
     Low,
@@ -929,7 +929,7 @@ impl TileMap {
 
 /// There are two overlapping tile sets on the Game Boy. Tile sets are
 /// 256x16byte large, entries are indexed into the `TileMap`.
-#[deriving(Copy)]
+#[derive(Copy)]
 enum TileSet {
     /// Tile set #0 in [0x8800, 0x9bff], index is signed [-128, 127]
     Set0,
@@ -952,7 +952,7 @@ impl TileSet {
 
 /// Sprites can be 8x8 pixels or 8x16 pixels (a pair of 8x8
 /// tiles). The setting is global for all sprites.
-#[deriving(PartialEq,Eq,Copy)]
+#[derive(PartialEq,Eq,Copy)]
 enum SpriteSize {
     /// Sprites resolution is 8x8 (i.e. single tile)
     Sz8x8,

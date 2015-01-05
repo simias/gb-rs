@@ -23,4 +23,5 @@ sgb_bootrom = []
 
 [dependencies]
 
-sdl2 = "0.0.13"
+ascii = "0.2.2"
+sdl2  = "0.0.14"

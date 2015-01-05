@@ -12,6 +12,7 @@
 #[phase(plugin, link)]
 extern crate log;
 extern crate sdl2;
+extern crate ascii;
 
 #[cfg(test)]
 extern crate test;
@@ -83,7 +84,9 @@ fn main() {
         }
 
         // Sleep until next batch cycle
-        tick.recv();
+        if let Err(e) = tick.recv() {
+            panic!("Timer died: {}", e);
+        }
     }
 }
 
@@ -106,7 +109,7 @@ mod benchmark {
         let mut display = ::ui::dummy::DummyDisplay;
         let controller  = ::ui::dummy::DummyController::new();
 
-        let rom = Vec::from_elem(0x4000, 0x00);
+        let rom = ::std::iter::repeat(0).take(0x4000).collect();
         let cart = ::cartridge::Cartridge::from_vec(rom);
 
         let gpu = ::gpu::Gpu::new(&mut display);

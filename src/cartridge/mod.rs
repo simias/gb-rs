@@ -3,6 +3,8 @@
 
 use std::fmt::{Show, Formatter, Error};
 use std::io::{File, Reader, Writer, IoResult, Open, ReadWrite, SeekSet};
+use std::iter::repeat;
+use ascii::AsciiCast;
 
 mod models;
 
@@ -70,7 +72,7 @@ impl Cartridge {
             let mut remsz = remb * ROM_BANK_SIZE;
 
             // Reserve space for the remaining banks
-            cartridge.rom.grow(remsz, 0);
+            cartridge.rom.extend(repeat(0).take(remsz));
 
             while remsz > 0 {
                 let r = try!(source.read(cartridge.rom.slice_from_mut(off)));
@@ -114,7 +116,7 @@ impl Cartridge {
         if save_size == 0 {
             // The file is empty (probably new). initialize
             // the RAM with 0s.
-            self.ram.grow(ramsize, 0);
+            self.ram.resize(ramsize, 0);
             // Then fill the file with the right amount of 0s
             // to reserve enough space for saving later.
             try!(save_file.write(self.ram.as_slice()));
@@ -151,10 +153,14 @@ impl Cartridge {
         let mut name = String::with_capacity(16);
 
         for i in range(0, 16) {
-            let c = self.rom[offsets::TITLE + i].to_ascii();
+            let c =
+                match self.rom[offsets::TITLE + i].to_ascii() {
+                    Ok(c) => c,
+                    _     => return None,
+                };
 
             // If the name is shorter than 16bytes it's padded with 0s
-            if c == 0.to_ascii() {
+            if c.as_byte() == 0 {
                 break;
             }
 
@@ -165,7 +171,7 @@ impl Cartridge {
             }
 
             // Append new character
-            name.grow(1, c.as_char());
+            name.push(c.as_char());
         }
 
         Some(name)

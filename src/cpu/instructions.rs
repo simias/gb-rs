@@ -48,7 +48,7 @@ pub fn next_instruction(cpu: &mut Cpu) -> (u32, fn (&mut Cpu)) {
 ///
 /// `desc` is a human readable assembler-like description of the
 /// opcode function
-pub static OPCODES: [(u32, fn (&mut Cpu), &'static str), ..0x100] = [
+pub static OPCODES: [(u32, fn (&mut Cpu), &'static str); 0x100] = [
     // Opcodes 0X
     (1, nop,        "NOP"),
     (3, ld_bc_nn,   "LD BC, NN"),
@@ -2808,7 +2808,7 @@ mod bitops {
 
     /// Array similar to the one above, this time for CB-prefixed
     /// instructions
-    pub static OPCODES: [(u32, fn (&mut Cpu), &'static str), ..0x100] = [
+    pub static OPCODES: [(u32, fn (&mut Cpu), &'static str); 0x100] = [
         // Opcodes CB 0X
         (2, rlc_b,      "RLC B"),
         (2, rlc_c,      "RLC C"),

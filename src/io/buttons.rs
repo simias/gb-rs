@@ -39,19 +39,19 @@ impl<'a> Buttons<'a> {
         if self.directions_selected {
             active |= 0x10;
 
-            active |= buttons.right.is_down() as u8 << 0;
-            active |= buttons.left .is_down() as u8 << 1;
-            active |= buttons.up   .is_down() as u8 << 2;
-            active |= buttons.down .is_down() as u8 << 3;
+            active |= (buttons.right.is_down() as u8) << 0;
+            active |= (buttons.left .is_down() as u8) << 1;
+            active |= (buttons.up   .is_down() as u8) << 2;
+            active |= (buttons.down .is_down() as u8) << 3;
         }
 
         if self.buttons_selected {
             active |= 0x20;
 
-            active |= buttons.a     .is_down() as u8 << 0;
-            active |= buttons.b     .is_down() as u8 << 1;
-            active |= buttons.select.is_down() as u8 << 2;
-            active |= buttons.start .is_down() as u8 << 3;
+            active |= (buttons.a     .is_down() as u8) << 0;
+            active |= (buttons.b     .is_down() as u8) << 1;
+            active |= (buttons.select.is_down() as u8) << 2;
+            active |= (buttons.start .is_down() as u8) << 3;
         }
 
         // Now we can complement the value and return it

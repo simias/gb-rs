@@ -6,7 +6,7 @@
 /// middle. It also checks that the cartridge ROM header is correct
 /// and deadlocks if that check fails.
 #[cfg(not(feature="sgb_bootrom"))]
-pub static BOOTROM: [u8, ..0x100] = [
+pub static BOOTROM: [u8; 0x100] = [
     // init_stack:
     0x31, 0xFE, 0xFF, // LD     SP 0xfffe
     0xAF,             // XOR    A A
@@ -192,7 +192,7 @@ pub static BOOTROM: [u8, ..0x100] = [
 /// http://www.its.caltech.edu/~costis/sgb_hack/. It doesn't scroll
 /// the logo down the screen so it's faster than the original GB.
 #[cfg(feature="sgb_bootrom")]
-pub static BOOTROM: [u8, ..0x100] = [
+pub static BOOTROM: [u8; 0x100] = [
     // init_stack:
     0x31, 0xFE, 0xFF, // LD     SP 0xfffe
 
