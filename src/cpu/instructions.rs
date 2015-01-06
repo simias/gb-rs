@@ -12,12 +12,6 @@ pub fn next_instruction(cpu: &mut Cpu) -> (u32, fn (&mut Cpu)) {
 
     cpu.set_pc(pc + 1);
 
-    // println!("RUN: PC: {:04x}, opcode: {:02x}, {:02x}, {:02x}",
-    //          pc + 1,
-    //          op,
-    //          cpu.fetch_byte(pc + 1),
-    //          cpu.fetch_byte(pc + 2));
-
     let (delay, instruction, _) =
         if op != 0xcb {
             OPCODES[op as uint]
