@@ -9,7 +9,7 @@
 #![feature(phase)]
 #![warn(missing_docs)]
 
-#[phase(plugin, link)]
+#[macro_use]
 extern crate log;
 extern crate sdl2;
 extern crate ascii;
