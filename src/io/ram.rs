@@ -10,17 +10,17 @@ pub struct Ram {
 impl Ram {
     /// Create a new RAM. The default RAM values are undetermined so I
     /// just fill it with garbage
-    pub fn new(size: uint) -> Ram {
+    pub fn new(size: usize) -> Ram {
         let data = iter::repeat(0xca).take(size).collect();
 
         Ram { data: data }
     }
 
     pub fn byte(&self, offset: u16) -> u8 {
-       self.data[offset as uint]
+       self.data[offset as usize]
     }
 
     pub fn set_byte(&mut self, offset: u16, val: u8) {
-        self.data[offset as uint] = val;
+        self.data[offset as usize] = val;
     }
 }

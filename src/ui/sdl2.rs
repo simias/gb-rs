@@ -14,14 +14,14 @@ use gpu::Color;
 pub struct Display {
     renderer: Renderer,
     /// Upscaling factor, log2.
-    upscale:  uint,
+    upscale:  u8,
 }
 
 impl Display {
-    pub fn new(upscale: uint) -> Display {
+    pub fn new(upscale: u8) -> Display {
         ::sdl2::init(::sdl2::INIT_VIDEO);
 
-        let up = 1 << upscale;
+        let up = 1 << (upscale as usize);
 
         let xres = 160 * up;
         let yres = 144 * up;
@@ -65,7 +65,7 @@ impl super::Display for Display {
         if self.upscale == 0 {
             let _ = self.renderer.draw_point(Point::new(x as i32, y as i32));
         } else {
-            let up = 1 << self.upscale;
+            let up = 1 << (self.upscale as usize);
 
             // Translate coordinates
             let x = x as i32 * up;

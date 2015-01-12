@@ -97,7 +97,7 @@ impl<'a> Interconnect<'a> {
         if let Some(off) = map::in_range(addr, map::ROM) {
             if self.bootrom && off < 0x100 {
                 // Read from the bootrom
-                return bootrom::BOOTROM[off as uint];
+                return bootrom::BOOTROM[off as usize];
             }
 
             return self.cartridge.rom_byte(off);
@@ -286,12 +286,12 @@ impl<'a> Interconnect<'a> {
             }
         }
 
-        self.io[(addr & 0xff) as uint]
+        self.io[(addr & 0xff) as usize]
     }
 
     /// Set value of IO port
     fn set_io(&mut self, addr: u16, val: u8) {
-        self.io[(addr & 0xff) as uint] = val;
+        self.io[(addr & 0xff) as usize] = val;
 
         match addr {
             io_map::INPUT => {

@@ -14,14 +14,14 @@ pub fn next_instruction(cpu: &mut Cpu) -> (u32, fn (&mut Cpu)) {
 
     let (delay, instruction, _) =
         if op != 0xcb {
-            OPCODES[op as uint]
+            OPCODES[op as usize]
         } else {
             // 0xCB introduces a two-byte bitops opcode
             bitops::next_instruction(cpu)
         };
 
     if delay == 0 {
-        println!("{}", cpu);
+        println!("{:?}", cpu);
         panic!("Unimplemented instruction [{:02X}]", op);
     }
 
@@ -2797,7 +2797,7 @@ mod bitops {
 
         let op = cpu.fetch_byte(pc);
 
-        OPCODES[op as uint]
+        OPCODES[op as usize]
     }
 
     /// Array similar to the one above, this time for CB-prefixed
@@ -3164,7 +3164,7 @@ mod bitops {
     /// Helper function to test one bit in a u8. Return true if bit is
     /// 0.
     fn bit_zero(val: u8, bit: u8) -> bool {
-        (val & (1u8 << (bit as uint))) == 0
+        (val & (1u8 << (bit as usize))) == 0
     }
 
     /// Helper function to test bits in `A`
@@ -3563,7 +3563,7 @@ mod bitops {
 
     /// Helper function to clear one bit in a u8
     fn res(val: u8, bit: u8) -> u8 {
-        val & !(1u8 << (bit as uint))
+        val & !(1u8 << (bit as usize))
     }
 
     /// Helper function to clear bits in `A`
@@ -3946,7 +3946,7 @@ mod bitops {
 
     /// Helper function to set one bit in a u8
     fn set(val: u8, bit: u8) -> u8 {
-        val | (1u8 << (bit as uint))
+        val | (1u8 << (bit as usize))
     }
 
     /// Helper function to set bits in `A`

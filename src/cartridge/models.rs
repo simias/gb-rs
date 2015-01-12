@@ -10,20 +10,20 @@ pub struct Model {
     /// Handle ROM write
     pub write_rom: fn(cart: &mut Cartridge, offset: u16, val: u8),
     /// Handle RAM write
-    pub write_ram: fn(cart: &mut Cartridge, addr: uint, val: u8),
+    pub write_ram: fn(cart: &mut Cartridge, addr: usize, val: u8),
     /// Handle RAM read
-    pub read_ram:  fn(cart: &Cartridge, addr: uint) -> u8,
+    pub read_ram:  fn(cart: &Cartridge, addr: usize) -> u8,
 }
 
 /// Default implementation of write_ram, suitable for most cartridges
-fn write_ram(cart: &mut Cartridge, addr: uint, val: u8) {
+fn write_ram(cart: &mut Cartridge, addr: usize, val: u8) {
     if let Some(b) = cart.ram_byte_absolute_mut(addr) {
         *b = val;
     }
 }
 
 /// Default implementation of read_ram, suitable for most cartridges
-fn read_ram(cart: &Cartridge, addr: uint) -> u8 {
+fn read_ram(cart: &Cartridge, addr: usize) -> u8 {
     cart.ram_byte_absolute(addr)
 }
 

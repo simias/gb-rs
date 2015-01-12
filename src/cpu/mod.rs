@@ -464,7 +464,7 @@ impl<'a> Cpu<'a> {
 
     /// Stop, blank the screen and wait for button press
     fn stop(&mut self) {
-        println!("{}", *self);
+        println!("{:?}", *self);
         panic!("STOP is not implemented");
     }
 
@@ -504,10 +504,10 @@ impl<'a> Show for Cpu<'a> {
         try!(writeln!(f, "Flags:"));
 
         try!(writeln!(f, "  z: {}  n: {}  h: {}  c: {}",
-                      self.flags.z as int,
-                      self.flags.n as int,
-                      self.flags.h as int,
-                      self.flags.c as int));
+                      self.flags.z as u8,
+                      self.flags.n as u8,
+                      self.flags.h as u8,
+                      self.flags.c as u8));
 
         try!(writeln!(f, "  iten: {}  halted: {}", self.iten, self.halted));
 

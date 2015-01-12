@@ -212,7 +212,7 @@ impl<'a> Gpu<'a> {
 
             let y = self.line;
 
-            for x in range(0, 160) {
+            for x in 0..160 {
                 self.render_pixel(x, y);
             }
         }
@@ -414,18 +414,18 @@ impl<'a> Gpu<'a> {
 
     /// Get byte from VRAM
     pub fn vram(&self, addr: u16) -> u8 {
-        self.vram[addr as uint]
+        self.vram[addr as usize]
     }
 
     /// Set byte in VRAM
     pub fn set_vram(&mut self, addr: u16, val: u8) {
-        self.vram[addr as uint] = val;
+        self.vram[addr as usize] = val;
     }
 
     /// Get byte from OAM
     pub fn oam(&self, addr: u16) -> u8 {
         // Each sprite takes 4 byte in OAM
-        let index     = (addr / 4) as uint;
+        let index     = (addr / 4) as usize;
         let attribute = addr % 4;
 
         let sprite = self.sprite(index);
@@ -442,7 +442,7 @@ impl<'a> Gpu<'a> {
     /// Set byte in OAM
     pub fn set_oam(&mut self, addr: u16, val: u8) {
         // Each sprite takes 4 byte in OAM
-        let index     = (addr / 4) as uint;
+        let index     = (addr / 4) as usize;
         let attribute = addr % 4;
 
         let update_cache = {
@@ -557,11 +557,11 @@ impl<'a> Gpu<'a> {
         }
     }
 
-    fn sprite(&self, index: uint) -> &Sprite {
+    fn sprite(&self, index: usize) -> &Sprite {
         &self.oam[index]
     }
 
-    fn sprite_mut(&mut self, index: uint) -> &mut Sprite {
+    fn sprite_mut(&mut self, index: usize) -> &mut Sprite {
         &mut self.oam[index]
     }
 
@@ -635,7 +635,7 @@ impl<'a> Gpu<'a> {
 
         let map_addr = base + (ty * 32) + tx;
 
-        self.vram[map_addr as uint]
+        self.vram[map_addr as usize]
     }
 
     /// Get the color of pixel (`x`, `y`) in `tile`.
@@ -649,8 +649,8 @@ impl<'a> Gpu<'a> {
 
         let addr = base + 2 * (y as u16);
 
-        let addr = addr    as uint;
-        let x    = (7 - x) as uint;
+        let addr = addr    as usize;
+        let x    = (7 - x) as usize;
 
         // Each row of 8 pixels is split across two contiguous bytes:
         // the first for the LSB, the 2nd for the MSB
@@ -667,25 +667,25 @@ impl<'a> Gpu<'a> {
         self.line_cache = [[None; 10]; 144];
 
         // Rebuild it
-        for i in range(0, self.oam.len()) {
+        for i in 0..self.oam.len() {
             self.cache_sprite(i as u8);
         }
     }
 
     /// Insert sprite at `index` into the line cache
     fn cache_sprite(&mut self, index: u8) {
-        let sprite = self.oam[index as uint];
+        let sprite = self.oam[index as usize];
         let height = self.sprite_size.height();
         let start  = sprite.top_line();
         let end    = start + (height as i32);
 
-        for y in range(start, end) {
+        for y in (start..end) {
             if y < 0 || y >= 144 {
                 // Sprite line is not displayed
                 continue;
             }
 
-            let y = y as uint;
+            let y = y as usize;
 
             let l = self.line_cache[y].len();
 
@@ -698,7 +698,7 @@ impl<'a> Gpu<'a> {
             // Insert sprite into the cache for this line. We order
             // the sprites from left to right and from highest to
             // lowest priority.
-            for i in range(0u, l) {
+            for i in (0..l) {
                 match self.line_cache[y][i] {
                     None => {
                         // This cache entry is empty, use it to hold
@@ -707,7 +707,7 @@ impl<'a> Gpu<'a> {
                         break;
                     }
                     Some(other) => {
-                        let other_sprite = &self.oam[other as uint];
+                        let other_sprite = &self.oam[other as usize];
 
                         // When sprites overlap the one with the
                         // smallest x pos is on top. If the x values
@@ -719,7 +719,7 @@ impl<'a> Gpu<'a> {
                             // rest of the cacheline one place. We
                             // know that the last item is None since
                             // it's checked above.
-                            for j in range(i, l - 1).rev() {
+                            for j in (i..(l - 1)).rev() {
                                 self.line_cache[y][j + 1] =
                                     self.line_cache[y][j];
                             }
@@ -757,11 +757,11 @@ impl<'a> Gpu<'a> {
 
     fn render_sprite(&self, x: u8, y: u8, bg_col: AlphaColor) -> Color {
 
-        for &entry in self.line_cache[y as uint].iter() {
+        for &entry in self.line_cache[y as usize].iter() {
             match entry {
                 None        => break, // Nothing left in cache
                 Some(index) => {
-                    let sprite = &self.oam[index as uint];
+                    let sprite = &self.oam[index as usize];
 
                     let sprite_x = (x as i32) - sprite.left_column();
 
@@ -873,7 +873,7 @@ impl Palette {
                    Color::White, ]
         };
 
-        for i in range(0, p.map.len()) {
+        for i in (0..p.map.len()) {
             p.map[i] = Color::from_u8((r >> (i * 2)) & 0x3)
         }
 
@@ -884,7 +884,7 @@ impl Palette {
     fn into_reg(&self) -> u8 {
         let mut p = 0u8;
 
-        for i in range(0, self.map.len()) {
+        for i in (0..self.map.len()) {
             p |= (self.map[i] as u8) << (i * 2);
         }
 
@@ -893,7 +893,7 @@ impl Palette {
 
     /// Transform color `c` through the palette
     fn transform(&self, c: Color) -> Color {
-        self.map[c as uint]
+        self.map[c as usize]
     }
 }
 
@@ -963,7 +963,7 @@ enum SpriteSize {
 impl SpriteSize {
     /// Return the height of sprites depending on the SpriteSize
     /// setting
-    fn height(self) -> uint {
+    fn height(self) -> usize {
         match self {
             SpriteSize::Sz8x8  => 8,
             SpriteSize::Sz8x16 => 16,
@@ -994,7 +994,7 @@ mod tests {
     /// as expected
     #[test]
     fn palette_conversion() {
-        for i in range(0u, 0x100) {
+        for i in range(0us, 0x100) {
             let r = i as u8;
 
             let p = super::Palette::from_reg(r);
@@ -1019,7 +1019,7 @@ mod tests {
         let mut d = ::ui::dummy::DummyDisplay;
         let mut gpu = super::Gpu::new(&mut d);
 
-        for _ in range(0u, 1000) {
+        for _ in range(0us, 1000) {
             gpu.step();
         }
 
@@ -1031,7 +1031,7 @@ mod tests {
         // Enable the LCD
         gpu.set_lcdc(0xff);
 
-        for _ in range(0u, 100000) {
+        for _ in range(0us, 100000) {
             gpu.step();
         }
 

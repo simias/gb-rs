@@ -42,7 +42,7 @@ impl Timer {
             return;
         }
 
-        let mask = (1 << (self.divider as uint)) - 1;
+        let mask = (1 << (self.divider as usize)) - 1;
 
         if self.clk & mask == 0 {
             // Divided clock ticked, increment counter

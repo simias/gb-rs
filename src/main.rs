@@ -6,7 +6,8 @@
 //! Lots of info about GC quircks: http://www.devrs.com/gb/files/faqs.html
 //! Accuracy tests: http://tasvideos.org/EmulatorResources/GBAccuracyTests.html
 
-#![feature(phase)]
+
+#![allow(unstable)]
 #![warn(missing_docs)]
 
 #[macro_use]
@@ -43,7 +44,7 @@ fn main() {
         Err(e) => panic!("Failed to load ROM: {}", e),
     };
 
-    println!("Loaded ROM {}", cart);
+    println!("Loaded ROM {:?}", cart);
 
     let mut display  = ui::sdl2::Display::new(1);
     let controller = ui::sdl2::Controller::new();
@@ -73,7 +74,7 @@ fn main() {
     let tick = timer.periodic(batch_duration);
 
     loop {
-        for _ in range(0, GRANULARITY) {
+        for _ in (0..GRANULARITY) {
             cpu.step();
         }
 
@@ -85,7 +86,7 @@ fn main() {
 
         // Sleep until next batch cycle
         if let Err(e) = tick.recv() {
-            panic!("Timer died: {}", e);
+            panic!("Timer died: {:?}", e);
         }
     }
 }
