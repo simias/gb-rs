@@ -20,13 +20,15 @@ extern crate test;
 
 use std::io::Timer;
 use std::time::Duration;
-use ui::Controller;
+use ui::{Controller, Audio};
 
 mod cpu;
 mod io;
 mod gpu;
 mod ui;
 mod cartridge;
+mod spu;
+mod resampler;
 
 #[allow(dead_code)]
 fn main() {
@@ -46,12 +48,18 @@ fn main() {
 
     println!("Loaded ROM {:?}", cart);
 
-    let mut display  = ui::sdl2::Display::new(1);
+    let mut display = ui::sdl2::Display::new(1);
     let controller = ui::sdl2::Controller::new();
 
     let gpu = gpu::Gpu::new(&mut display);
 
-    let inter = io::Interconnect::new(cart, gpu, controller.buttons());
+    let (spu, audio_channel) = spu::Spu::new();
+
+    let mut audio = ui::sdl2::Audio::new(audio_channel);
+
+    audio.start();
+
+    let inter = io::Interconnect::new(cart, gpu, spu, controller.buttons());
 
     let mut cpu = cpu::Cpu::new(inter);
 
@@ -73,6 +81,8 @@ fn main() {
 
     let tick = timer.periodic(batch_duration);
 
+    let mut audio_adjust_count = 0;
+
     loop {
         for _ in (0..GRANULARITY) {
             cpu.step();
@@ -88,6 +98,18 @@ fn main() {
         if let Err(e) = tick.recv() {
             panic!("Timer died: {:?}", e);
         }
+
+        audio_adjust_count += GRANULARITY;
+
+        if audio_adjust_count >= SYSCLK_FREQ * AUDIO_ADJUST_SEC {
+            // Retrieve the number of samples generated since the last
+            // adjustment
+            let s = spu::samples_per_steps(audio_adjust_count as u32);
+
+            audio.adjust_resampling(s);
+
+            audio_adjust_count = 0;
+        }
     }
 }
 
@@ -99,11 +121,15 @@ const GRANULARITY:      i64 = 0x10000;
 /// Gameboy sysclk frequency: 4.19Mhz
 const SYSCLK_FREQ:      i64 = 0x400000;
 
+/// How often should we adjust the audio resampling rate. In seconds.
+const AUDIO_ADJUST_SEC: i64 = 1;
 
 #[cfg(test)]
 mod benchmark {
     use test::Bencher;
     use ui::Controller;
+
+    use std::thread::Thread;
 
     #[bench]
     fn bench_rom(b: &mut Bencher) {
@@ -113,9 +139,19 @@ mod benchmark {
         let rom = ::std::iter::repeat(0).take(0x4000).collect();
         let cart = ::cartridge::Cartridge::from_vec(rom);
 
+        let (spu, audio_channel) = ::spu::Spu::new();
+
+        Thread::spawn(move|| {
+            // Dummy consumer
+            audio_channel.recv().unwrap();
+        });
+
         let gpu = ::gpu::Gpu::new(&mut display);
 
-        let inter = ::io::Interconnect::new(cart, gpu, controller.buttons());
+        let inter = ::io::Interconnect::new(cart,
+                                            gpu,
+                                            spu,
+                                            controller.buttons());
 
         let mut cpu = ::cpu::Cpu::new(inter);
 

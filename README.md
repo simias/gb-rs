@@ -14,8 +14,13 @@ tests).
 Saving is implemented, it creates a file with the ".sav" extension in
 the same directory as the ROM being executed if it supports saving.
 
+Sound is implemented with adaptative resampling to match the sound
+card sample rate. Note that it might take a few seconds for the
+algorithm to settle on the correct sample rate so you might get a few
+dropped sound packets when you start the emulator. Normally once this
+training time has elapsed there should be no glitch.
+
 Things that remain to be implemented:
-* Sound
 * Serial link
 * Support for various types of cartridges
 * Maybe GameBoy Color support?
@@ -61,7 +66,7 @@ Games that are playable:
 
 * Tetris
 * Bombjack
-* DrMario
+* DrMario (However the sound is pretty bogus, I need to investigate that)
 * Kirby's Dream Land
 * The Legend of Zelda - Link's Awakening
 * Motocross Maniacs
@@ -69,10 +74,11 @@ Games that are playable:
 * Bubble Ghost
 * Castelian
 * Earthworm Jim
-* Super Mario Land 2 and 3 and 4 (homebrew)
+* Super Mario Land 2 and 3
 * Pokemon Red/Blue
 * Space Invaders
 * Bomberman
+* Trip World
 
 Games that are broken somehow:
 

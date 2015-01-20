@@ -1,8 +1,12 @@
 //! Input/Output abstraction for memory, ROM and I/O mapped registers
 
 use gpu::Gpu;
+use spu::Spu;
+
 use std::cell::Cell;
 use cartridge::Cartridge;
+
+use self::io_map::{NR3_RAM_START, NR3_RAM_END};
 
 pub mod ram;
 pub mod timer;
@@ -23,6 +27,8 @@ pub struct Interconnect<'a> {
     timer:      timer::Timer,
     /// GPU instance
     gpu:        Gpu<'a>,
+    /// SPU instance
+    spu:        Spu,
     /// Used to store the value of IO Port when not properly
     /// implemented.
     io:         [u8; 0x4c],
@@ -44,6 +50,7 @@ impl<'a> Interconnect<'a> {
     /// Create a new Interconnect
     pub fn new<'n>(cartridge:  Cartridge,
                    gpu:        Gpu<'n>,
+                   spu:        Spu,
                    buttons:    &'n Cell<::ui::Buttons>) -> Interconnect<'n> {
 
         let iram = ram::Ram::new(0x2000);
@@ -61,6 +68,7 @@ impl<'a> Interconnect<'a> {
                        zpage:      zpage,
                        timer:      timer,
                        gpu:        gpu,
+                       spu:        spu,
                        io:         io,
                        it_enabled: it_enabled,
                        dma_src:    0,
@@ -72,6 +80,7 @@ impl<'a> Interconnect<'a> {
 
     pub fn step(&mut self) {
         self.gpu.step();
+        self.spu.step();
         self.dma_step();
         self.timer.step();
     }
@@ -321,6 +330,65 @@ impl<'a> Interconnect<'a> {
                 self.gpu.force_it_lcd(f.lcdc);
                 self.timer.force_interrupt(f.timer);
             }
+            io_map::NR10 => {
+                self.spu.set_nr10(val);
+            }
+            io_map::NR11 => {
+                self.spu.set_nr11(val);
+            }
+            io_map::NR12 => {
+                self.spu.set_nr12(val);
+            }
+            io_map::NR13 => {
+                self.spu.set_nr13(val);
+            }
+            io_map::NR14 => {
+                self.spu.set_nr14(val);
+            }
+            io_map::NR21 => {
+                self.spu.set_nr21(val);
+            }
+            io_map::NR22 => {
+                self.spu.set_nr22(val);
+            }
+            io_map::NR23 => {
+                self.spu.set_nr23(val);
+            }
+            io_map::NR24 => {
+                self.spu.set_nr24(val);
+            }
+            io_map::NR30 => {
+                self.spu.set_nr30(val);
+            }
+            io_map::NR31 => {
+                self.spu.set_nr31(val);
+            }
+            io_map::NR32 => {
+                self.spu.set_nr32(val);
+            }
+            io_map::NR33 => {
+                self.spu.set_nr33(val);
+            }
+            io_map::NR34 => {
+                self.spu.set_nr34(val);
+            }
+            io_map::NR41 => {
+                self.spu.set_nr41(val);
+            }
+            io_map::NR42 => {
+                self.spu.set_nr42(val);
+            }
+            io_map::NR43 => {
+                self.spu.set_nr43(val);
+            }
+            io_map::NR44 => {
+                self.spu.set_nr44(val);
+            }
+            NR3_RAM_START...NR3_RAM_END => {
+                let index = (addr - NR3_RAM_START) as u8;
+
+                self.spu.set_nr3_ram(index, val);
+            }
             io_map::LCD_STAT => {
                 return self.gpu.set_stat(val);
             }
@@ -477,40 +545,80 @@ mod io_map {
     //! IO Address Map (offset from 0xff00)
 
     /// Input button matrix control
-    pub const INPUT:    u16 = 0x00;
+    pub const INPUT:         u16 = 0x00;
     /// 16.384kHz free-running counter. Writing to it resets it to 0.
-    pub const DIV:      u16 = 0x04;
+    pub const DIV:           u16 = 0x04;
     /// Configurable timer counter
-    pub const TIMA:     u16 = 0x05;
+    pub const TIMA:          u16 = 0x05;
     /// Configurable timer modulo (value reloaded in the counter after
     /// oveflow)
-    pub const TMA:      u16 = 0x06;
+    pub const TMA:           u16 = 0x06;
     /// Timer control register
-    pub const TAC:      u16 = 0x07;
+    pub const TAC:           u16 = 0x07;
     /// Interrupt Flag register
-    pub const IF:       u16 = 0x0f;
+    pub const IF:            u16 = 0x0f;
+    /// Sound channel 1 register 0
+    pub const NR10:          u16 = 0x10;
+    /// Sound channel 1 register 1
+    pub const NR11:          u16 = 0x11;
+    /// Sound channel 1 register 2
+    pub const NR12:          u16 = 0x12;
+    /// Sound channel 1 register 3
+    pub const NR13:          u16 = 0x13;
+    /// Sound channel 1 register 4
+    pub const NR14:          u16 = 0x14;
+    /// Sound channel 2 register 1
+    pub const NR21:          u16 = 0x16;
+    /// Sound channel 2 register 2
+    pub const NR22:          u16 = 0x17;
+    /// Sound channel 2 register 3
+    pub const NR23:          u16 = 0x18;
+    /// Sound channel 2 register 4
+    pub const NR24:          u16 = 0x19;
+    /// Sound channel 1 register 0
+    pub const NR30:          u16 = 0x1a;
+    /// Sound channel 1 register 1
+    pub const NR31:          u16 = 0x1b;
+    /// Sound channel 1 register 2
+    pub const NR32:          u16 = 0x1c;
+    /// Sound channel 1 register 3
+    pub const NR33:          u16 = 0x1d;
+    /// Sound channel 1 register 4
+    pub const NR34:          u16 = 0x1e;
+    /// Sound channel 4 register 1
+    pub const NR41:          u16 = 0x20;
+    /// Sound channel 4 register 2
+    pub const NR42:          u16 = 0x21;
+    /// Sound channel 4 register 3
+    pub const NR43:          u16 = 0x22;
+    /// Sound channel 4 register 4
+    pub const NR44:          u16 = 0x23;
+    /// Sound channel 3 sample RAM start
+    pub const NR3_RAM_START: u16 = 0x30;
+    /// Sound channel 3 sample RAM end
+    pub const NR3_RAM_END:   u16 = 0x3f;
     /// LCD Control
-    pub const LCDC:     u16 = 0x40;
+    pub const LCDC:          u16 = 0x40;
     /// LCDC Status + IT selection
-    pub const LCD_STAT: u16 = 0x41;
+    pub const LCD_STAT:      u16 = 0x41;
     /// LCDC Background Y position
-    pub const LCD_SCY:  u16 = 0x42;
+    pub const LCD_SCY:       u16 = 0x42;
     /// LCDC Background X position
-    pub const LCD_SCX:  u16 = 0x43;
+    pub const LCD_SCX:       u16 = 0x43;
     /// Currently displayed line
-    pub const LCD_LY:   u16 = 0x44;
+    pub const LCD_LY:        u16 = 0x44;
     /// Currently line compare
-    pub const LCD_LYC:  u16 = 0x45;
+    pub const LCD_LYC:       u16 = 0x45;
     /// DMA transfer from ROM/RAM to OAM
-    pub const DMA:      u16 = 0x46;
+    pub const DMA:           u16 = 0x46;
     /// Background palette
-    pub const LCD_BGP:  u16 = 0x47;
+    pub const LCD_BGP:       u16 = 0x47;
     /// Sprite palette 0
-    pub const LCD_OBP0: u16 = 0x48;
+    pub const LCD_OBP0:      u16 = 0x48;
     /// Sprite palette 1
-    pub const LCD_OBP1: u16 = 0x49;
+    pub const LCD_OBP1:      u16 = 0x49;
     /// Window Y position
-    pub const LCD_WY:   u16 = 0x4a;
+    pub const LCD_WY:        u16 = 0x4a;
     /// Window X position + 7
-    pub const LCD_WX:   u16 = 0x4b;
+    pub const LCD_WX:        u16 = 0x4b;
 }
