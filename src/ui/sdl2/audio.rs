@@ -67,8 +67,8 @@ impl ::ui::Audio for Audio {
     }
 }
 
-// Use 16bit sound samples
-type Sample = i16;
+// Use 8bit sound samples
+type Sample = u8;
 
 /// Audio output sample rate
 const SAMPLE_RATE: u32 = 44_100;
