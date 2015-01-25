@@ -255,6 +255,7 @@ impl<'a> Gpu<'a> {
             // re-enabled.
             self.line  = 0;
             self.htick = 0;
+            self.mode  = Mode::Prelude;
         }
 
         if new_sprite_size != self.sprite_size {

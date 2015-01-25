@@ -62,7 +62,7 @@ boot up.
 Game Support
 ------------
 
-Games that are playable:
+Games that are known to work:
 
 * Tetris
 * Bombjack
@@ -74,17 +74,11 @@ Games that are playable:
 * Bubble Ghost
 * Castelian
 * Earthworm Jim
-* Super Mario Land 2 and 3
+* Super Mario Land 1, 2 and 3
 * Pokemon Red/Blue
 * Space Invaders
 * Bomberman
 * Trip World
-
-Games that are broken somehow:
-
-* Super Mario 1: the game bugs out back to the home screen when
-  starting the first time, then seems to play correctly. It used to
-  work fine, there's a regression.
 
 Ressources
 ----------
