@@ -2790,7 +2790,8 @@ mod bitops {
     use cpu::Cpu;
 
     /// Return the 0xCB instruction to be executed
-    pub fn next_instruction(cpu: &mut Cpu) -> (u32, fn (&mut Cpu), &'static str) {
+    pub fn next_instruction(cpu: &mut Cpu) -> (u32, fn (&mut Cpu),
+                                               &'static str) {
         let pc = cpu.pc();
 
         cpu.set_pc(pc + 1);
@@ -4769,8 +4770,8 @@ mod bitops {
         cpu.store_byte(hl, r);
     }
 
-    /// Helper function to rotate an `u8` to the left through carry and update CPU
-    /// flags.
+    /// Helper function to rotate an `u8` to the left through carry
+    /// and update CPU flags.
     fn rl(cpu: &mut Cpu, v: u8)  -> u8 {
         let oldcarry = cpu.carry() as u8;
 
@@ -4861,8 +4862,8 @@ mod bitops {
     }
 
 
-    /// Helper function to rotate an `u8` to the right through carry and update CPU
-    /// flags.
+    /// Helper function to rotate an `u8` to the right through carry
+    /// and update CPU flags.
     fn rr(cpu: &mut Cpu, v: u8)  -> u8 {
         let oldcarry = cpu.carry() as u8;
 

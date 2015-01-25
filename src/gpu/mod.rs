@@ -183,7 +183,8 @@ impl<'a> Gpu<'a> {
                         if self.line == timings::VSYNC_ON {
                             // We're entering vertical blanking, we're
                             // done drawing the current frame
-                            self.end_of_frame();
+                            self.it_vblank = true;
+                            self.display.flip();
                             Mode::VBlank
                         } else {
                             Mode::Prelude
@@ -406,12 +407,6 @@ impl<'a> Gpu<'a> {
         self.wx = wx
     }
 
-    /// Called when the last line of the active display has been drawn
-    fn end_of_frame(&mut self) {
-        self.it_vblank = true;
-        self.display.flip();
-    }
-
     /// Get byte from VRAM
     pub fn vram(&self, addr: u16) -> u8 {
         self.vram[addr as usize]
@@ -526,9 +521,9 @@ impl<'a> Gpu<'a> {
         let mode = self.mode();
 
         (self.iten_lyc     && self.lyc == self.line) ||
-            (self.iten_prelude && mode == Mode::Prelude) ||
-            (self.iten_vblank  && mode == Mode::VBlank)  ||
-            (self.iten_hblank  && mode == Mode::HBlank)
+        (self.iten_prelude && mode == Mode::Prelude) ||
+        (self.iten_vblank  && mode == Mode::VBlank)  ||
+        (self.iten_hblank  && mode == Mode::HBlank)
     }
 
     /// Look for a transition in the LCD interrupt to see if we should
