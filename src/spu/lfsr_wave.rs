@@ -1,5 +1,5 @@
-//! Game Boy audio channel 4 generates noise from a Linear Feedback
-//! Shift Register.
+//! Game Boy sound 4 generates noise from a Linear Feedback Shift
+//! Register.
 
 use spu::{Sample, Mode};
 use spu::envelope::Envelope;

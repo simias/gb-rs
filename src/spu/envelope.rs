@@ -1,4 +1,4 @@
-//! Envelope function used by sound channels 1 2 and 4
+//! Envelope function used by sounds 1, 2 and 4
 
 use spu::{Volume, Sample};
 

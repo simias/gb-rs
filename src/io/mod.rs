@@ -384,6 +384,9 @@ impl<'a> Interconnect<'a> {
             io_map::NR44 => {
                 self.spu.set_nr44(val);
             }
+            io_map::NR51 => {
+                self.spu.set_nr51(val);
+            }
             NR3_RAM_START...NR3_RAM_END => {
                 let index = (addr - NR3_RAM_START) as u8;
 
@@ -593,6 +596,8 @@ mod io_map {
     pub const NR43:          u16 = 0x22;
     /// Sound channel 4 register 4
     pub const NR44:          u16 = 0x23;
+    /// Sound control: select output terminal
+    pub const NR51:          u16 = 0x25;
     /// Sound channel 3 sample RAM start
     pub const NR3_RAM_START: u16 = 0x30;
     /// Sound channel 3 sample RAM end

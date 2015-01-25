@@ -1,11 +1,11 @@
-//! Game Boy audio channel 3 generates a sound from samples stored in RAM
+//! Game Boy sound 3 generates a sound from samples stored in RAM
 
 use spu::{Sample, Mode};
 
 pub struct RamWave {
-    /// True if the channel is generating samples
+    /// True if the sound is generating samples
     running:      bool,
-    /// True if the channel is enabled
+    /// True if the sound is enabled
     enabled:      bool,
     /// Counter for counter mode
     remaining:    u32,

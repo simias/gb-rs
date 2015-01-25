@@ -1,4 +1,4 @@
-//! Game Boy audio channels 1 and 2 generate a rectangular waveform
+//! Game Boy sounds 1 and 2 generate a rectangular waveform
 //! with an envelope function. Channel 1 can also sweep through a
 //! frequency range.
 
@@ -6,7 +6,7 @@ use spu::{Sample, Mode};
 use spu::envelope::Envelope;
 
 pub struct RectangleWave {
-    /// True if the channel is generating samples
+    /// True if the sound is generating samples
     running:        bool,
     /// Signal duty cycle
     duty:           DutyCycle,
@@ -27,7 +27,7 @@ pub struct RectangleWave {
     mode:           Mode,
     /// Counter for counter mode
     remaining:      u32,
-    /// Sweep function (only available on channel 1)
+    /// Sweep function (only available on sound 1)
     sweep:          Sweep,
 }
 

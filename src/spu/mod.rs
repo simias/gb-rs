@@ -20,18 +20,22 @@ pub struct Spu {
     /// backend.
     output:   SyncSender<SampleBuffer>,
     /// Current sample buffer
-    buffer:  SampleBuffer,
+    buffer:   SampleBuffer,
     /// Position in the sample buffer
     position: usize,
-    /// Sound channel 1, rectangular wave with envelope function and
+    /// Sound 1, rectangular wave with envelope function and
     /// frequency sweep
-    channel1: RectangleWave,
-    /// Channel 2, same as channel 1 without frequency sweep
-    channel2: RectangleWave,
-    /// Channel 3 plays samples stored in RAM
-    channel3: RamWave,
-    /// Channel 4, LFSR based noise generator with envelope function
-    channel4: LfsrWave,
+    sound1:   RectangleWave,
+    /// Sound 2, same as sound 1 without frequency sweep
+    sound2:   RectangleWave,
+    /// Sound 3 plays samples stored in RAM
+    sound3:   RamWave,
+    /// Sound 4, LFSR based noise generator with envelope function
+    sound4:   LfsrWave,
+    /// Sound Output 1
+    so1:      SoundOutput,
+    /// Sound Output 2
+    so2:      SoundOutput,
 }
 
 impl Spu {
@@ -42,12 +46,14 @@ impl Spu {
         let spu = Spu {
             divider:  0,
             output:   tx,
-            buffer:  [0; SAMPLES_PER_BUFFER],
+            buffer:   [0; SAMPLES_PER_BUFFER],
             position: 0,
-            channel1: RectangleWave::new(),
-            channel2: RectangleWave::new(),
-            channel3: RamWave::new(),
-            channel4: LfsrWave::new(),
+            sound1:   RectangleWave::new(),
+            sound2:   RectangleWave::new(),
+            sound3:   RamWave::new(),
+            sound4:   LfsrWave::new(),
+            so1:      SoundOutput::new(),
+            so2:      SoundOutput::new(),
         };
 
         (spu , rx)
@@ -55,29 +61,39 @@ impl Spu {
 
     pub fn step(&mut self) {
 
-        self.channel1.step();
-        self.channel2.step();
-        self.channel3.step();
-        self.channel4.step();
+        self.sound1.step();
+        self.sound2.step();
+        self.sound3.step();
+        self.sound4.step();
 
         if self.divider == 0 {
-            // Generate a sound sample
-            let sample =
-                self.channel1.sample() +
-                self.channel2.sample() +
-                self.channel3.sample() +
-                self.channel4.sample();
-
-            self.sample(sample);
-
-            // Reset counter
-            self.divider = SAMPLER_DIVIDER;
+            self.sample();
         }
 
         self.divider -= 1;
     }
 
-    fn sample(&mut self, sample: Sample) {
+    fn sample(&mut self) {
+        let sounds =
+                [self.sound1.sample(),
+                 self.sound2.sample(),
+                 self.sound3.sample(),
+                 self.sound4.sample()];
+
+        // For now let's just add both outputs
+        let sample =
+            self.so1.sample(sounds) +
+            self.so2.sample(sounds);
+
+        self.output_sample(sample);
+
+        // Reset counter
+        self.divider = SAMPLER_DIVIDER;
+    }
+
+    /// Handle sample buffering and sending them through the
+    /// asynchronous channel.
+    fn output_sample(&mut self, sample: Sample) {
 
         self.buffer[self.position] = sample;
 
@@ -101,16 +117,16 @@ impl Spu {
     pub fn set_nr10(&mut self, val: u8) {
         let sweep = Sweep::from_reg(val);
 
-        self.channel1.set_sweep(sweep);
+        self.sound1.set_sweep(sweep);
     }
 
-    /// Configure channel 2 sound length and duty cycle
+    /// Configure sound 2 length and duty cycle
     pub fn set_nr11(&mut self, val: u8) {
         let duty = DutyCycle::from_field(val >> 6);
 
-        self.channel1.set_duty(duty);
+        self.sound1.set_duty(duty);
 
-        self.channel1.set_length(val & 0x3f);
+        self.sound1.set_length(val & 0x3f);
     }
 
     /// Configure envelope: initial volume, step duration and
@@ -118,31 +134,31 @@ impl Spu {
     pub fn set_nr12(&mut self, val: u8) {
         let envelope = Envelope::from_reg(val);
 
-        self.channel1.set_envelope(envelope);
+        self.sound1.set_envelope(envelope);
     }
 
     /// Set frequency divider bits [7:0]
     pub fn set_nr13(&mut self, val: u8) {
-        let mut d = self.channel1.divider();
+        let mut d = self.sound1.divider();
 
         // Update the low 8 bits
         d &= 0x700;
         d |= val as u16;
 
-        self.channel1.set_divider(d);
+        self.sound1.set_divider(d);
     }
 
     /// Set frequency bits [10:8], Mode and Initialize bit
     pub fn set_nr14(&mut self, val: u8) {
-        let mut d = self.channel1.divider();
+        let mut d = self.sound1.divider();
 
         // Update high 3 bits
         d &= 0xff;
         d |= ((val & 7) as u16) << 8;
 
-        self.channel1.set_divider(d);
+        self.sound1.set_divider(d);
 
-        self.channel1.set_mode(
+        self.sound1.set_mode(
             match val & 0x40 != 0 {
                 true  => Mode::Counter,
                 false => Mode::Continuous,
@@ -150,17 +166,17 @@ impl Spu {
 
         // Initialize bit
         if val & 0x80 != 0 {
-            self.channel1.start();
+            self.sound1.start();
         }
     }
 
-    /// Configure channel 2 sound length and duty cycle
+    /// Configure sound 2 sound length and duty cycle
     pub fn set_nr21(&mut self, val: u8) {
         let duty = DutyCycle::from_field(val >> 6);
 
-        self.channel2.set_duty(duty);
+        self.sound2.set_duty(duty);
 
-        self.channel2.set_length(val & 0x3f);
+        self.sound2.set_length(val & 0x3f);
     }
 
     /// Configure envelope: initial volume, step duration and
@@ -168,31 +184,31 @@ impl Spu {
     pub fn set_nr22(&mut self, val: u8) {
         let envelope = Envelope::from_reg(val);
 
-        self.channel2.set_envelope(envelope);
+        self.sound2.set_envelope(envelope);
     }
 
     /// Set frequency divider bits [7:0]
     pub fn set_nr23(&mut self, val: u8) {
-        let mut d = self.channel2.divider();
+        let mut d = self.sound2.divider();
 
         // Update the low 8 bits
         d &= 0x700;
         d |= val as u16;
 
-        self.channel2.set_divider(d);
+        self.sound2.set_divider(d);
     }
 
     /// Set frequency bits [10:8], Mode and Initialize bit
     pub fn set_nr24(&mut self, val: u8) {
-        let mut d = self.channel2.divider();
+        let mut d = self.sound2.divider();
 
         // Update high 3 bits
         d &= 0xff;
         d |= ((val & 7) as u16) << 8;
 
-        self.channel2.set_divider(d);
+        self.sound2.set_divider(d);
 
-        self.channel2.set_mode(
+        self.sound2.set_mode(
             match val & 0x40 != 0 {
                 true  => Mode::Counter,
                 false => Mode::Continuous,
@@ -200,49 +216,49 @@ impl Spu {
 
         // Initialize bit
         if val & 0x80 != 0 {
-            self.channel2.start();
+            self.sound2.start();
         }
     }
 
-    /// Set channel 3 enable
+    /// Set sound 3 enable
     pub fn set_nr30(&mut self, val: u8) {
-        self.channel3.set_enabled(val & 0x80 != 0);
+        self.sound3.set_enabled(val & 0x80 != 0);
     }
 
-    /// Configure channel 3 sound length
+    /// Configure sound 3 sound length
     pub fn set_nr31(&mut self, val: u8) {
-        self.channel3.set_length(val);
+        self.sound3.set_length(val);
     }
 
-    /// Configure channel 3 output level
+    /// Configure sound 3 output level
     pub fn set_nr32(&mut self, val: u8) {
         let level = OutputLevel::from_field((val >> 5) & 3);
 
-        self.channel3.set_output_level(level);
+        self.sound3.set_output_level(level);
     }
 
     /// Set frequency divider bits [7:0]
     pub fn set_nr33(&mut self, val: u8) {
-        let mut d = self.channel3.divider();
+        let mut d = self.sound3.divider();
 
         // Update the low 8 bits
         d &= 0x700;
         d |= val as u16;
 
-        self.channel3.set_divider(d);
+        self.sound3.set_divider(d);
     }
 
     /// Set frequency bits [10:8], Mode and Initialize bit
     pub fn set_nr34(&mut self, val: u8) {
-        let mut d = self.channel3.divider();
+        let mut d = self.sound3.divider();
 
         // Update high 3 bits
         d &= 0xff;
         d |= ((val & 7) as u16) << 8;
 
-        self.channel3.set_divider(d);
+        self.sound3.set_divider(d);
 
-        self.channel3.set_mode(
+        self.sound3.set_mode(
             match val & 0x40 != 0 {
                 true  => Mode::Counter,
                 false => Mode::Continuous,
@@ -250,11 +266,11 @@ impl Spu {
 
         // Initialize bit
         if val & 0x80 != 0 {
-            self.channel3.start();
+            self.sound3.start();
         }
     }
 
-    /// Write to channel 3 sample RAM. There are two 4bit samples per
+    /// Write to sound 3 sample RAM. There are two 4bit samples per
     /// 8bit register
     pub fn set_nr3_ram(&mut self, index: u8, val: u8) {
         let index = index * 2;
@@ -262,13 +278,13 @@ impl Spu {
         let s0 = (val >> 4)  as Sample;
         let s1 = (val & 0xf) as Sample;
 
-        self.channel3.set_ram_sample(index,     s0);
-        self.channel3.set_ram_sample(index + 1, s1);
+        self.sound3.set_ram_sample(index,     s0);
+        self.sound3.set_ram_sample(index + 1, s1);
     }
 
-    /// Configure channel 4 sound length
+    /// Configure sound 4 sound length
     pub fn set_nr41(&mut self, val: u8) {
-        self.channel4.set_length(val & 0x3f);
+        self.sound4.set_length(val & 0x3f);
     }
 
     /// Configure envelope: initial volume, step duration and
@@ -276,18 +292,18 @@ impl Spu {
     pub fn set_nr42(&mut self, val: u8) {
         let envelope = Envelope::from_reg(val);
 
-        self.channel4.set_envelope(envelope);
+        self.sound4.set_envelope(envelope);
     }
 
     pub fn set_nr43(&mut self, val: u8) {
         let lfsr = Lfsr::from_reg(val);
 
-        self.channel4.set_lfsr(lfsr);
+        self.sound4.set_lfsr(lfsr);
     }
 
     /// Set frequency bits [10:8], Mode and Initialize bit
     pub fn set_nr44(&mut self, val: u8) {
-        self.channel4.set_mode(
+        self.sound4.set_mode(
             match val & 0x40 != 0 {
                 true  => Mode::Counter,
                 false => Mode::Continuous,
@@ -295,8 +311,14 @@ impl Spu {
 
         // Initialize bit
         if val & 0x80 != 0 {
-            self.channel4.start();
+            self.sound4.start();
         }
+    }
+
+    /// Set sound output mixers
+    pub fn set_nr51(&mut self, val: u8) {
+        self.so1.set_mixer(Mixer::from_field(val & 0xf));
+        self.so2.set_mixer(Mixer::from_field(val >> 4));
     }
 }
 
@@ -307,7 +329,7 @@ struct Volume(u8);
 
 impl Volume {
     fn new(vol: u8) -> Volume {
-        if vol > CHANNEL_MAX {
+        if vol > SOUND_MAX {
             panic!("Volume out of range: {}", vol);
         }
 
@@ -326,7 +348,7 @@ impl Volume {
 
         // I'm not sure how to handle overflows, let's saturate for
         // now
-        if v < CHANNEL_MAX {
+        if v < SOUND_MAX {
             *self = Volume(v + 1);
         }
     }
@@ -347,13 +369,71 @@ enum Mode {
     Counter    = 1,
 }
 
+/// The Game Boy has two sound outputs: SO0 and SO1
+struct SoundOutput {
+    /// Sound mixer for this output
+    mixer: Mixer,
+}
+
+impl SoundOutput {
+    fn new() -> SoundOutput {
+        SoundOutput {
+            mixer: Mixer::from_field(0),
+        }
+    }
+
+    fn sample(&self, sounds: [Sample; 4]) -> Sample {
+        self.mixer.mix(sounds)
+    }
+
+    fn set_mixer(&mut self, mixer: Mixer) {
+        self.mixer = mixer;
+    }
+}
+
+/// Each of the 4 sounds can be enabled or disabled
+/// independantly for each sound output.
+#[derive(Copy)]
+struct Mixer {
+    /// The mixer config, says which of the 4 sounds are
+    /// selected.
+    sounds: [bool; 4],
+}
+
+impl Mixer {
+    /// Build a mixer from the NR51 4bit field
+    fn from_field(field: u8) -> Mixer {
+
+        let mut mixer = Mixer { sounds: [false; 4] };
+
+        for i in 0..4 {
+            mixer.sounds[i] = field & (1 << i) != 0;
+        }
+
+        mixer
+    }
+
+    fn mix(self, sounds: [Sample; 4]) -> Sample {
+        let mut r = 0;
+
+        for i in 0..4 {
+            if self.sounds[i] {
+                // Sound is enabled for this output
+                r += sounds[i];
+            }
+        }
+
+        r
+    }
+}
+
 /// Return the number of sound samples that are generated during a
 /// period of `steps` SysClk ticks.
 pub fn samples_per_steps(steps: u32) -> u32 {
     steps / SAMPLER_DIVIDER
 }
 
-/// Each channel uses a 4bit DAC which means it they can only output
+/// Each sound uses a 4bit DAC which means it they can only output
 /// 16 sound levels each. There are 4 channels in total which means
 /// that the sum is in the range [0, 60], so a u8 is plenty enough.
 pub type Sample = u8;
@@ -387,8 +467,9 @@ pub const SAMPLE_RATE: u32 = ::SYSCLK_FREQ as u32 / SAMPLER_DIVIDER;
 /// dropped.
 const CHANNEL_DEPTH: usize = 4;
 
-/// Maximum possible volume for a single channel
-const CHANNEL_MAX:    Sample = 15;
+/// Maximum possible volume for a single sound
+const SOUND_MAX: Sample = 15;
 
-/// Maximum possible value for a sample
-pub const SAMPLE_MAX: Sample = CHANNEL_MAX * 4;
+/// Maximum possible value for a sample. There are 4 sounds on two
+/// channels.
+pub const SAMPLE_MAX: Sample = SOUND_MAX * 4 * 2;
