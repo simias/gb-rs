@@ -1,6 +1,6 @@
 //! Game Boy CPU emulation
 
-use std::fmt::{Show, Formatter, Error};
+use std::fmt::{Debug, Formatter, Error};
 use io::{Interconnect, Interrupt};
 
 use cpu::instructions::next_instruction;
@@ -475,7 +475,7 @@ impl<'a> Cpu<'a> {
     }
 }
 
-impl<'a> Show for Cpu<'a> {
+impl<'a> Debug for Cpu<'a> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         try!(writeln!(f, "Registers:"));
 

@@ -213,7 +213,7 @@ impl<'a> Gpu<'a> {
 
             let y = self.line;
 
-            for x in 0..160 {
+            for x in 0u8..160 {
                 self.render_pixel(x, y);
             }
         }

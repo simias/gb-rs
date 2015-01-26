@@ -23,13 +23,6 @@ sgb_bootrom = []
 
 [dependencies]
 
-ascii = "0.2.3"
-log   = "0.1.9"
-
-[dependencies.sdl2]
-
-# Custom SDL2 until https://github.com/AngryLawyer/rust-sdl2/pull/287
-# is merged
-
-git = "https://github.com/simias/rust-sdl2.git"
-branch = "audio-fix"
+ascii = "0.2.4"
+log   = "0.1.10"
+sdl2  = "0.0.19"

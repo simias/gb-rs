@@ -120,7 +120,6 @@ impl<T> Async<T>
     pub fn adjust_resampling(&self, in_samples: u32) {
         let mut atomic = self.atomic.lock().unwrap();
 
-
         let out_samples = atomic.out_samples;
 
         // Reset the atomic counter
@@ -144,6 +143,9 @@ impl<T> Async<T>
             }
             Training::Measure => {
                 // Our first real sample, let's use this value directly
+                info!("Measured sound sample rate: {}Hz",
+                      (::spu::SAMPLE_RATE as f32 / r));
+
                 atomic.ratio = r;
                 atomic.training = Training::Adjust;
             }

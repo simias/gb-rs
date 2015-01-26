@@ -123,6 +123,7 @@ pub fn from_id(id: u8) -> Model {
     match id {
         0           => mbc0::MODEL,
         0x01...0x03 => mbc1::MODEL,
+        0x06        => mbc1::MODEL,
         0x0f...0x13 => mbc3::MODEL,
         _           => panic!("Unknown cartridge model 0x{:02x}", id),
     }

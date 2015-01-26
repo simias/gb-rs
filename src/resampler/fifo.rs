@@ -107,6 +107,6 @@ impl ::std::ops::Sub for Index {
 }
 
 /// Logarithm in base 2 of the buffer size.
-const BUFFER_SIZE_LN:   usize = 12;
+const BUFFER_SIZE_LN:   usize = 11;
 
 const BUFFER_SIZE:      usize = 1 << BUFFER_SIZE_LN;

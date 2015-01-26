@@ -1,7 +1,7 @@
 //! Cartridge emulation. There are multiple cartridge types with
 //! different capabilities (bankable ROM/RAM, battery, RTC etc...).
 
-use std::fmt::{Show, Formatter, Error};
+use std::fmt::{Debug, Formatter, Error};
 use std::io::{File, Reader, Writer, IoResult, Open, ReadWrite, SeekSet};
 use std::iter::repeat;
 use ascii::AsciiCast;
@@ -75,7 +75,7 @@ impl Cartridge {
             cartridge.rom.extend(repeat(0).take(remsz));
 
             while remsz > 0 {
-                let r = try!(source.read(cartridge.rom.slice_from_mut(off)));
+                let r = try!(source.read(&mut cartridge.rom[off..]));
 
                 remsz -= r;
                 off   += r;
@@ -152,7 +152,7 @@ impl Cartridge {
     pub fn name(&self) -> Option<String> {
         let mut name = String::with_capacity(16);
 
-        for i in 0..16 {
+        for i in 0us..16 {
             let c =
                 match self.rom[offsets::TITLE + i].to_ascii() {
                     Ok(c) => c,
@@ -335,7 +335,7 @@ impl Drop for Cartridge {
     }
 }
 
-impl Show for Cartridge {
+impl Debug for Cartridge {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         let name = match self.name() {
             Some(s) => s,
