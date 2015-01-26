@@ -14,6 +14,8 @@ mod lfsr_wave;
 
 /// Sound Processing Unit state.
 pub struct Spu {
+    /// True if the sound circuit is enabled
+    enabled:  bool,
     /// Counter for the SAMPLER_DIVIDER
     divider:  u32,
     /// Channel used to send the generated audio samples to the
@@ -44,6 +46,7 @@ impl Spu {
         let (tx, rx) = sync_channel(CHANNEL_DEPTH);
 
         let spu = Spu {
+            enabled:  true,
             divider:  0,
             output:   tx,
             buffer:   [0; SAMPLES_PER_BUFFER],
@@ -61,12 +64,18 @@ impl Spu {
 
     pub fn step(&mut self) {
 
+        if !self.enabled {
+            return
+        }
+
         self.sound1.step();
         self.sound2.step();
         self.sound3.step();
         self.sound4.step();
 
         if self.divider == 0 {
+            self.divider = SAMPLER_DIVIDER;
+
             self.sample();
         }
 
@@ -87,8 +96,6 @@ impl Spu {
 
         self.output_sample(sample);
 
-        // Reset counter
-        self.divider = SAMPLER_DIVIDER;
     }
 
     /// Handle sample buffering and sending them through the
@@ -315,10 +322,21 @@ impl Spu {
         }
     }
 
+    /// Set sound output volume
+    pub fn set_nr50(&mut self, val: u8) {
+        self.so1.set_volume(OutputVolume::from_field(val & 0xf));
+        self.so2.set_volume(OutputVolume::from_field(val >> 4));
+    }
+
     /// Set sound output mixers
     pub fn set_nr51(&mut self, val: u8) {
         self.so1.set_mixer(Mixer::from_field(val & 0xf));
         self.so2.set_mixer(Mixer::from_field(val >> 4));
+    }
+
+    /// Set global sound enable
+    pub fn set_nr52(&mut self, val: u8) {
+        self.enabled = val & 0x80 != 0;
     }
 }
 
@@ -372,22 +390,30 @@ enum Mode {
 /// The Game Boy has two sound outputs: SO0 and SO1
 struct SoundOutput {
     /// Sound mixer for this output
-    mixer: Mixer,
+    mixer:  Mixer,
+    volume: OutputVolume,
 }
 
 impl SoundOutput {
     fn new() -> SoundOutput {
         SoundOutput {
-            mixer: Mixer::from_field(0),
+            mixer:  Mixer::from_field(0),
+            volume: OutputVolume::from_field(7),
         }
     }
 
     fn sample(&self, sounds: [Sample; 4]) -> Sample {
-        self.mixer.mix(sounds)
+        let mixed = self.mixer.mix(sounds);
+
+        self.volume.process(mixed)
     }
 
     fn set_mixer(&mut self, mixer: Mixer) {
         self.mixer = mixer;
+    }
+
+    fn set_volume(&mut self, volume: OutputVolume) {
+        self.volume = volume;
     }
 }
 
@@ -424,6 +450,29 @@ impl Mixer {
         }
 
         r
+    }
+}
+
+/// Sound output volume configuration
+#[derive(Copy)]
+struct OutputVolume {
+    /// Sound volume divider, between 1 (full volume) and 8(min)
+    level: u8,
+}
+
+impl OutputVolume {
+    /// Build an OutputVolume from a N50 field
+    fn from_field(field: u8) -> OutputVolume {
+        // TODO: Handle bit 4. Seems to be related to the microphone
+        // input? Maybe GameBoy Color only?
+
+        OutputVolume {
+            level: 8 - (field & 7),
+        }
+    }
+
+    fn process(self, s: Sample) -> Sample {
+        s / self.level as Sample
     }
 }
 
