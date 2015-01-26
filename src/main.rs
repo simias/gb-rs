@@ -48,7 +48,7 @@ fn main() {
 
     println!("Loaded ROM {:?}", cart);
 
-    let mut display = ui::sdl2::Display::new(0);
+    let mut display = ui::sdl2::Display::new(1);
     let controller = ui::sdl2::Controller::new();
 
     let gpu = gpu::Gpu::new(&mut display);

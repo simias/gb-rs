@@ -73,13 +73,38 @@ mod mbc1 {
             0x6000...0x7fff =>
                 // Switch RAM/ROM banking mode
                 cart.set_bank_ram(val & 1 != 0),
-            _ =>
-                debug!("Unhandled ROM write: {:04x} {:02x}", offset, val),
+            _ => debug!("Unhandled ROM write: {:04x} {:02x}", offset, val),
         }
     }
 
     pub static MODEL: Model =
         Model { name:      "MBC1",
+                write_rom: write_rom,
+                write_ram: super::write_ram,
+                read_ram:  super::read_ram,
+        };
+}
+
+mod mbc2 {
+    use super::Model;
+    use cartridge::Cartridge;
+
+    fn write_rom(cart: &mut Cartridge, offset: u16, val: u8) {
+        match offset {
+            0x0000...0x1fff =>
+                // Writing a low nibble 0xa to anywhere in that
+                // address range removes RAM write protect, All other
+                // values enable it.
+                cart.set_ram_wp(val & 0xf != 0xa),
+            0x2000...0x3fff => {
+                cart.set_rom_bank(val & 0xf);
+            }
+            _ => debug!("Unhandled ROM write: {:04x} {:02x}", offset, val),
+        }
+    }
+
+    pub static MODEL: Model =
+        Model { name:      "MBC2",
                 write_rom: write_rom,
                 write_ram: super::write_ram,
                 read_ram:  super::read_ram,
@@ -103,15 +128,13 @@ mod mbc3 {
             0x4000...0x5fff =>
                 // Select a new RAM bank
                 cart.set_ram_bank(val),
-            0x6000...0x7fff =>
-                debug!("Unhandled RTC access"),
-            _ =>
-                debug!("Unhandled ROM write: {:04x} {:02x}", offset, val),
+            0x6000...0x7fff => debug!("Unhandled RTC access"),
+            _ => debug!("Unhandled ROM write: {:04x} {:02x}", offset, val),
         }
     }
 
     pub static MODEL: Model =
-        Model { name:     "MBC1",
+        Model { name:     "MBC3",
                 write_rom: write_rom,
                 write_ram: super::write_ram,
                 read_ram:  super::read_ram,
@@ -123,7 +146,7 @@ pub fn from_id(id: u8) -> Model {
     match id {
         0           => mbc0::MODEL,
         0x01...0x03 => mbc1::MODEL,
-        0x06        => mbc1::MODEL,
+        0x05...0x06 => mbc2::MODEL,
         0x0f...0x13 => mbc3::MODEL,
         _           => panic!("Unknown cartridge model 0x{:02x}", id),
     }

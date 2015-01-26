@@ -203,6 +203,17 @@ impl Cartridge {
     /// Return the number of RAM banks for this ROM along with the
     /// size of each bank in bytes.
     pub fn ram_banks(&self) -> Option<(usize, usize)> {
+
+        let model = models::from_id(self.rom_byte(offsets::TYPE as u16));
+
+        // Special case for MBC2, the RAM_SIZE field is not
+        // trustworthy here (it advertises 0 banks but there's still
+        // some RAM on the cartridge).
+        if model.name == "MBC2" {
+            // MBC2 contains 1 "bank" of 256bytes
+            return Some((1, 256));
+        }
+
         let id = self.rom_byte(offsets::RAM_SIZE as u16);
 
         let (nbanks, bank_size_kb) =
@@ -356,7 +367,7 @@ impl Debug for Cartridge {
                     "'{}' (Model: {}, \
                            ROM banks: {}, \
                            RAM banks: {}, \
-                           RAM bank size: {}KB)",
+                           RAM bank size: {}B)",
                     name, self.model.name, rombanks, rambanks, rambanksize));
 
         Ok(())
