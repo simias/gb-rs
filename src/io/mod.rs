@@ -294,7 +294,8 @@ impl<'a> Interconnect<'a> {
             io_map::LCD_WX   => self.gpu.wx(),
             _                => {
                 warn!("Unhandled IO read from 0x{:04x}", 0xff00 | addr);
-                0
+                // Unmapped addresses read as full 1s
+                0xff
             }
         }
 

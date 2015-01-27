@@ -243,7 +243,8 @@ impl Sweep {
         let l   = (self.step_duration / 0x8000) as u8;
         let dir = self.direction as u8;
 
-        (l << 4) | (dir << 3) | self.shift
+        // MSB is undefined and always 1
+        (1 << 7) | (l << 4) | (dir << 3) | self.shift
     }
 
     /// Step through the Sweep state machine, returning the updated

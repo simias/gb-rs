@@ -135,11 +135,11 @@ impl Spu {
         self.sound1.set_sweep(sweep);
     }
 
-    /// Retreive sound 1 duty cycle. Length field is write only.
+    /// Retreive sound 1 duty cycle. The rest is write only.
     pub fn nr11(&self) -> u8 {
         let duty = self.sound1.duty().into_field();
 
-        duty << 6
+        duty << 6 | 0x3f
     }
 
     /// Configure sound 1 length and duty cycle
@@ -168,7 +168,7 @@ impl Spu {
 
     // NR13 is write only
     pub fn nr13(&self) -> u8 {
-        0
+        0xff
     }
 
     /// Set frequency divider bits [7:0]
@@ -186,7 +186,7 @@ impl Spu {
     pub fn nr14(&self) -> u8 {
         let mode = self.sound1.mode() as u8;
 
-        mode << 6
+        mode << 6 | 0xbf
     }
 
     /// Set frequency bits [10:8], Mode and Initialize bit
@@ -215,7 +215,7 @@ impl Spu {
     pub fn nr21(&self) -> u8 {
         let duty = self.sound2.duty().into_field();
 
-        duty << 6
+        duty << 6 | 0x3f
     }
 
     /// Configure sound 2 sound length and duty cycle
@@ -244,7 +244,7 @@ impl Spu {
 
     // NR23 is write only
     pub fn nr23(&self) -> u8 {
-        0
+        0xff
     }
 
     /// Set frequency divider bits [7:0]
@@ -262,7 +262,7 @@ impl Spu {
     pub fn nr24(&self) -> u8 {
         let mode = self.sound2.mode() as u8;
 
-        mode << 6
+        mode << 6 | 0xbf
     }
 
     /// Set frequency bits [10:8], Mode and Initialize bit
@@ -287,11 +287,11 @@ impl Spu {
         }
     }
 
-    /// Retreive sound 3
+    /// Retreive sound 3 enable
     pub fn nr30(&self) -> u8 {
         let enabled = self.sound3.enabled() as u8;
 
-        enabled << 7
+        (enabled << 7) | 0x7f
     }
 
     /// Set sound 3 enable
@@ -301,7 +301,7 @@ impl Spu {
 
     /// NR32 is write only
     pub fn nr31(&self) -> u8 {
-        0
+        0xff
     }
 
     /// Configure sound 3 sound length
@@ -312,7 +312,7 @@ impl Spu {
     pub fn nr32(&self) -> u8 {
         let level = self.sound3.output_level().into_field();
 
-        level << 5
+        (level << 5) | 0x9f
     }
 
     /// Configure sound 3 output level
@@ -324,7 +324,7 @@ impl Spu {
 
     /// NR33 is write only
     pub fn nr33(&self) -> u8 {
-        0
+        0xff
     }
 
     /// Set frequency divider bits [7:0]
@@ -342,7 +342,7 @@ impl Spu {
     pub fn nr34(&self) -> u8 {
         let mode = self.sound3.mode() as u8;
 
-        mode << 6
+        mode << 6 | 0xbf
     }
 
     /// Set frequency bits [10:8], Mode and Initialize bit
@@ -390,7 +390,7 @@ impl Spu {
 
     /// NR41 is write only
     pub fn nr41(&self) -> u8 {
-        0
+        0xff
     }
 
     /// Configure sound 4 sound length
@@ -429,7 +429,7 @@ impl Spu {
     pub fn nr44(&self) -> u8 {
         let mode = self.sound4.mode() as u8;
 
-        mode << 6
+        mode << 6 | 0xbf
     }
 
     /// Set frequency bits [10:8], Mode and Initialize bit
@@ -585,6 +585,8 @@ impl Mixer {
 /// Sound output volume configuration
 #[derive(Copy)]
 struct OutputVolume {
+    /// Not used for now
+    vin:  bool,
     /// Sound volume divider, between 1 (full volume) and 8(min)
     level: u8,
 }
@@ -596,12 +598,13 @@ impl OutputVolume {
         // input? Maybe GameBoy Color only?
 
         OutputVolume {
+            vin:   field & 8 != 0,
             level: 8 - (field & 7),
         }
     }
 
     fn into_field(self) -> u8 {
-        8 - self.level
+        ((self.vin as u8) << 3) | (8 - self.level)
     }
 
     fn process(self, s: Sample) -> Sample {
@@ -655,3 +658,77 @@ const SOUND_MAX: Sample = 15;
 /// Maximum possible value for a sample. There are 4 sounds on two
 /// channels.
 pub const SAMPLE_MAX: Sample = SOUND_MAX * 4 * 2;
+
+#[cfg(test)]
+mod tests {
+
+    mod readback {
+        //! Test SPU register readback. Test ported from
+        //! 01-registers.s in the GB Accuracy Tests
+
+        use spu::Spu;
+
+        /// Test register readback value. Write-only fields are
+        /// supposed to read as 1s.
+        macro_rules! readback_test {
+            ($reg: ident, $setter: ident, $write_only: expr) => (
+                #[test]
+                fn $reg() {
+                    let (mut spu, _) = Spu::new();
+
+                    for v in 0u16..0x100 {
+                        let v = v as u8;
+
+                        let expected = v | $write_only;
+
+                        spu.$setter(v);
+                        let r = spu.$reg();
+
+                        assert!(r == expected);
+                    }
+                })
+        }
+
+        readback_test!{nr10, set_nr10, 0x80}
+        readback_test!{nr11, set_nr11, 0x3f}
+        readback_test!{nr12, set_nr12, 0x00}
+        readback_test!{nr13, set_nr13, 0xff}
+        readback_test!{nr14, set_nr14, 0xbf}
+
+        readback_test!{nr21, set_nr21, 0x3f}
+        readback_test!{nr22, set_nr22, 0x00}
+        readback_test!{nr23, set_nr23, 0xff}
+        readback_test!{nr24, set_nr24, 0xbf}
+
+        readback_test!{nr30, set_nr30, 0x7f}
+        readback_test!{nr31, set_nr31, 0xff}
+        readback_test!{nr32, set_nr32, 0x9f}
+        readback_test!{nr33, set_nr33, 0xff}
+        readback_test!{nr34, set_nr34, 0xbf}
+
+        readback_test!{nr41, set_nr41, 0xff}
+        readback_test!{nr42, set_nr42, 0x00}
+        readback_test!{nr43, set_nr43, 0x00}
+        readback_test!{nr44, set_nr44, 0xbf}
+
+        readback_test!{nr50, set_nr50, 0x00}
+        readback_test!{nr51, set_nr51, 0x00}
+        readback_test!{nr52, set_nr52, 0x70}
+
+        #[test]
+        fn wave_ram() {
+            let (mut spu, _) = Spu::new();
+
+            for v in 0u16..0x100 {
+                let v = v as u8;
+
+                for i in 0u8..16 {
+                    spu.set_nr3_ram(i, v);
+                    let r = spu.nr3_ram(i);
+
+                    assert!(r == v);
+                }
+            }
+        }
+    }
+}
