@@ -106,6 +106,10 @@ impl RectangleWave {
         // reset?
     }
 
+    pub fn running(&self) -> bool {
+        self.running
+    }
+
     pub fn divider(&self) -> u16 {
         self.divider
     }
@@ -118,8 +122,16 @@ impl RectangleWave {
         self.divider = divider;
     }
 
+    pub fn duty(&self) -> DutyCycle {
+        self.duty
+    }
+
     pub fn set_duty(&mut self, duty: DutyCycle) {
         self.duty = duty;
+    }
+
+    pub fn envelope(&self) -> Envelope {
+        self.start_envelope
     }
 
     pub fn set_envelope(&mut self, envelope: Envelope) {
@@ -127,10 +139,13 @@ impl RectangleWave {
         self.start_envelope = envelope;
     }
 
+    pub fn mode(&self) -> Mode {
+        self.mode
+    }
+
     pub fn set_mode(&mut self, mode: Mode) {
         self.mode = mode;
     }
-
     pub fn set_length(&mut self, len: u8) {
         if len >= 64 {
             panic!("sound length out of range: {}", len);
@@ -139,6 +154,10 @@ impl RectangleWave {
         let len = len as u32;
 
         self.remaining = (64 - len) * 0x4000;
+    }
+
+    pub fn sweep(&self) -> Sweep {
+        self.sweep
     }
 
     pub fn set_sweep(&mut self, sweep: Sweep) {
@@ -173,6 +192,16 @@ impl DutyCycle {
         }
     }
 
+    /// Convert back into NR11/21 field value
+    pub fn into_field(self) -> u8 {
+        match self {
+            DutyCycle::Duty13 => 0,
+            DutyCycle::Duty25 => 1,
+            DutyCycle::Duty50 => 2,
+            DutyCycle::Duty75 => 3,
+        }
+    }
+
     /// Return the number of active samples for a frequency whose
     /// period is 8 samples
     fn active_per_8(self) -> u8 {
@@ -189,6 +218,7 @@ pub struct Sweep {
 }
 
 impl Sweep {
+    // Build Sweep from NR10 register value
     pub fn from_reg(val: u8) -> Sweep {
         let dir =
             match val & 8 != 0 {
@@ -206,6 +236,14 @@ impl Sweep {
             step_duration: l * 0x8000,
             counter:       0,
         }
+    }
+
+    // Retreive value of NR10 register value
+    pub fn into_reg(&self) -> u8 {
+        let l   = (self.step_duration / 0x8000) as u8;
+        let dir = self.direction as u8;
+
+        (l << 4) | (dir << 3) | self.shift
     }
 
     /// Step through the Sweep state machine, returning the updated
@@ -255,7 +293,7 @@ impl Sweep {
 #[derive(Copy,PartialEq,Eq)]
 enum SweepDirection {
     // Frequency increases at each step
-    Up,
+    Up   = 0,
     // Frequency decreases at each step
-    Down,
+    Down = 1,
 }

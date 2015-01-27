@@ -86,6 +86,10 @@ impl RamWave {
         self.samples[index as usize] = s;
     }
 
+    pub fn running(&self) -> bool {
+        self.running
+    }
+
     pub fn start(&mut self) {
         // Should I modify `self.enabled` here?
         self.running  = true;
@@ -103,6 +107,10 @@ impl RamWave {
         self.divider = divider;
     }
 
+    pub fn mode(&self) -> Mode {
+        self.mode
+    }
+
     pub fn set_mode(&mut self, mode: Mode) {
         self.mode = mode;
     }
@@ -113,8 +121,16 @@ impl RamWave {
         self.remaining = (0x100 - len) * 0x4000;
     }
 
+    pub fn enabled(&self) -> bool {
+        self.enabled
+    }
+
     pub fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
+    }
+
+    pub fn output_level(&self) -> OutputLevel {
+        self.output_level
     }
 
     pub fn set_output_level(&mut self, level: OutputLevel) {
@@ -144,6 +160,10 @@ impl OutputLevel {
             3 => OutputLevel::Quartered,
             _ => unreachable!(),
         }
+    }
+
+    pub fn into_field(self) -> u8 {
+        self as u8
     }
 
     fn process(self, sample: Sample) -> Sample {

@@ -62,6 +62,19 @@ impl LfsrWave {
         }
     }
 
+    pub fn running(&self) -> bool {
+        self.running
+    }
+
+    pub fn start(&mut self) {
+        self.envelope  = self.start_envelope;
+        self.running = true;
+    }
+
+    pub fn envelope(&self) -> Envelope {
+        self.start_envelope
+    }
+
     pub fn set_envelope(&mut self, envelope: Envelope) {
         self.start_envelope = envelope;
     }
@@ -76,17 +89,20 @@ impl LfsrWave {
         self.remaining = (64 - len) * 0x4000;
     }
 
+    pub fn mode(&self) -> Mode {
+        self.mode
+    }
+
     pub fn set_mode(&mut self, mode: Mode) {
         self.mode = mode;
     }
 
-    pub fn set_lfsr(&mut self, lfsr: Lfsr) {
-        self.lfsr = lfsr;
+    pub fn lfsr(&self) -> Lfsr {
+        self.lfsr
     }
 
-    pub fn start(&mut self) {
-        self.envelope  = self.start_envelope;
-        self.running = true;
+    pub fn set_lfsr(&mut self, lfsr: Lfsr) {
+        self.lfsr = lfsr;
     }
 }
 
@@ -96,6 +112,7 @@ pub struct Lfsr {
     width:         LfsrWidth,
     step_duration: u32,
     counter:       u32,
+    reg:           u8,
 }
 
 #[derive(Copy)]
@@ -129,7 +146,12 @@ impl Lfsr {
             width:         width,
             step_duration: l,
             counter:       0,
+            reg:           val,
         }
+    }
+
+    pub fn into_reg(&self) -> u8 {
+        self.reg
     }
 
     fn step(&mut self) {
@@ -141,7 +163,7 @@ impl Lfsr {
         }
     }
 
-    fn high(self) -> bool {
+    fn high(&self) -> bool {
         self.register & 1 != 0
     }
 

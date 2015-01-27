@@ -1,6 +1,6 @@
 //! Envelope function used by sounds 1, 2 and 4
 
-use spu::{Volume, Sample};
+use spu::{Sample, SOUND_MAX};
 
 #[derive(Copy)]
 pub struct Envelope {
@@ -13,7 +13,7 @@ pub struct Envelope {
 impl Envelope {
     pub fn from_reg(val: u8) -> Envelope {
 
-        let vol = Volume::new(val >> 4);
+        let vol = Volume::from_field(val >> 4);
 
         let dir =
             match val & 8 != 0 {
@@ -29,6 +29,14 @@ impl Envelope {
             step_duration: l * 0x10000,
             counter:       0,
         }
+    }
+
+    pub fn into_reg(&self) -> u8 {
+        let vol = self.volume.into_field();
+        let dir = self.direction as u8;
+        let l   = (self.step_duration / 0x10000) as u8;
+
+        (vol << 4) | (dir << 3) | l
     }
 
     pub fn step(&mut self) {
@@ -58,7 +66,53 @@ impl Envelope {
 #[derive(Copy,PartialEq,Eq)]
 pub enum EnvelopeDirection {
     // Volume increases at each step
-    Up,
+    Up   = 1,
     // Volume decreases at each step
-    Down,
+    Down = 0,
+}
+
+/// The game boy sound uses 4bit DACs and can therefore only output 16
+/// sound levels
+#[derive(Copy)]
+struct Volume(u8);
+
+impl Volume {
+    fn from_field(vol: u8) -> Volume {
+        if vol > SOUND_MAX {
+            panic!("Volume out of range: {}", vol);
+        }
+
+        Volume(vol)
+    }
+
+    fn into_field(self) -> u8 {
+        let Volume(v) = self;
+
+        v
+    }
+
+    /// Convert from 4-bit volume value to Sample range
+    fn into_sample(self) -> Sample {
+        let Volume(v) = self;
+
+        v as Sample
+    }
+
+    fn up(&mut self) {
+        let Volume(v) = *self;
+
+        // I'm not sure how to handle overflows, let's saturate for
+        // now
+        if v < SOUND_MAX {
+            *self = Volume(v + 1);
+        }
+    }
+
+    fn down(&mut self) {
+        let Volume(v) = *self;
+
+        if v > 0 {
+            *self = Volume(v - 1);
+        }
+    }
 }

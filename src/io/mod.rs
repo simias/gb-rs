@@ -29,9 +29,6 @@ pub struct Interconnect<'a> {
     gpu:        Gpu<'a>,
     /// SPU instance
     spu:        Spu,
-    /// Used to store the value of IO Port when not properly
-    /// implemented.
-    io:         [u8; 0x4c],
     /// Enabled interrupts
     it_enabled: Interrupts,
     /// Current DMA source address
@@ -55,7 +52,6 @@ impl<'a> Interconnect<'a> {
 
         let iram = ram::Ram::new(0x2000);
         let zpage = ram::Ram::new(0x7f);
-        let io = [0; 0x4c];
 
         let timer = timer::Timer::new();
 
@@ -69,7 +65,6 @@ impl<'a> Interconnect<'a> {
                        timer:      timer,
                        gpu:        gpu,
                        spu:        spu,
-                       io:         io,
                        it_enabled: it_enabled,
                        dma_src:    0,
                        dma_idx:    map::range_size(map::OAM),
@@ -230,98 +225,101 @@ impl<'a> Interconnect<'a> {
     /// Retrieve value from IO port
     fn io(&self, addr: u16) -> u8 {
         match addr {
-            io_map::INPUT => {
-                return self.buttons.input();
+            // Controller input
+            io_map::INPUT    => self.buttons.input(),
+            // Serial link
+            io_map::SB       => {
+                debug!("unhandled read from serial data");
+                0
             }
-            io_map::DIV => {
-                return self.timer.div();
+            io_map::SC       => {
+                debug!("unhandled read from serial control");
+                0
             }
-            io_map::TIMA => {
-                return self.timer.counter();
-            }
-            io_map::TMA => {
-                return self.timer.modulo();
-            }
-            io_map::TAC => {
-                return self.timer.config();
-            }
-            io_map::DMA => {
-                return self.dma_addr();
-            }
-            io_map::IF => {
-                return Interrupts {
+            // Timers
+            io_map::DIV      => self.timer.div(),
+            io_map::TIMA     => self.timer.counter(),
+            io_map::TMA      => self.timer.modulo(),
+            io_map::TAC      => self.timer.config(),
+            // DMA
+            io_map::DMA      => self.dma_addr(),
+            // Interrupt Flags
+            io_map::IF       =>
+                Interrupts {
                     vblank: self.gpu.it_vblank(),
                     lcdc:   self.gpu.it_lcd(),
                     timer:  self.timer.interrupt(),
                     serial: false,
                     button: false,
-                }.as_register();
+                }.as_register(),
+            // SPU registers
+            io_map::NR10     => self.spu.nr10(),
+            io_map::NR11     => self.spu.nr11(),
+            io_map::NR12     => self.spu.nr12(),
+            io_map::NR13     => self.spu.nr13(),
+            io_map::NR14     => self.spu.nr14(),
+            io_map::NR21     => self.spu.nr21(),
+            io_map::NR22     => self.spu.nr22(),
+            io_map::NR23     => self.spu.nr23(),
+            io_map::NR24     => self.spu.nr24(),
+            io_map::NR30     => self.spu.nr30(),
+            io_map::NR31     => self.spu.nr31(),
+            io_map::NR32     => self.spu.nr32(),
+            io_map::NR33     => self.spu.nr33(),
+            io_map::NR34     => self.spu.nr34(),
+            io_map::NR41     => self.spu.nr41(),
+            io_map::NR42     => self.spu.nr42(),
+            io_map::NR43     => self.spu.nr43(),
+            io_map::NR44     => self.spu.nr44(),
+            io_map::NR50     => self.spu.nr50(),
+            io_map::NR51     => self.spu.nr51(),
+            io_map::NR52     => self.spu.nr52(),
+            // Audio waveform RAM for sound 3
+            NR3_RAM_START...NR3_RAM_END => {
+                let index = (addr - NR3_RAM_START) as u8;
+
+                self.spu.nr3_ram(index)
             }
-            io_map::LCD_STAT => {
-                return self.gpu.stat()
-            }
-            io_map::LCD_SCY => {
-                return self.gpu.scy()
-            }
-            io_map::LCD_SCX => {
-                return self.gpu.scx()
-            }
-            io_map::LCDC => {
-                return self.gpu.lcdc()
-            }
-            io_map::LCD_LY => {
-                return self.gpu.line()
-            }
-            io_map::LCD_LYC => {
-                return self.gpu.lyc()
-            }
-            io_map::LCD_BGP => {
-                return self.gpu.bgp()
-            }
-            io_map::LCD_OBP0 => {
-                return self.gpu.obp0()
-            }
-            io_map::LCD_OBP1 => {
-                return self.gpu.obp1()
-            }
-            io_map::LCD_WY => {
-                return self.gpu.wy()
-            }
-            io_map::LCD_WX => {
-                return self.gpu.wx()
-            }
-            _ => {
-                debug!("Unhandled IO read from 0x{:04x}", 0xff00 | addr);
+            // GPU registers
+            io_map::LCD_STAT => self.gpu.stat(),
+            io_map::LCD_SCY  => self.gpu.scy(),
+            io_map::LCD_SCX  => self.gpu.scx(),
+            io_map::LCDC     => self.gpu.lcdc(),
+            io_map::LCD_LY   => self.gpu.line(),
+            io_map::LCD_LYC  => self.gpu.lyc(),
+            io_map::LCD_BGP  => self.gpu.bgp(),
+            io_map::LCD_OBP0 => self.gpu.obp0(),
+            io_map::LCD_OBP1 => self.gpu.obp1(),
+            io_map::LCD_WY   => self.gpu.wy(),
+            io_map::LCD_WX   => self.gpu.wx(),
+            _                => {
+                warn!("Unhandled IO read from 0x{:04x}", 0xff00 | addr);
+                0
             }
         }
 
-        self.io[(addr & 0xff) as usize]
+        //self.io[(addr & 0xff) as usize]
     }
 
     /// Set value of IO port
     fn set_io(&mut self, addr: u16, val: u8) {
-        self.io[(addr & 0xff) as usize] = val;
-
         match addr {
-            io_map::INPUT => {
-                self.buttons.set_input(val);
-            }
-            io_map::DIV => {
-                return self.timer.reset_div();
-            }
-            io_map::TIMA => {
-                return self.timer.set_counter(val);
-            }
-            io_map::TMA => {
-                return self.timer.set_modulo(val);
-            }
-            io_map::TAC => {
-                return self.timer.set_config(val);
-            }
-            io_map::DMA => {
-                return self.start_dma(val);
-            }
-            io_map::IF => {
+            // Controller input
+            io_map::INPUT    => self.buttons.set_input(val),
+            // Seral link
+            io_map::SB       =>
+                debug!("unhandled write to serial data: 0x{:02x}", val),
+            io_map::SC       =>
+                debug!("unhandled write to serial control: 0x{:02x}", val),
+            // Timers
+            io_map::DIV      => self.timer.reset_div(),
+            io_map::TIMA     => self.timer.set_counter(val),
+            io_map::TMA      => self.timer.set_modulo(val),
+            io_map::TAC      => self.timer.set_config(val),
+            // DMA
+            io_map::DMA      => self.start_dma(val),
+            // Interrupt Flags
+            io_map::IF       => {
                 let f = Interrupts::from_register(val);
 
                 // Explicit writes to the Interrupt Flag register
@@ -330,111 +328,49 @@ impl<'a> Interconnect<'a> {
                 self.gpu.force_it_lcd(f.lcdc);
                 self.timer.force_interrupt(f.timer);
             }
-            io_map::NR10 => {
-                self.spu.set_nr10(val);
-            }
-            io_map::NR11 => {
-                self.spu.set_nr11(val);
-            }
-            io_map::NR12 => {
-                self.spu.set_nr12(val);
-            }
-            io_map::NR13 => {
-                self.spu.set_nr13(val);
-            }
-            io_map::NR14 => {
-                self.spu.set_nr14(val);
-            }
-            io_map::NR21 => {
-                self.spu.set_nr21(val);
-            }
-            io_map::NR22 => {
-                self.spu.set_nr22(val);
-            }
-            io_map::NR23 => {
-                self.spu.set_nr23(val);
-            }
-            io_map::NR24 => {
-                self.spu.set_nr24(val);
-            }
-            io_map::NR30 => {
-                self.spu.set_nr30(val);
-            }
-            io_map::NR31 => {
-                self.spu.set_nr31(val);
-            }
-            io_map::NR32 => {
-                self.spu.set_nr32(val);
-            }
-            io_map::NR33 => {
-                self.spu.set_nr33(val);
-            }
-            io_map::NR34 => {
-                self.spu.set_nr34(val);
-            }
-            io_map::NR41 => {
-                self.spu.set_nr41(val);
-            }
-            io_map::NR42 => {
-                self.spu.set_nr42(val);
-            }
-            io_map::NR43 => {
-                self.spu.set_nr43(val);
-            }
-            io_map::NR44 => {
-                self.spu.set_nr44(val);
-            }
-            io_map::NR50 => {
-                self.spu.set_nr50(val);
-            }
-            io_map::NR51 => {
-                self.spu.set_nr51(val);
-            }
-            io_map::NR52 => {
-                self.spu.set_nr52(val);
-            }
+            // SPU registers
+            io_map::NR10     => self.spu.set_nr10(val),
+            io_map::NR11     => self.spu.set_nr11(val),
+            io_map::NR12     => self.spu.set_nr12(val),
+            io_map::NR13     => self.spu.set_nr13(val),
+            io_map::NR14     => self.spu.set_nr14(val),
+            io_map::NR21     => self.spu.set_nr21(val),
+            io_map::NR22     => self.spu.set_nr22(val),
+            io_map::NR23     => self.spu.set_nr23(val),
+            io_map::NR24     => self.spu.set_nr24(val),
+            io_map::NR30     => self.spu.set_nr30(val),
+            io_map::NR31     => self.spu.set_nr31(val),
+            io_map::NR32     => self.spu.set_nr32(val),
+            io_map::NR33     => self.spu.set_nr33(val),
+            io_map::NR34     => self.spu.set_nr34(val),
+            io_map::NR41     => self.spu.set_nr41(val),
+            io_map::NR42     => self.spu.set_nr42(val),
+            io_map::NR43     => self.spu.set_nr43(val),
+            io_map::NR44     => self.spu.set_nr44(val),
+            io_map::NR50     => self.spu.set_nr50(val),
+            io_map::NR51     => self.spu.set_nr51(val),
+            io_map::NR52     => self.spu.set_nr52(val),
+            // Audio waveform RAM for sound 3
             NR3_RAM_START...NR3_RAM_END => {
                 let index = (addr - NR3_RAM_START) as u8;
 
                 self.spu.set_nr3_ram(index, val);
             }
-            io_map::LCD_STAT => {
-                return self.gpu.set_stat(val);
-            }
-            io_map::LCD_SCY => {
-                return self.gpu.set_scy(val);
-            }
-            io_map::LCD_SCX => {
-                return self.gpu.set_scx(val);
-            }
-            io_map::LCDC => {
-                return self.gpu.set_lcdc(val);
-            },
-            io_map::LCD_LY => {
-                // Read Only
-            },
-            io_map::LCD_LYC => {
-                return self.gpu.set_lyc(val);
-            }
-            io_map::LCD_BGP => {
-                return self.gpu.set_bgp(val);
-            }
-            io_map::LCD_OBP0 => {
-                return self.gpu.set_obp0(val);
-            }
-            io_map::LCD_OBP1 => {
-                return self.gpu.set_obp1(val);
-            }
-            io_map::LCD_WY => {
-                return self.gpu.set_wy(val);
-            }
-            io_map::LCD_WX => {
-                return self.gpu.set_wx(val);
-            }
-            _ => {
-                debug!("Unhandled IO write to 0x{:04x}: 0x{:02x}",
-                       0xff00 | addr, val);
-            }
+            // GPU registers
+            io_map::LCD_STAT => self.gpu.set_stat(val),
+            io_map::LCD_SCY  => self.gpu.set_scy(val),
+            io_map::LCD_SCX  => self.gpu.set_scx(val),
+            io_map::LCDC     => self.gpu.set_lcdc(val),
+            io_map::LCD_LY   => { /* Read Only */ }
+            io_map::LCD_LYC  => self.gpu.set_lyc(val),
+            io_map::LCD_BGP  => self.gpu.set_bgp(val),
+            io_map::LCD_OBP0 => self.gpu.set_obp0(val),
+            io_map::LCD_OBP1 => self.gpu.set_obp1(val),
+            io_map::LCD_WY   => self.gpu.set_wy(val),
+            io_map::LCD_WX   => self.gpu.set_wx(val),
+            _                =>
+                warn!("Unhandled IO write to IO 0x{:02x}: 0x{:02x}",
+                       addr, val),
         }
     }
 
@@ -555,6 +491,10 @@ mod io_map {
 
     /// Input button matrix control
     pub const INPUT:         u16 = 0x00;
+    /// Serial data
+    pub const SB:            u16 = 0x01;
+    /// Serial control
+    pub const SC:            u16 = 0x02;
     /// 16.384kHz free-running counter. Writing to it resets it to 0.
     pub const DIV:           u16 = 0x04;
     /// Configurable timer counter

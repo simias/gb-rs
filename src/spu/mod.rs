@@ -121,13 +121,28 @@ impl Spu {
         }
     }
 
+    /// Retreive sound 1 sweep function
+    pub fn nr10(&self) -> u8 {
+        let sweep = self.sound1.sweep();
+
+        sweep.into_reg()
+    }
+
+    /// Configure sound 1 sweep function
     pub fn set_nr10(&mut self, val: u8) {
         let sweep = Sweep::from_reg(val);
 
         self.sound1.set_sweep(sweep);
     }
 
-    /// Configure sound 2 length and duty cycle
+    /// Retreive sound 1 duty cycle. Length field is write only.
+    pub fn nr11(&self) -> u8 {
+        let duty = self.sound1.duty().into_field();
+
+        duty << 6
+    }
+
+    /// Configure sound 1 length and duty cycle
     pub fn set_nr11(&mut self, val: u8) {
         let duty = DutyCycle::from_field(val >> 6);
 
@@ -136,12 +151,24 @@ impl Spu {
         self.sound1.set_length(val & 0x3f);
     }
 
+    /// Retreive envelope config for sound 1
+    pub fn nr12(&self) -> u8 {
+        let envelope = self.sound1.envelope();
+
+        envelope.into_reg()
+    }
+
     /// Configure envelope: initial volume, step duration and
     /// direction
     pub fn set_nr12(&mut self, val: u8) {
         let envelope = Envelope::from_reg(val);
 
         self.sound1.set_envelope(envelope);
+    }
+
+    // NR13 is write only
+    pub fn nr13(&self) -> u8 {
+        0
     }
 
     /// Set frequency divider bits [7:0]
@@ -153,6 +180,13 @@ impl Spu {
         d |= val as u16;
 
         self.sound1.set_divider(d);
+    }
+
+    /// Retreive mode. Other NR14 fields are write only
+    pub fn nr14(&self) -> u8 {
+        let mode = self.sound1.mode() as u8;
+
+        mode << 6
     }
 
     /// Set frequency bits [10:8], Mode and Initialize bit
@@ -177,6 +211,13 @@ impl Spu {
         }
     }
 
+    /// Retreive sound 2 duty cycle. Length field is write only.
+    pub fn nr21(&self) -> u8 {
+        let duty = self.sound2.duty().into_field();
+
+        duty << 6
+    }
+
     /// Configure sound 2 sound length and duty cycle
     pub fn set_nr21(&mut self, val: u8) {
         let duty = DutyCycle::from_field(val >> 6);
@@ -186,12 +227,24 @@ impl Spu {
         self.sound2.set_length(val & 0x3f);
     }
 
+    /// Retreive envelope config for sound 2
+    pub fn nr22(&self) -> u8 {
+        let envelope = self.sound2.envelope();
+
+        envelope.into_reg()
+    }
+
     /// Configure envelope: initial volume, step duration and
     /// direction
     pub fn set_nr22(&mut self, val: u8) {
         let envelope = Envelope::from_reg(val);
 
         self.sound2.set_envelope(envelope);
+    }
+
+    // NR23 is write only
+    pub fn nr23(&self) -> u8 {
+        0
     }
 
     /// Set frequency divider bits [7:0]
@@ -203,6 +256,13 @@ impl Spu {
         d |= val as u16;
 
         self.sound2.set_divider(d);
+    }
+
+    /// Retreive mode. Other NR14 fields are write only
+    pub fn nr24(&self) -> u8 {
+        let mode = self.sound2.mode() as u8;
+
+        mode << 6
     }
 
     /// Set frequency bits [10:8], Mode and Initialize bit
@@ -227,9 +287,21 @@ impl Spu {
         }
     }
 
+    /// Retreive sound 3
+    pub fn nr30(&self) -> u8 {
+        let enabled = self.sound3.enabled() as u8;
+
+        enabled << 7
+    }
+
     /// Set sound 3 enable
     pub fn set_nr30(&mut self, val: u8) {
         self.sound3.set_enabled(val & 0x80 != 0);
+    }
+
+    /// NR32 is write only
+    pub fn nr31(&self) -> u8 {
+        0
     }
 
     /// Configure sound 3 sound length
@@ -237,11 +309,22 @@ impl Spu {
         self.sound3.set_length(val);
     }
 
+    pub fn nr32(&self) -> u8 {
+        let level = self.sound3.output_level().into_field();
+
+        level << 5
+    }
+
     /// Configure sound 3 output level
     pub fn set_nr32(&mut self, val: u8) {
         let level = OutputLevel::from_field((val >> 5) & 3);
 
         self.sound3.set_output_level(level);
+    }
+
+    /// NR33 is write only
+    pub fn nr33(&self) -> u8 {
+        0
     }
 
     /// Set frequency divider bits [7:0]
@@ -253,6 +336,13 @@ impl Spu {
         d |= val as u16;
 
         self.sound3.set_divider(d);
+    }
+
+    /// Retreive mode. Other NR34 fields are write only
+    pub fn nr34(&self) -> u8 {
+        let mode = self.sound3.mode() as u8;
+
+        mode << 6
     }
 
     /// Set frequency bits [10:8], Mode and Initialize bit
@@ -289,9 +379,30 @@ impl Spu {
         self.sound3.set_ram_sample(index + 1, s1);
     }
 
+    /// Retreive sound 3 sample RAM register value
+    pub fn nr3_ram(&self, index: u8) -> u8 {
+        let index = index * 2;
+        let s0    = self.sound3.ram_sample(index)     as u8;
+        let s1    = self.sound3.ram_sample(index + 1) as u8;
+
+        s0 << 4 | s1
+    }
+
+    /// NR41 is write only
+    pub fn nr41(&self) -> u8 {
+        0
+    }
+
     /// Configure sound 4 sound length
     pub fn set_nr41(&mut self, val: u8) {
         self.sound4.set_length(val & 0x3f);
+    }
+
+    /// Retreive envelope config for sound 1
+    pub fn nr42(&self) -> u8 {
+        let envelope = self.sound4.envelope();
+
+        envelope.into_reg()
     }
 
     /// Configure envelope: initial volume, step duration and
@@ -302,10 +413,23 @@ impl Spu {
         self.sound4.set_envelope(envelope);
     }
 
+    pub fn nr43(&self) -> u8 {
+        let lfsr = self.sound4.lfsr();
+
+        lfsr.into_reg()
+    }
+
     pub fn set_nr43(&mut self, val: u8) {
         let lfsr = Lfsr::from_reg(val);
 
         self.sound4.set_lfsr(lfsr);
+    }
+
+    /// Retreive mode. Other NR34 fields are write only
+    pub fn nr44(&self) -> u8 {
+        let mode = self.sound4.mode() as u8;
+
+        mode << 6
     }
 
     /// Set frequency bits [10:8], Mode and Initialize bit
@@ -322,10 +446,26 @@ impl Spu {
         }
     }
 
+    /// Retreive sound output volume register
+    pub fn nr50(&self) -> u8 {
+        let v1 = self.so1.volume().into_field();
+        let v2 = self.so2.volume().into_field();
+
+        (v2 << 4) | v1
+    }
+
     /// Set sound output volume
     pub fn set_nr50(&mut self, val: u8) {
         self.so1.set_volume(OutputVolume::from_field(val & 0xf));
         self.so2.set_volume(OutputVolume::from_field(val >> 4));
+    }
+
+    /// Retreive sound output mixer register
+    pub fn nr51(&self) -> u8 {
+        let v1 = self.so1.mixer().into_field();
+        let v2 = self.so2.mixer().into_field();
+
+        (v2 << 4) | v1
     }
 
     /// Set sound output mixers
@@ -334,54 +474,25 @@ impl Spu {
         self.so2.set_mixer(Mixer::from_field(val >> 4));
     }
 
+    /// Get global sound enable and sound status
+    pub fn nr52(&self) -> u8 {
+        let enabled = self.enabled          as u8;
+        let r1      = self.sound1.running() as u8;
+        let r2      = self.sound2.running() as u8;
+        let r3      = self.sound3.running() as u8;
+        let r4      = self.sound4.running() as u8;
+
+        enabled << 7 | (r4 << 3) | (r3 << 2) | (r2 << 1) | r1
+    }
+
     /// Set global sound enable
     pub fn set_nr52(&mut self, val: u8) {
         self.enabled = val & 0x80 != 0;
     }
 }
 
-/// The game boy sound uses 4bit DACs and can therefore only output 16
-/// sound levels
-#[derive(Copy)]
-struct Volume(u8);
-
-impl Volume {
-    fn new(vol: u8) -> Volume {
-        if vol > SOUND_MAX {
-            panic!("Volume out of range: {}", vol);
-        }
-
-        Volume(vol)
-    }
-
-    /// Convert from 4-bit volume value to Sample range
-    fn into_sample(self) -> Sample {
-        let Volume(v) = self;
-
-        v as Sample
-    }
-
-    fn up(&mut self) {
-        let Volume(v) = *self;
-
-        // I'm not sure how to handle overflows, let's saturate for
-        // now
-        if v < SOUND_MAX {
-            *self = Volume(v + 1);
-        }
-    }
-
-    fn down(&mut self) {
-        let Volume(v) = *self;
-
-        if v > 0 {
-            *self = Volume(v - 1);
-        }
-    }
-}
-
 /// Sound can be continuous or stop based on a counter
-#[derive(PartialEq,Eq,Show)]
+#[derive(PartialEq,Eq,Copy)]
 enum Mode {
     Continuous = 0,
     Counter    = 1,
@@ -408,8 +519,16 @@ impl SoundOutput {
         self.volume.process(mixed)
     }
 
+    fn mixer(&self) -> Mixer {
+        self.mixer
+    }
+
     fn set_mixer(&mut self, mixer: Mixer) {
         self.mixer = mixer;
+    }
+
+    fn volume(&self) -> OutputVolume {
+        self.volume
     }
 
     fn set_volume(&mut self, volume: OutputVolume) {
@@ -433,10 +552,20 @@ impl Mixer {
         let mut mixer = Mixer { sounds: [false; 4] };
 
         for i in 0us..4 {
-            mixer.sounds[i] = field & (1 << i) != 0;
+            mixer.sounds[i] = (field & (1 << i)) != 0;
         }
 
         mixer
+    }
+
+    fn into_field(self) -> u8 {
+        let mut f = 0;
+
+        for i in 0..self.sounds.len() {
+            f |= (self.sounds[i] as u8) << i
+        }
+
+        f
     }
 
     fn mix(self, sounds: [Sample; 4]) -> Sample {
@@ -469,6 +598,10 @@ impl OutputVolume {
         OutputVolume {
             level: 8 - (field & 7),
         }
+    }
+
+    fn into_field(self) -> u8 {
+        8 - self.level
     }
 
     fn process(self, s: Sample) -> Sample {
