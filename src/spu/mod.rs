@@ -482,7 +482,7 @@ impl Spu {
         let r3      = self.sound3.running() as u8;
         let r4      = self.sound4.running() as u8;
 
-        enabled << 7 | (r4 << 3) | (r3 << 2) | (r2 << 1) | r1
+        enabled << 7 | 0x70 | (r4 << 3) | (r3 << 2) | (r2 << 1) | r1
     }
 
     /// Set global sound enable
@@ -713,7 +713,6 @@ mod tests {
 
         readback_test!{nr50, set_nr50, 0x00}
         readback_test!{nr51, set_nr51, 0x00}
-        readback_test!{nr52, set_nr52, 0x70}
 
         #[test]
         fn wave_ram() {
@@ -729,6 +728,19 @@ mod tests {
                     assert!(r == v);
                 }
             }
+        }
+
+        #[test]
+        fn nr52() {
+            let (mut spu, _) = Spu::new();
+
+            spu.set_nr52(0);
+
+            assert!(spu.nr52() == 0x70);
+
+            spu.set_nr52(0xff);
+
+            assert!(spu.nr52() == 0xf0);
         }
     }
 }
