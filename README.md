@@ -34,9 +34,9 @@ The display and input are handled through SDL2. That code is modular
 and abstracted away from the emulator core so it shouldn't be
 difficult to add support for alternative backends if need be.
 
-The keybindings are hardcoded in `src/ui/sdl2.rs` at the moment:
-you'll have to edit the ```update_key``` function if you want to
-rebind them.
+The keybindings are hardcoded in `src/ui/sdl2/controller.rs` at the
+moment: you'll have to edit the ```update_key``` function if you want
+to rebind them.
 
 The defaults are:
 
