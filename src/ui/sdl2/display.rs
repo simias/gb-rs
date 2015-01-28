@@ -42,8 +42,10 @@ impl Display {
 
 impl ::ui::Display for Display {
     fn clear(&mut self) {
-        let _ = self.renderer.set_draw_color(RGB(0xff, 0x00, 0x00));
-        let _ = self.renderer.clear();
+        let mut drawer = self.renderer.drawer();
+
+        let _ = drawer.set_draw_color(RGB(0xff, 0x00, 0x00));
+        let _ = drawer.clear();
     }
 
     fn set_pixel(&mut self, x: u32, y: u32, color: Color) {
@@ -54,10 +56,12 @@ impl ::ui::Display for Display {
             Color::White     => RGB(0xff, 0xff, 0xff),
         };
 
-        let _ = self.renderer.set_draw_color(color);
+        let mut drawer = self.renderer.drawer();
+
+        let _ = drawer.set_draw_color(color);
 
         if self.upscale == 0 {
-            let _ = self.renderer.draw_point(Point::new(x as i32, y as i32));
+            let _ = drawer.draw_point(Point::new(x as i32, y as i32));
         } else {
             let up = 1 << (self.upscale as usize);
 
@@ -65,12 +69,12 @@ impl ::ui::Display for Display {
             let x = x as i32 * up;
             let y = y as i32 * up;
 
-            let _ = self.renderer.fill_rect(&Rect::new(x, y, up, up));
+            let _ = drawer.fill_rect(&Rect::new(x, y, up, up));
         }
     }
 
     fn flip(&mut self) {
-        self.renderer.present();
+        self.renderer.drawer().present();
         self.clear();
     }
 }

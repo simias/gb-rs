@@ -2,7 +2,7 @@
 //! different capabilities (bankable ROM/RAM, battery, RTC etc...).
 
 use std::fmt::{Debug, Formatter, Error};
-use std::io::{File, Reader, Writer, IoResult, Open, ReadWrite, SeekSet};
+use std::old_io::{File, Reader, Writer, IoResult, Open, ReadWrite, SeekSet};
 use std::iter::repeat;
 use ascii::AsciiCast;
 
@@ -119,7 +119,7 @@ impl Cartridge {
             self.ram.resize(ramsize, 0);
             // Then fill the file with the right amount of 0s
             // to reserve enough space for saving later.
-            try!(save_file.write(self.ram.as_slice()));
+            try!(save_file.write_all(self.ram.as_slice()));
         } else if save_size == (ramsize as u64) {
             // The file contains a RAM image
             self.ram = try!(save_file.read_exact(ramsize as usize));
@@ -142,7 +142,7 @@ impl Cartridge {
             println!("Saving to {}", f.path().display());
 
             try!(f.seek(0, SeekSet));
-            try!(f.write(self.ram.as_slice()));
+            try!(f.write_all(self.ram.as_slice()));
         }
 
         Ok(())

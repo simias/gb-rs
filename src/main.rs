@@ -18,7 +18,7 @@ extern crate ascii;
 #[cfg(test)]
 extern crate test;
 
-use std::io::Timer;
+use std::old_io::Timer;
 use std::time::Duration;
 use ui::{Controller, Audio};
 
