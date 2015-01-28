@@ -46,7 +46,7 @@ impl Spu {
         let (tx, rx) = sync_channel(CHANNEL_DEPTH);
 
         let spu = Spu {
-            enabled:  true,
+            enabled:  false,
             divider:  0,
             output:   tx,
             buffer:   [0; SAMPLES_PER_BUFFER],
@@ -130,6 +130,10 @@ impl Spu {
 
     /// Configure sound 1 sweep function
     pub fn set_nr10(&mut self, val: u8) {
+        if !self.enabled {
+            return;
+        }
+
         let sweep = Sweep::from_reg(val);
 
         self.sound1.set_sweep(sweep);
@@ -144,6 +148,10 @@ impl Spu {
 
     /// Configure sound 1 length and duty cycle
     pub fn set_nr11(&mut self, val: u8) {
+        if !self.enabled {
+            return;
+        }
+
         let duty = DutyCycle::from_field(val >> 6);
 
         self.sound1.set_duty(duty);
@@ -161,6 +169,10 @@ impl Spu {
     /// Configure envelope: initial volume, step duration and
     /// direction
     pub fn set_nr12(&mut self, val: u8) {
+        if !self.enabled {
+            return;
+        }
+
         let envelope = Envelope::from_reg(val);
 
         self.sound1.set_envelope(envelope);
@@ -173,6 +185,10 @@ impl Spu {
 
     /// Set frequency divider bits [7:0]
     pub fn set_nr13(&mut self, val: u8) {
+        if !self.enabled {
+            return;
+        }
+
         let mut d = self.sound1.divider();
 
         // Update the low 8 bits
@@ -191,6 +207,10 @@ impl Spu {
 
     /// Set frequency bits [10:8], Mode and Initialize bit
     pub fn set_nr14(&mut self, val: u8) {
+        if !self.enabled {
+            return;
+        }
+
         let mut d = self.sound1.divider();
 
         // Update high 3 bits
@@ -220,6 +240,10 @@ impl Spu {
 
     /// Configure sound 2 sound length and duty cycle
     pub fn set_nr21(&mut self, val: u8) {
+        if !self.enabled {
+            return;
+        }
+
         let duty = DutyCycle::from_field(val >> 6);
 
         self.sound2.set_duty(duty);
@@ -237,6 +261,10 @@ impl Spu {
     /// Configure envelope: initial volume, step duration and
     /// direction
     pub fn set_nr22(&mut self, val: u8) {
+        if !self.enabled {
+            return;
+        }
+
         let envelope = Envelope::from_reg(val);
 
         self.sound2.set_envelope(envelope);
@@ -249,6 +277,10 @@ impl Spu {
 
     /// Set frequency divider bits [7:0]
     pub fn set_nr23(&mut self, val: u8) {
+        if !self.enabled {
+            return;
+        }
+
         let mut d = self.sound2.divider();
 
         // Update the low 8 bits
@@ -267,6 +299,10 @@ impl Spu {
 
     /// Set frequency bits [10:8], Mode and Initialize bit
     pub fn set_nr24(&mut self, val: u8) {
+        if !self.enabled {
+            return;
+        }
+
         let mut d = self.sound2.divider();
 
         // Update high 3 bits
@@ -296,6 +332,10 @@ impl Spu {
 
     /// Set sound 3 enable
     pub fn set_nr30(&mut self, val: u8) {
+        if !self.enabled {
+            return;
+        }
+
         self.sound3.set_enabled(val & 0x80 != 0);
     }
 
@@ -306,6 +346,10 @@ impl Spu {
 
     /// Configure sound 3 sound length
     pub fn set_nr31(&mut self, val: u8) {
+        if !self.enabled {
+            return;
+        }
+
         self.sound3.set_length(val);
     }
 
@@ -317,6 +361,10 @@ impl Spu {
 
     /// Configure sound 3 output level
     pub fn set_nr32(&mut self, val: u8) {
+        if !self.enabled {
+            return;
+        }
+
         let level = OutputLevel::from_field((val >> 5) & 3);
 
         self.sound3.set_output_level(level);
@@ -329,6 +377,10 @@ impl Spu {
 
     /// Set frequency divider bits [7:0]
     pub fn set_nr33(&mut self, val: u8) {
+        if !self.enabled {
+            return;
+        }
+
         let mut d = self.sound3.divider();
 
         // Update the low 8 bits
@@ -347,6 +399,10 @@ impl Spu {
 
     /// Set frequency bits [10:8], Mode and Initialize bit
     pub fn set_nr34(&mut self, val: u8) {
+        if !self.enabled {
+            return;
+        }
+
         let mut d = self.sound3.divider();
 
         // Update high 3 bits
@@ -370,6 +426,8 @@ impl Spu {
     /// Write to sound 3 sample RAM. There are two 4bit samples per
     /// 8bit register
     pub fn set_nr3_ram(&mut self, index: u8, val: u8) {
+        // Should I disallow writing to the RAM when the SPU is disabled?
+
         let index = index * 2;
 
         let s0 = (val >> 4)  as Sample;
@@ -395,6 +453,10 @@ impl Spu {
 
     /// Configure sound 4 sound length
     pub fn set_nr41(&mut self, val: u8) {
+        if !self.enabled {
+            return;
+        }
+
         self.sound4.set_length(val & 0x3f);
     }
 
@@ -408,6 +470,10 @@ impl Spu {
     /// Configure envelope: initial volume, step duration and
     /// direction
     pub fn set_nr42(&mut self, val: u8) {
+        if !self.enabled {
+            return;
+        }
+
         let envelope = Envelope::from_reg(val);
 
         self.sound4.set_envelope(envelope);
@@ -420,6 +486,10 @@ impl Spu {
     }
 
     pub fn set_nr43(&mut self, val: u8) {
+        if !self.enabled {
+            return;
+        }
+
         let lfsr = Lfsr::from_reg(val);
 
         self.sound4.set_lfsr(lfsr);
@@ -434,6 +504,10 @@ impl Spu {
 
     /// Set frequency bits [10:8], Mode and Initialize bit
     pub fn set_nr44(&mut self, val: u8) {
+        if !self.enabled {
+            return;
+        }
+
         self.sound4.set_mode(
             match val & 0x40 != 0 {
                 true  => Mode::Counter,
@@ -456,6 +530,10 @@ impl Spu {
 
     /// Set sound output volume
     pub fn set_nr50(&mut self, val: u8) {
+        if !self.enabled {
+            return;
+        }
+
         self.so1.set_volume(OutputVolume::from_field(val & 0xf));
         self.so2.set_volume(OutputVolume::from_field(val >> 4));
     }
@@ -470,6 +548,10 @@ impl Spu {
 
     /// Set sound output mixers
     pub fn set_nr51(&mut self, val: u8) {
+        if !self.enabled {
+            return;
+        }
+
         self.so1.set_mixer(Mixer::from_field(val & 0xf));
         self.so2.set_mixer(Mixer::from_field(val >> 4));
     }
@@ -485,9 +567,26 @@ impl Spu {
         enabled << 7 | 0x70 | (r4 << 3) | (r3 << 2) | (r2 << 1) | r1
     }
 
-    /// Set global sound enable
+    /// Set SPU enable
     pub fn set_nr52(&mut self, val: u8) {
         self.enabled = val & 0x80 != 0;
+
+        if !self.enabled {
+            self.reset()
+        }
+    }
+
+    /// Reinitialize the entire SPU to default values. The only
+    /// exception is the waveform RAM that remains untouched.
+    fn reset(&mut self) {
+        self.sound1 = RectangleWave::new();
+        self.sound2 = RectangleWave::new();
+        // Save the RAM contents
+        self.sound3 = RamWave::with_ram(&self.sound3);
+        self.sound4 = LfsrWave::new();
+
+        self.so1 = SoundOutput::new();
+        self.so2 = SoundOutput::new();
     }
 }
 
@@ -509,7 +608,7 @@ impl SoundOutput {
     fn new() -> SoundOutput {
         SoundOutput {
             mixer:  Mixer::from_field(0),
-            volume: OutputVolume::from_field(7),
+            volume: OutputVolume::from_field(0),
         }
     }
 
@@ -676,6 +775,9 @@ mod tests {
                 fn $reg() {
                     let (mut spu, _) = Spu::new();
 
+                    // Enable SPU
+                    spu.set_nr52(0x80);
+
                     for v in 0u16..0x100 {
                         let v = v as u8;
 
@@ -718,6 +820,9 @@ mod tests {
         fn wave_ram() {
             let (mut spu, _) = Spu::new();
 
+            // Enable SPU
+            spu.set_nr52(0x80);
+
             for v in 0u16..0x100 {
                 let v = v as u8;
 
@@ -742,5 +847,65 @@ mod tests {
 
             assert!(spu.nr52() == 0xf0);
         }
+    }
+
+    mod reset {
+        //! Disabling the SPU (bit 7 of NR52 to 0) should clear all
+        //! registers. Furthermore the SPU should ignore register
+        //! writes while it's disabled.
+
+        use spu::Spu;
+
+        macro_rules! readback_test {
+            ($reg: ident, $setter: ident, $write_only: expr) => (
+                #[test]
+                fn $reg() {
+                    let (mut spu, _) = Spu::new();
+
+                    // Enable SPU
+                    spu.set_nr52(0x80);
+
+                    // Write full-1s to the register
+                    spu.$setter(0xff);
+
+                    // Disable the SPU
+                    spu.set_nr52(0x00);
+                    // Write to the register (should be ignored while
+                    // the SPU is disabled)
+                    spu.$setter(0xff);
+                    spu.set_nr52(0x80);
+
+                    let r = spu.$reg();
+
+                    // All bits except the write-only ones must have
+                    // been cleared.
+                    assert!(r == $write_only);
+                })
+        }
+
+        readback_test!{nr10, set_nr10, 0x80}
+        readback_test!{nr11, set_nr11, 0x3f}
+        readback_test!{nr12, set_nr12, 0x00}
+        readback_test!{nr13, set_nr13, 0xff}
+        readback_test!{nr14, set_nr14, 0xbf}
+
+        readback_test!{nr21, set_nr21, 0x3f}
+        readback_test!{nr22, set_nr22, 0x00}
+        readback_test!{nr23, set_nr23, 0xff}
+        readback_test!{nr24, set_nr24, 0xbf}
+
+        readback_test!{nr30, set_nr30, 0x7f}
+        readback_test!{nr31, set_nr31, 0xff}
+        readback_test!{nr32, set_nr32, 0x9f}
+        readback_test!{nr33, set_nr33, 0xff}
+        readback_test!{nr34, set_nr34, 0xbf}
+
+        readback_test!{nr41, set_nr41, 0xff}
+        readback_test!{nr42, set_nr42, 0x00}
+        readback_test!{nr43, set_nr43, 0x00}
+        readback_test!{nr44, set_nr44, 0xbf}
+
+        readback_test!{nr50, set_nr50, 0x00}
+        readback_test!{nr51, set_nr51, 0x00}
     }
 }

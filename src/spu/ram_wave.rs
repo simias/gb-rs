@@ -39,6 +39,15 @@ impl RamWave {
         }
     }
 
+    /// Create a new RamWare taking the RAM contents from an old one.
+    pub fn with_ram(other: &RamWave) -> RamWave {
+        let mut rw = RamWave::new();
+
+        rw.samples = other.samples;
+
+        rw
+    }
+
     pub fn step(&mut self) {
         if !self.running {
             return;
