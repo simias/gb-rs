@@ -20,11 +20,6 @@ pub fn next_instruction(cpu: &mut Cpu) -> (u32, fn (&mut Cpu)) {
             bitops::next_instruction(cpu)
         };
 
-    if delay == 0 {
-        println!("{:?}", cpu);
-        panic!("Unimplemented instruction [{:02X}]", op);
-    }
-
     (delay, instruction)
 }
 
