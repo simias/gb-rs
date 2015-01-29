@@ -873,8 +873,11 @@ mod tests {
                     // Write to the register (should be ignored while
                     // the SPU is disabled)
                     spu.$setter(0xff);
+
+                    // Re-enable SPU
                     spu.set_nr52(0x80);
 
+                    // Read register
                     let r = spu.$reg();
 
                     // All bits except the write-only ones must have

@@ -298,12 +298,11 @@ impl<'a> Interconnect<'a> {
                 0xff
             }
         }
-
-        //self.io[(addr & 0xff) as usize]
     }
 
     /// Set value of IO port
     fn set_io(&mut self, addr: u16, val: u8) {
+
         match addr {
             // Controller input
             io_map::INPUT    => self.buttons.set_input(val),

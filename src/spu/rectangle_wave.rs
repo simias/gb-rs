@@ -251,7 +251,7 @@ impl Sweep {
     /// divider or None if the sound must be stopped
     fn step(&mut self, div: u16) -> Option<u16> {
         if self.step_duration == 0 {
-            // Sweep off, do nothing
+            // Sweep OFF, do nothing
             return Some(div);
         }
 
