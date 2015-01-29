@@ -7,7 +7,7 @@
 //! Accuracy tests: http://tasvideos.org/EmulatorResources/GBAccuracyTests.html
 
 
-#![allow(unstable)]
+#![feature(io,core,os,path,std_misc,collections)]
 #![warn(missing_docs)]
 
 #[macro_use]
