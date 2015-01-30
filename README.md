@@ -34,22 +34,23 @@ The display and input are handled through SDL2. That code is modular
 and abstracted away from the emulator core so it shouldn't be
 difficult to add support for alternative backends if need be.
 
-The keybindings are hardcoded in `src/ui/sdl2/controller.rs` at the
-moment: you'll have to edit the ```update_key``` function if you want
-to rebind them.
+The controls are hardcoded in `src/ui/sdl2/controller.rs` at the
+moment: you'll have to edit the `update_key`, `update_button` and
+`update_axis` function if you want to rebind the various keyboard and
+controller controls.
 
 The defaults are:
 
-| GameBoy button  | Key           |
-| --------------- | ------------- |
-| A               | Left Alt      |
-| B               | Left Control  |
-| Start           | Return        |
-| Select          | Right Shift   |
-| Up              | Up            |
-| Down            | Down          |
-| Left            | Left          |
-| Right           | Right         |
+| GameBoy button  | Keyboard      | Controller             |
+| --------------- | ------------- | ---------------------- |
+| A               | Left Alt      | A                      |
+| B               | Left Control  | B                      |
+| Start           | Return        | Start                  |
+| Select          | Right Shift   | Back                   |
+| Up              | Up            | DPadUp    / LeftY axis |
+| Down            | Down          | DPadDown  / LeftY axis |
+| Left            | Left          | DPadLeft  / LeftX axis |
+| Right           | Right         | DPadRight / LeftX axis |
 
 The `Escape` key exits the emulator.
 
@@ -62,7 +63,7 @@ boot up.
 Game Support
 ------------
 
-Games that are known to work:
+Games that have been tested:
 
 * Tetris
 * Bombjack
