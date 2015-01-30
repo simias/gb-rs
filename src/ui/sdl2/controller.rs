@@ -44,13 +44,13 @@ impl ::ui::Controller for Controller {
             match ::sdl2::event::poll_event() {
                 Event::None =>
                     break,
-                Event::KeyDown(_, _, KeyCode::Escape, _, _, _) =>
+                Event::KeyDown { keycode: KeyCode::Escape, .. } =>
                     event = ::ui::Event::PowerOff,
-                Event::KeyDown(_, _, key, _, _, _) =>
+                Event::KeyDown { keycode: key, .. } =>
                     self.update_key(key, ButtonState::Down),
-                Event::KeyUp(_, _, key, _, _, _) =>
+                Event::KeyUp { keycode: key, .. } =>
                     self.update_key(key, ButtonState::Up),
-                Event::Quit(_) =>
+                Event::Quit { .. } =>
                     event = ::ui::Event::PowerOff,
                 _ => ()
             }
