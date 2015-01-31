@@ -25,7 +25,4 @@ sgb_bootrom = []
 
 ascii = "0.2.4"
 log   = "0.2.1"
-
-[dependencies.sdl2]
-
-git = "https://github.com/AngryLawyer/rust-sdl2.git"
+sdl2  = "0.0.22"
