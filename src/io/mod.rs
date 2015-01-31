@@ -140,7 +140,7 @@ impl<'a> Interconnect<'a> {
         }
 
         debug!("Read from unmapped memory {:04x}", addr);
-        0
+        0xff
     }
 
     /// Store `val` into peripheral mapped at `addr`
