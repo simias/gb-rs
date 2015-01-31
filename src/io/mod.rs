@@ -37,9 +37,9 @@ pub struct Interconnect<'a> {
     dma_idx:    u16,
     /// Controller interface
     buttons:    buttons::Buttons<'a>,
-    /// The game boy starts up mapping the bootrom at address 0. Once
-    /// it's run it gets unmapped (by writing 0x01 to UNMAP_BOOTROM)
-    /// and remains inaccessible until the next reboot.
+    /// The game boy starts up mapping the bootrom at address [0,
+    /// 0xff]. The last thing the bootrom does is writing 0x01 to
+    /// UNMAP_BOOTROM to remove itself from the memory map.
     bootrom:    bool,
 }
 
@@ -100,7 +100,7 @@ impl<'a> Interconnect<'a> {
 
         if let Some(off) = map::in_range(addr, map::ROM) {
             if self.bootrom && off < 0x100 {
-                // Read from the bootrom
+                // Bootrom is still mapped, read from it
                 return bootrom::BOOTROM[off as usize];
             }
 
@@ -182,7 +182,8 @@ impl<'a> Interconnect<'a> {
         }
 
         if self.bootrom && addr == map::UNMAP_BOOTROM {
-            if val ==  1 {
+            if val == 1 {
+                // Unmap bootrom
                 self.bootrom = false;
             }
             return;
