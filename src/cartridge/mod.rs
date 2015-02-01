@@ -14,14 +14,16 @@ pub struct Cartridge {
     rom:        Vec<u8>,
     /// Cartridge RAM data
     ram:        Vec<u8>,
+    /// Total number of ROM banks in this cart
+    rom_banks:  u8,
     /// Current number of the rom bank mapped at [0x4000, 0x7fff]
     rom_bank:   u8,
     /// Current bank offset for the bank mapped at [0x4000, 0x7fff].
     /// This value is added to ROM register addresses when they're in
     /// that range.
-    rom_offset: usize,
+    rom_offset: i32,
     /// Current bank offset for the RAM
-    ram_offset: usize,
+    ram_offset: u32,
     /// If `true` RAM is write protected
     ram_wp:     bool,
     /// Certain cartridges allow banking either the RAM or ROM
@@ -42,13 +44,14 @@ impl Cartridge {
         let mut source = try!(File::open(rom_path));
 
         // There must always be at least two ROM banks
-        let rom = try!(source.read_exact(2 * ROM_BANK_SIZE));
+        let rom = try!(source.read_exact(2 * ROM_BANK_SIZE as usize));
 
         let model = models::from_id(rom[offsets::TYPE]);
 
         let mut cartridge = Cartridge {
             rom:        rom,
             ram:        Vec::new(),
+            rom_banks:  2,
             // Default to bank 1 for bankable region
             rom_bank:   1,
             rom_offset: 0,
@@ -60,16 +63,18 @@ impl Cartridge {
             save_file:  None,
         };
 
-        let rombanks = match cartridge.rom_banks() {
+        let rombanks = match cartridge.parse_rom_banks() {
             Some(n) => n,
             None    => panic!("Can't determine ROM size"),
         };
 
+        cartridge.rom_banks = rombanks;
+
         // Read the remaining roms banks
         if rombanks > 2 {
-            let remb      = rombanks - 2;
-            let mut off   = 2    * ROM_BANK_SIZE;
-            let mut remsz = remb * ROM_BANK_SIZE;
+            let remb      = (rombanks - 2) as usize;
+            let mut off   = 2    * ROM_BANK_SIZE as usize;
+            let mut remsz = remb * ROM_BANK_SIZE as usize;
 
             // Reserve space for the remaining banks
             cartridge.rom.extend(repeat(0).take(remsz));
@@ -90,7 +95,7 @@ impl Cartridge {
     /// Init cartridge RAM and tie it with a `File` for saving if
     /// necessary.
     fn init_ram(&mut self) -> IoResult<()> {
-        let (rambanks, banksize) = match self.ram_banks() {
+        let (rambanks, banksize) = match self.parse_ram_banks() {
             Some(v) => v,
             None    => panic!("Can't determine RAM size"),
         };
@@ -177,8 +182,9 @@ impl Cartridge {
         Some(name)
     }
 
-    /// Return the number of ROM banks for this ROM. Each bank is 16KB.
-    pub fn rom_banks(&self) -> Option<usize> {
+    /// Return the number of ROM banks declared in the header. Each
+    /// bank is 16KB.
+    fn parse_rom_banks(&self) -> Option<u8> {
         let id = self.rom_byte(offsets::ROM_SIZE as u16);
 
         let nbanks =
@@ -202,7 +208,7 @@ impl Cartridge {
 
     /// Return the number of RAM banks for this ROM along with the
     /// size of each bank in bytes.
-    pub fn ram_banks(&self) -> Option<(usize, usize)> {
+    pub fn parse_ram_banks(&self) -> Option<(usize, usize)> {
 
         let model = models::from_id(self.rom_byte(offsets::TYPE as u16));
 
@@ -231,12 +237,12 @@ impl Cartridge {
     }
 
     pub fn rom_byte(&self, offset: u16) -> u8 {
-        let off = offset as usize;
+        let off = offset as i32;
 
         if off < ROM_BANK_SIZE {
-            self.rom[off]
+            self.rom[off as usize]
         } else {
-            self.rom[self.rom_offset as usize + off]
+            self.rom[(self.rom_offset + off) as usize]
         }
     }
 
@@ -247,24 +253,24 @@ impl Cartridge {
     /// Return the value of RAM byte at `offset` in the currently
     /// selected RAM bank
     pub fn ram_byte(&self, offset: u16) -> u8 {
-        let addr = self.ram_offset + offset as usize;
+        let addr = self.ram_offset + offset as u32;
 
         (self.model.read_ram)(self, addr)
     }
 
     /// Return the value of a RAM byte at absolute address `addr`
-    fn ram_byte_absolute(&self, addr: usize) -> u8 {
+    fn ram_byte_absolute(&self, addr: u32) -> u8 {
         *self.ram.get(addr as usize).unwrap_or(&0)
     }
 
-    fn ram_byte_absolute_mut(&mut self, addr: usize) -> Option<&mut u8> {
+    fn ram_byte_absolute_mut(&mut self, addr: u32) -> Option<&mut u8> {
         self.ram.get_mut(addr as usize)
     }
 
     /// Set value of RAM byte at `offset` in the curretly selected RAM
     /// bank
     pub fn set_ram_byte(&mut self, offset: u16, val: u8) {
-        let addr = self.ram_offset + offset as usize;
+        let addr = self.ram_offset + offset as u32;
 
         if self.ram_wp {
             debug!("Attempt to write to cartridge RAM while protected");
@@ -272,6 +278,11 @@ impl Cartridge {
         }
 
         (self.model.write_ram)(self, addr, val);
+    }
+
+    /// Retreive the number of ROM banks in the cartridge
+    pub fn rom_banks(&self) -> u8 {
+        self.rom_banks
     }
 
     /// Retrieve current ROM bank number for the bankable range at
@@ -284,14 +295,10 @@ impl Cartridge {
     /// [0x4000, 0x7fff]
     pub fn set_rom_bank(&mut self, bank: u8) {
         self.rom_bank = bank;
+    }
 
-        // Recompute offset value to avoid doing it at each ROM read.
-        self.rom_offset = ROM_BANK_SIZE *
-            match self.rom_bank {
-                /// We can't select bank 0, it defaults to 1
-                0 => 0,
-                n => (n - 1) as usize,
-            };
+    pub fn set_rom_offset(&mut self, offset: i32) {
+        self.rom_offset = offset;
     }
 
     /// Enable or disable RAM write protect
@@ -312,7 +319,7 @@ impl Cartridge {
     /// Set new RAM bank number
     pub fn set_ram_bank(&mut self, bank: u8) {
         // Bankable RAM is always 8KB per bank
-        self.ram_offset = bank as usize * 8 * 1024;
+        self.ram_offset = bank as u32 * 8 * 1024;
     }
 
     /// Create a Cartridge instance from a ROM provided in a
@@ -324,6 +331,7 @@ impl Cartridge {
             rom:        rom,
             ram:        Vec::new(),
             rom_bank:   1,
+            rom_banks:  2,
             rom_offset: 0,
             ram_offset: 0,
             ram_wp:     true,
@@ -353,12 +361,9 @@ impl Debug for Cartridge {
             None    => "<INVALID>".to_string(),
         };
 
-        let rombanks = match self.rom_banks() {
-            Some(n) => n,
-            None    => 0,
-        };
+        let rombanks = self.rom_banks();
 
-        let (rambanks, rambanksize) = match self.ram_banks() {
+        let (rambanks, rambanksize) = match self.parse_ram_banks() {
             Some(n) => n,
             None    => (0, 0),
         };
@@ -375,7 +380,7 @@ impl Debug for Cartridge {
 }
 
 // Each ROM bank is always 16KB
-const ROM_BANK_SIZE: usize = 16 * 1024;
+const ROM_BANK_SIZE: i32 = 16 * 1024;
 
 mod offsets {
     //! Various offset values to access special memory locations within the ROM

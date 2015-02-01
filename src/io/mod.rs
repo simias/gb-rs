@@ -391,6 +391,7 @@ impl<'a> Interconnect<'a> {
 }
 
 /// The various sources of interrupt, from highest to lowest priority
+#[derive(Copy, Show)]
 pub enum Interrupt {
     /// GPU entered vertical blanking
     VBlank,
@@ -402,6 +403,7 @@ pub enum Interrupt {
 }
 
 /// GB Interrupts, from highest to lowest priority
+#[derive(Copy, Show)]
 struct Interrupts {
     /// GPU entered vertical blanking
     vblank: bool,
