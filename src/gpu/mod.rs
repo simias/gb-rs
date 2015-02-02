@@ -72,7 +72,7 @@ pub struct Gpu<'a> {
 }
 
 /// Current GPU mode
-#[derive(Show,PartialEq,Copy)]
+#[derive(Debug,PartialEq,Copy)]
 pub enum Mode {
     /// In horizontal blanking
     HBlank = 0,
