@@ -12,10 +12,7 @@ pub struct Timer {
     /// System clock divider. When `enabled`, at each tick of the
     /// divider clock `counter` is incremented.
     divider: Divider,
-    /// Free-running internal counter simulating the sysclk
-    clk: u32,
-    /// Free-running counter at sysclk/256. I need a separate counter
-    /// because that one can be reset
+    /// Free-running counter used as a divider for the sysclk
     counter_16k: u32,
     /// True if interrupt is pending
     interrupt: bool,
@@ -28,14 +25,12 @@ impl Timer {
             modulo:      0,
             enabled:     false,
             divider:     Divider::Div1024,
-            clk:         0,
             counter_16k: 0,
             interrupt:   false,
         }
     }
 
     pub fn step(&mut self) {
-        self.clk         += 1;
         self.counter_16k += 1;
 
         if !self.enabled {
@@ -44,7 +39,7 @@ impl Timer {
 
         let mask = (1 << (self.divider as usize)) - 1;
 
-        if self.clk & mask == 0 {
+        if self.counter_16k & mask == 0 {
             // Divided clock ticked, increment counter
             self.counter += 1;
 
