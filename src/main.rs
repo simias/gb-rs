@@ -8,6 +8,8 @@
 
 
 #![feature(io,core,os,path,std_misc,collections)]
+#![cfg_attr(test, feature(test))]
+
 #![warn(missing_docs)]
 
 #[macro_use]
