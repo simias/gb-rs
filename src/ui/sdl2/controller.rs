@@ -36,7 +36,7 @@ impl Controller {
         // (if any)
         for id in 0..njoysticks {
             if controller::is_game_controller(id) {
-                print!("Attempting to open controller {}", id);
+                println!("Attempting to open controller {}", id);
 
                 match GameController::open(id) {
                     Ok(c) => {
