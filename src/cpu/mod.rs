@@ -9,8 +9,6 @@ mod instructions;
 
 /// CPU state.
 pub struct Cpu<'a> {
-    /// Time remaining for the current instruction to finish
-    instruction_delay:   u32,
     /// CPU registers (except for `F` register)
     regs:                Registers,
     /// CPU flags (`F` register)
@@ -23,6 +21,7 @@ pub struct Cpu<'a> {
     halted:              bool,
     /// Interconnect to access external ressources (RAM, ROM, peripherals...)
     inter:               Interconnect<'a>,
+    instruction_cycles:  u8,
 }
 
 /// CPU registers. They're 16bit wide but some of them can be accessed
@@ -82,7 +81,6 @@ impl<'a> Cpu<'a> {
         };
 
         Cpu {
-            instruction_delay: 0,
             regs: regs,
             flags: Flags { z: false,
                            n: false,
@@ -93,20 +91,18 @@ impl<'a> Cpu<'a> {
             iten:             true,
             iten_enable_next: true,
             halted:           false,
+            instruction_cycles: 0,
         }
     }
 
-    /// Called at each tick of the system clock. Move the emulated
-    /// state one step forward.
-    pub fn step(&mut self) {
-        self.inter.step();
+    /// Execute an instruction or wait for an interrupt if the system
+    /// is halted. The rest of the emulator state will be advanced
+    /// indirectly by the `advance` method below. The function returns
+    /// the number of system clock periods ("ticks") elapsed running
+    /// the instruction.
+    pub fn run_next_instruction(&mut self) -> u8 {
 
-        // Are we done running the current instruction?
-        if self.instruction_delay > 0 {
-            // Nope, wait for the next cycle
-            self.instruction_delay -= 1;
-            return;
-        }
+        self.instruction_cycles = 0;
 
         if self.iten {
             if let Some(it) = self.inter.next_interrupt_ack() {
@@ -115,7 +111,7 @@ impl<'a> Cpu<'a> {
                 // Wait until the context switch delay is over. We're
                 // sure not to reenter here after that since the
                 // `iten` is set to false in `self.interrupt`
-                return;
+                return self.instruction_cycles;
             }
         } else {
             // If an interrupt enable is pending we update the iten
@@ -124,6 +120,9 @@ impl<'a> Cpu<'a> {
         }
 
         if self.halted {
+            self.inter.step();
+            self.instruction_cycles += 1;
+
             // Check if we have a pending interrupt because even if
             // `iten` is false HALT returns when an IT is triggered
             // (but the IT handler doesn't run)
@@ -131,20 +130,18 @@ impl<'a> Cpu<'a> {
                 self.halted = false;
             } else {
                 // Wait for interrupt
-                return;
+                return self.instruction_cycles;
             }
         }
 
         // Now we fetch the next instruction
-        let (delay, instruction) = next_instruction(self);
+        let instruction = next_instruction(self);
 
-        // Instruction delays are in CPU Machine cycles. There's 4
-        // Clock cycles in one Machine cycle.
-        self.instruction_delay = delay * 4 - 1;
         // Run the next instruction. This can change the entire CPU
-        // state including the `instruction_delay` above (using the
-        // `additional_delay` method).
+        // state.
         (instruction)(self);
+
+        self.instruction_cycles
     }
 
     /// Execute interrupt handler for `it`
@@ -155,9 +152,6 @@ impl<'a> Cpu<'a> {
         // Interrupt are disabled when entering an interrupt handler.
         self.disable_interrupts();
 
-        // Switching context takes 32 cycles
-        self.instruction_delay = 32;
-
         let handler_addr = match it {
             Interrupt::VBlank => 0x40,
             Interrupt::Lcdc   => 0x48,
@@ -167,18 +161,30 @@ impl<'a> Cpu<'a> {
         // Push current value to stack
         let pc = self.pc();
         self.push_word(pc);
+
+        // Context switching delay
+        self.delay(6);
+
         // Jump to IT handler
         self.set_pc(handler_addr);
     }
 
-    /// Fetch byte at `addr` from the interconnect
-    fn fetch_byte(&self, addr: u16) -> u8 {
-        self.inter.fetch_byte(addr)
+    /// Fetch byte at `addr` from the interconnect. Takes one machine
+    /// cycle.
+    fn fetch_byte(&mut self, addr: u16) -> u8 {
+        let b = self.inter.fetch_byte(addr);
+
+        self.delay(1);
+
+        b
     }
 
-    /// Store byte `val` at `addr` in the interconnect
+    /// Store byte `val` at `addr` in the interconnect. Takes one
+    /// machine cycle.
     fn store_byte(&mut self, addr: u16, val: u8) {
-        self.inter.store_byte(addr, val)
+        self.inter.store_byte(addr, val);
+
+        self.delay(1);
     }
 
     /// Push one byte onto the stack and decrement the stack pointer
@@ -218,12 +224,20 @@ impl<'a> Cpu<'a> {
         (hi << 8) | lo
     }
 
-    /// Certain instructions take a different amount of time to
-    /// execute depending on the cpu state (conditional jumps and
-    /// calls). `delay` is expressed in CPU Machine cycle, there's 4
-    /// Clock cycles in one Machine cycle.
-    fn additional_delay(&mut self, delay: u32) {
-        self.instruction_delay += delay * 4;
+    /// Advance the rest of the emulator state. `cycles` is given in
+    /// system clock periods.
+    fn advance(&mut self, cycles: u8) {
+        for _ in 0..cycles {
+            self.inter.step();
+        }
+
+        self.instruction_cycles += cycles;
+    }
+
+    /// Make the CPU wait for the given number of machine
+    /// cycles. There are 4 machine cycles per SysClk cycle.
+    fn delay(&mut self, machine_cycles: u8) {
+        self.advance(machine_cycles * 4);
     }
 
     /// Retrieve value of the `PC` register
@@ -234,6 +248,13 @@ impl<'a> Cpu<'a> {
     /// Set value of the `PC` register
     fn set_pc(&mut self, pc: u16) {
         self.regs.pc = pc;
+    }
+
+    /// Load value into `PC` register. Takes one machine cycle
+    fn load_pc(&mut self, pc: u16) {
+        self.set_pc(pc);
+
+        self.delay(1);
     }
 
     /// Retrieve value of the `SP` register
@@ -481,14 +502,14 @@ impl<'a> Debug for Cpu<'a> {
 
         try!(writeln!(f, "  pc: 0x{:04x} [{:02X} {:02X} {:02X} ...]",
                       self.pc(),
-                      self.fetch_byte(self.pc()),
-                      self.fetch_byte(self.pc() + 1),
-                      self.fetch_byte(self.pc() + 2)));
+                      self.inter.fetch_byte(self.pc()),
+                      self.inter.fetch_byte(self.pc() + 1),
+                      self.inter.fetch_byte(self.pc() + 2)));
         try!(writeln!(f, "  sp: 0x{:04x} [{:02X} {:02X} {:02X} ...]",
                       self.sp(),
-                      self.fetch_byte(self.sp()),
-                      self.fetch_byte(self.sp() + 1),
-                      self.fetch_byte(self.sp() + 2)));
+                      self.inter.fetch_byte(self.sp()),
+                      self.inter.fetch_byte(self.sp() + 1),
+                      self.inter.fetch_byte(self.sp() + 2)));
         try!(writeln!(f, "  af: 0x{:04x}    a: {:3}    f: {:3}",
                       self.af(), self.a(), self.f()));
         try!(writeln!(f, "  bc: 0x{:04x}    b: {:3}    c: {:3}",
@@ -498,8 +519,8 @@ impl<'a> Debug for Cpu<'a> {
         try!(writeln!(f, "  hl: 0x{:04x}    h: {:3}    l: {:3}    \
                            [hl]: [{:02X} {:02X} ...]",
                       self.hl(), self.h(), self.l(),
-                      self.fetch_byte(self.hl()),
-                      self.fetch_byte(self.hl() + 1)));
+                      self.inter.fetch_byte(self.hl()),
+                      self.inter.fetch_byte(self.hl() + 1)));
 
         try!(writeln!(f, "Flags:"));
 

@@ -6,10 +6,8 @@ gb-rs
 
 Game Boy emulator written in rust. No unsafe code so far.
 
-It's still quite buggy but it can run a few games well enough to be
-playable. The CPU passes all the instruction tests as well as the
-timing tests (see the "Ressources" section below for the links to the
-tests).
+The CPU passes all the instruction tests as well as all the timing
+tests (see the "Ressources" section below for the links to the tests).
 
 Saving is implemented, it creates a file with the ".sav" extension in
 the same directory as the ROM being executed if it supports saving.
@@ -18,7 +16,11 @@ Sound is implemented with adaptative resampling to match the sound
 card sample rate. Note that it might take a few seconds for the
 algorithm to settle on the correct sample rate so you might get a few
 dropped sound packets when you start the emulator. Normally once this
-training time has elapsed there should be no glitch.
+training time has elapsed there should be no drops.
+
+The sound unit is not completely accurate however, some games have
+weird glitches in the sounds (The Legend of Zelda in particular). I'm
+working on that...
 
 Things that remain to be implemented:
 * Serial link

@@ -83,10 +83,15 @@ fn main() {
 
     let mut audio_adjust_count = 0;
 
+    let mut cycles = 0;
+
     loop {
-        for _ in (0..GRANULARITY) {
-            cpu.step();
+        while cycles < GRANULARITY {
+            // The actual emulator takes place here!
+            cycles += cpu.run_next_instruction() as i64;
         }
+
+        cycles -= GRANULARITY;
 
         // Update controller status
         match controller.update() {
@@ -160,8 +165,10 @@ mod benchmark {
 
             // Simulate 100ms of emulated time so that the benchmark
             // doesn't run for too long.
-            for _ in range(0, super::SYSCLK_FREQ / 10) {
-                cpu.step();
+            let mut cycle = 0;
+
+            while cycle < super::SYSCLK_FREQ / 10 {
+                cycle += cpu.run_next_instruction() as i64;
             }
         });
     }
