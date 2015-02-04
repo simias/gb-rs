@@ -42,23 +42,27 @@ impl RectangleWave {
             start_envelope: Envelope::from_reg(0),
             envelope:       Envelope::from_reg(0),
             mode:           Mode::Continuous,
-            remaining:      0,
+            remaining:      64 * 0x4000,
             sweep:          Sweep::from_reg(0),
         }
     }
 
     pub fn step(&mut self) {
-        if !self.running {
-             return;
-        }
 
+        // Counter runs even if the channel is disabled
         if self.mode == Mode::Counter {
             if self.remaining == 0 {
                 self.running = false;
+                // Reload counter default value
+                self.remaining = 64 * 0x4000;
                 return;
             }
 
             self.remaining -= 1;
+        }
+
+        if !self.running {
+            return;
         }
 
         self.envelope.step();
@@ -101,7 +105,7 @@ impl RectangleWave {
 
     pub fn start(&mut self) {
         self.envelope = self.start_envelope;
-        self.running  = true;
+        self.running  = self.envelope.dac_enabled();
         // What do I need to do here exactly? Which counters are
         // reset?
     }
@@ -137,6 +141,10 @@ impl RectangleWave {
     pub fn set_envelope(&mut self, envelope: Envelope) {
         // New envelope will become active at the next start
         self.start_envelope = envelope;
+
+        if !envelope.dac_enabled() {
+            self.running = false;
+        }
     }
 
     pub fn mode(&self) -> Mode {

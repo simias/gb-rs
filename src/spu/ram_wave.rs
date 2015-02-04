@@ -29,7 +29,7 @@ impl RamWave {
         RamWave {
             running:      false,
             enabled:      false,
-            remaining:    0,
+            remaining:    0x100 * 0x4000,
             output_level: OutputLevel::from_field(0),
             divider:      0,
             counter:      0,
@@ -49,17 +49,20 @@ impl RamWave {
     }
 
     pub fn step(&mut self) {
-        if !self.running {
-            return;
-        }
-
+        // Counter runs even if the channel is disabled
         if self.mode == Mode::Counter {
             if self.remaining == 0 {
                 self.running = false;
+                // Reload counter default value
+                self.remaining = 0x100 * 0x4000;
                 return;
             }
 
             self.remaining -= 1;
+        }
+
+        if !self.running {
+            return;
         }
 
         if self.counter == 0 {
@@ -76,7 +79,7 @@ impl RamWave {
 
     pub fn sample(&self) -> Sample {
 
-        if !self.running || !self.enabled {
+        if !self.running {
             return 0;
         }
 
@@ -100,8 +103,7 @@ impl RamWave {
     }
 
     pub fn start(&mut self) {
-        // Should I modify `self.enabled` here?
-        self.running  = true;
+        self.running = self.enabled;
     }
 
     pub fn divider(&self) -> u16 {
@@ -136,6 +138,10 @@ impl RamWave {
 
     pub fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
+
+        if !self.enabled {
+            self.running = false;
+        }
     }
 
     pub fn output_level(&self) -> OutputLevel {

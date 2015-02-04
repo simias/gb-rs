@@ -25,24 +25,26 @@ impl LfsrWave {
             lfsr:           Lfsr::from_reg(0),
             start_envelope: Envelope::from_reg(0),
             envelope:       Envelope::from_reg(0),
-            remaining:      0,
+            remaining:      64 * 0x4000,
             mode:           Mode::Continuous,
             running:        false,
         }
     }
 
     pub fn step(&mut self) {
-        if !self.running {
-             return;
-        }
-
         if self.mode == Mode::Counter {
             if self.remaining == 0 {
                 self.running = false;
+                // Reload counter default value
+                self.remaining = 64 * 0x4000;
                 return;
             }
 
             self.remaining -= 1;
+        }
+
+        if !self.running {
+             return;
         }
 
         self.envelope.step();
@@ -67,8 +69,8 @@ impl LfsrWave {
     }
 
     pub fn start(&mut self) {
-        self.envelope  = self.start_envelope;
-        self.running = true;
+        self.envelope = self.start_envelope;
+        self.running = self.envelope.dac_enabled();
     }
 
     pub fn envelope(&self) -> Envelope {
@@ -77,6 +79,10 @@ impl LfsrWave {
 
     pub fn set_envelope(&mut self, envelope: Envelope) {
         self.start_envelope = envelope;
+
+        if !envelope.dac_enabled() {
+            self.running = false;
+        }
     }
 
     pub fn set_length(&mut self, len: u8) {

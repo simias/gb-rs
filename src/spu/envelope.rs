@@ -60,6 +60,12 @@ impl Envelope {
     pub fn into_sample(&self) -> Sample {
         self.volume.into_sample()
     }
+
+    /// DAC is disabled when envelope direction goes down and volume is 0
+    pub fn dac_enabled(&self) -> bool {
+        self.direction != EnvelopeDirection::Down ||
+            self.volume.into_sample() != 0
+    }
 }
 
 // Sound envelopes can become louder or quieter
