@@ -28,7 +28,7 @@ Things that remain to be implemented:
 * Maybe GameBoy Color support?
 
 The emulator is not optimized at all but thanks to the GB's measly
-4Mhz system clock it should run at speed on any half-descent desktop
+4Mhz system clock it should run at speed on any half-decent desktop
 CPU. Don't forget to build with ```cargo --release``` do enable the
 optimizations however.
 
@@ -83,7 +83,7 @@ Games that have been tested:
 * Bomberman
 * Trip World
 
-Ressources
+Resources
 ----------
 
 The Game Boy CPU manual: http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf
