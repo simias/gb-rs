@@ -69,7 +69,7 @@ impl ::ui::Display for Display {
             let x = x as i32 * up;
             let y = y as i32 * up;
 
-            let _ = drawer.fill_rect(&Rect::new(x, y, up, up));
+            let _ = drawer.fill_rect(Rect::new(x, y, up, up));
         }
     }
 
