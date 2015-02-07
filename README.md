@@ -69,7 +69,7 @@ Games that have been tested:
 
 * Tetris
 * Bombjack
-* DrMario (However the sound is pretty bogus, I need to investigate that)
+* DrMario
 * Kirby's Dream Land
 * The Legend of Zelda - Link's Awakening
 * Motocross Maniacs
@@ -82,6 +82,7 @@ Games that have been tested:
 * Space Invaders
 * Bomberman
 * Trip World
+* F-1 Race
 
 Resources
 ----------

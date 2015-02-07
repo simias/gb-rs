@@ -21,6 +21,7 @@ pub struct Cpu<'a> {
     halted:              bool,
     /// Interconnect to access external ressources (RAM, ROM, peripherals...)
     inter:               Interconnect<'a>,
+    /// Number of cycles elapsed running the current instruction
     instruction_cycles:  u8,
 }
 

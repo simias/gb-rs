@@ -131,5 +131,5 @@ enum Divider {
     /// Divide sysclk by 256. Timer clock is 16.384kHz
     Div256  = 8,
     /// Divide sysclk by 1024. Timer clock is 4.096kHz
-    Div1024 = 12,
+    Div1024 = 10,
 }

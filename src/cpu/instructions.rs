@@ -1,4 +1,4 @@
- //! Game Boy CPU instructions
+//! Game Boy CPU instructions
 
 use cpu::Cpu;
 
