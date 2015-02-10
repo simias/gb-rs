@@ -7,3 +7,5 @@ pub use ui::sdl2::audio::Audio;
 mod display;
 mod controller;
 mod audio;
+
+pub mod opengl;

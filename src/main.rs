@@ -16,6 +16,8 @@
 extern crate log;
 extern crate sdl2;
 extern crate ascii;
+extern crate libc;
+extern crate gl;
 
 #[cfg(test)]
 extern crate test;
@@ -50,7 +52,7 @@ fn main() {
 
     println!("Loaded ROM {:?}", cart);
 
-    let mut display = ui::sdl2::Display::new(1);
+    let mut display = ui::sdl2::opengl::OpenGL::new(1280, 1152);
     let controller = ui::sdl2::Controller::new();
 
     let gpu = gpu::Gpu::new(&mut display);
