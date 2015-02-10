@@ -15,6 +15,8 @@ extern crate log;
 extern crate sdl2;
 extern crate ascii;
 extern crate num;
+extern crate libc;
+extern crate gl;
 
 #[cfg(test)]
 extern crate test;
@@ -51,7 +53,7 @@ fn main() {
 
     let sdl2 = ui::sdl2::Context::new();
 
-    let mut display = sdl2.new_display(1);
+    let mut display = sdl2.opengl_new(1280, 1152);
 
     let gpu = gpu::Gpu::new(&mut display);
 
