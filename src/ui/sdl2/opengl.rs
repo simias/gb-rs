@@ -19,10 +19,8 @@ pub struct OpenGL {
     /// OpenGL context
     #[allow(dead_code)]
     context: GLContext,
-    /// texture representing the GameBoy framebuffer. The screen is
-    /// actually smaller than that but I've read that it's better to
-    /// use powers of two so why not. We use 24bpp RGB.
-    texture: [u8; 256 * 256 * 3],
+    /// texture representing the GameBoy framebuffer.
+    texture: [u8; 160 * 144 * 3],
 }
 
 impl OpenGL {
@@ -97,8 +95,8 @@ impl OpenGL {
             ];
 
         // We crop the texture to the actual screen resolution
-        let u_max = 160. / 255.;
-        let v_max = 144. / 255.;
+        let u_max = 159. / 255.;
+        let v_max = 143. / 255.;
 
         let uv_mapping: [GLfloat; 8] = [
              0.,    v_max,
@@ -127,7 +125,7 @@ impl OpenGL {
             gl::EnableVertexAttribArray(pos_attr as GLuint);
             gl::VertexAttribPointer(pos_attr as GLuint, 2, gl::FLOAT,
                                     gl::FALSE as GLboolean, 0, ptr::null());
-            
+
             gl::BufferData(gl::ARRAY_BUFFER,
                            (vertices.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
                            mem::transmute(&vertices[0]),
@@ -144,7 +142,7 @@ impl OpenGL {
             gl::VertexAttribPointer(pos_attr as GLuint, 2, gl::FLOAT,
                                     gl::FALSE as GLboolean, 0, ptr::null());
 
-            
+
             gl::BufferData(gl::ARRAY_BUFFER,
                            (uv_mapping.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
                            mem::transmute(&uv_mapping[0]),
@@ -161,6 +159,15 @@ impl OpenGL {
             gl::TexParameteri(gl::TEXTURE_2D,
                               gl::TEXTURE_MIN_FILTER,
                               gl::NEAREST as GLint);
+
+            gl::TexStorage2D(gl::TEXTURE_2D,
+                             // Only one layer
+                             1,
+                             gl::RGB8,
+                             // I use a 256x256 textures because
+                             // apparently power-of-two textures are
+                             // potentially faster in openGL.
+                             256, 256);
 
             texture_id = gl::GetUniformLocation(program,
                                                 CString::from_slice(b"gb_screen").as_ptr());
@@ -180,7 +187,7 @@ impl OpenGL {
         OpenGL {
             window:  window,
             context: context,
-            texture: [0; 256 * 256 * 3],
+            texture: [0; 160 * 144 * 3],
         }
     }
 }
@@ -188,7 +195,7 @@ impl OpenGL {
 impl ::ui::Display for OpenGL {
 
     fn clear(&mut self) {
-        self.texture = [0; 256 * 256 * 3];
+        self.texture.iter_mut().map(|b| *b = 0 );
     }
 
     fn set_pixel(&mut self, x: u32, y: u32, color: Color) {
@@ -199,7 +206,7 @@ impl ::ui::Display for OpenGL {
             Color::White     => [0xff, 0xff, 0xff],
         };
 
-        let pos = y * (256 * 3) + x * 3;
+        let pos = y * (160 * 3) + x * 3;
         let pos = pos as usize;
 
         self.texture[pos + 0] = color[0];
@@ -209,14 +216,15 @@ impl ::ui::Display for OpenGL {
 
     fn flip(&mut self) {
         unsafe {
-            gl::TexImage2D(gl::TEXTURE_2D,
-                           0,
-                           gl::RGB as GLint,
-                           256, 256,
-                           0,
-                           gl::RGB,
-                           gl::UNSIGNED_BYTE,
-                           mem::transmute(&self.texture[0]));
+            gl::TexSubImage2D(gl::TEXTURE_2D,
+                              0,
+                              // Offset in the texture
+                              0, 0,
+                              // Dimensions of the updated part
+                              160, 144,
+                              gl::RGB,
+                              gl::UNSIGNED_BYTE,
+                              mem::transmute(&self.texture[0]));
 
             gl::DrawArrays(gl::TRIANGLE_STRIP, 0, 4);
         }
