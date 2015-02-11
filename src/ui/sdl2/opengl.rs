@@ -91,28 +91,22 @@ impl OpenGL {
 
         let program = link_program(vertex_shader, fragment_shader);
 
-        let vertices: [GLfloat; 12] = [
+        let vertices: [GLfloat; 8] = [
             -1., -1.,
             -1.,  1.,
              1., -1.,
-
              1.,  1.,
-            -1.,  1.,
-             1., -1.,
             ];
 
         // We crop the texture to the actual screen resolution
         let u_max = 160. / 255.;
         let v_max = 144. / 255.;
 
-        let uv_mapping: [GLfloat; 12] = [
+        let uv_mapping: [GLfloat; 8] = [
              0.,    v_max,
              0.,    0.,
              u_max, v_max,
-
              u_max, 0.,
-             0.,    0.,
-             u_max, v_max,
             ];
 
         let mut vertex_array_object  = 0;
@@ -175,7 +169,6 @@ impl OpenGL {
 
             gl::Uniform1i(texture_id, texture as GLint);
 
-
             // Use shader program
             gl::UseProgram(program);
 
@@ -227,7 +220,7 @@ impl ::ui::Display for OpenGL {
                            gl::UNSIGNED_BYTE,
                            mem::transmute(&self.texture[0]));
 
-            gl::DrawArrays(gl::TRIANGLES, 0, 6);
+            gl::DrawArrays(gl::TRIANGLE_STRIP, 0, 4);
         }
 
         self.window.gl_swap_window();
