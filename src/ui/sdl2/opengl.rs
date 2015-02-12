@@ -27,13 +27,12 @@ pub struct OpenGL {
 
 impl OpenGL {
     pub fn new(sdl2: &Sdl, xres: u32, yres: u32) -> OpenGL {
-        ::sdl2::init(::sdl2::INIT_VIDEO);
-
         gl_set_attribute(GLAttr::GLContextMajorVersion, 3);
         gl_set_attribute(GLAttr::GLContextMinorVersion, 3);
 
         gl_set_attribute(GLAttr::GLDoubleBuffer, 1);
         gl_set_attribute(GLAttr::GLDepthSize, 24);
+        gl_set_attribute(GLAttr::GLMultiSampleSamples, 4);
 
         let window = match Window::new(sdl2,
                                        "gb-rs",
@@ -62,13 +61,35 @@ impl OpenGL {
             compile_shader(
                 "#version 330 core                                \n\
                                                                   \n\
-                 in  vec2 position;                               \n\
+                 in  vec3 position;                               \n\
                  in  vec2 vertex_uv;                              \n\
                                                                   \n\
                  out vec2 uv;                                     \n\
+                 const mat4 rot = mat4(                           \n\
+                       vec4(0.707, 0.0, 0.707, 0.0),                  \n\
+                       vec4(0.0, 1.0, 0.0, 0.0),                  \n\
+                       vec4(-0.707, 0.0, 0.707, 0.0),                  \n\
+                       vec4(0.0, 0.0, 0.0, 1.0)                   \n\
+                    );                                            \n\
+                                                                  \n\
+                 const mat4 scal = mat4(                          \n\
+                       vec4(1.0, 0.0, 0.0, 0.0),                  \n\
+                       vec4(0.0, 1.0, 0.0, 0.0),                  \n\
+                       vec4(0.0, 0.0, 1.0, 0.0),                  \n\
+                       vec4(0.0, 0.0, 0.0, 1.0)                   \n\
+                    );                                            \n\
+                                                                  \n\
+                 const mat4 trans = mat4(                         \n\
+                       vec4(1.0, 0.0, 0.0, -1.0),                  \n\
+                       vec4(0.0, 1.0, 0.0, 0.0),                  \n\
+                       vec4(0.0, 0.0, 1.0, -2.0),                  \n\
+                       vec4(0.0, 0.0, 0.0, 1.0)                   \n\
+                    );                                            \n\
+                                                                  \n\
+                 const mat4 view = rot * trans * scal;            \n\
                                                                   \n\
                  void main(void) {                                \n\
-                     gl_Position.xyzw = vec4(position, 0.0, 1.0); \n\
+                     gl_Position = view * vec4(position, 1.0);    \n\
                      uv = vertex_uv;                              \n\
                  }",
                 gl::VERTEX_SHADER);
@@ -90,41 +111,41 @@ impl OpenGL {
 
         let program = link_program(vertex_shader, fragment_shader);
 
-        let bg_top_left  = ( -1., 1.);
-        let bg_top_right = ( 1.,  1.);
-        let bg_bot_left  = (-1., -1.);
-        let bg_bot_right = ( 1., -1.);
+        let bg_top_left  = (-0.8,  0.8);
+        let bg_top_right = ( 1.0,  0.8);
+        let bg_bot_left  = (-0.8, -0.8);
+        let bg_bot_right = ( 1.0, -0.8);
 
-        let sp_top_left  = ( -1., 1.);
-        let sp_top_right = ( 1.,  1.);
-        let sp_bot_left  = (-1., -1.);
-        let sp_bot_right = ( 1., -1.);
+        let sp_top_left  = (-1.0,  0.8);
+        let sp_top_right = ( 0.5,  0.8);
+        let sp_bot_left  = (-1.0, -0.8);
+        let sp_bot_right = ( 0.5, -0.8);
 
 
-        let vertices: [GLfloat; 24] = [
-            bg_top_left.0, bg_top_left.1,
-            bg_top_right.0, bg_top_right.1,
-            bg_bot_right.0, bg_bot_right.1,
+        let vertices: [GLfloat; 36] = [
+            bg_top_left.0, bg_top_left.1,   -0.9,
+            bg_top_right.0, bg_top_right.1, -0.9,
+            bg_bot_right.0, bg_bot_right.1, -0.9,
 
-            bg_top_left.0, bg_top_left.1,
-            bg_bot_right.0, bg_bot_right.1,
-            bg_bot_left.0, bg_bot_left.1,
+            bg_top_left.0, bg_top_left.1,   -0.9,
+            bg_bot_right.0, bg_bot_right.1, -0.9,
+            bg_bot_left.0, bg_bot_left.1,   -0.9,
 
-            sp_top_left.0, sp_top_left.1,
-            sp_top_right.0, sp_top_right.1,
-            sp_bot_right.0, sp_bot_right.1,
+            sp_top_left.0, sp_top_left.1,   -0.3,
+            sp_top_right.0, sp_top_right.1, -0.3,
+            sp_bot_right.0, sp_bot_right.1, -0.3,
 
-            sp_top_left.0, sp_top_left.1,
-            sp_bot_right.0, sp_bot_right.1,
-            sp_bot_left.0, sp_bot_left.1,
+            sp_top_left.0, sp_top_left.1,   -0.3, 
+            sp_bot_right.0, sp_bot_right.1, -0.3,
+            sp_bot_left.0, sp_bot_left.1,   -0.3,
             ];
 
         // We crop the texture to the actual screen resolution
         let u_max = 159. / 255.;
         let v_bg_min = 0.;
         let v_bg_max = (143. / 255.) / 2.;
-        let v_sp_min = v_bg_max;
-        let v_sp_max = (143. / 255.);
+        let v_sp_min = (144. / 255.) / 2.;
+        let v_sp_max = 143. / 255.;
 
         let uv_mapping: [GLfloat; 24] = [
             0.,    v_bg_min,
@@ -162,11 +183,11 @@ impl OpenGL {
                                                  CString::new("position").unwrap().as_ptr());
 
             gl::EnableVertexAttribArray(pos_attr as GLuint);
-            gl::VertexAttribPointer(pos_attr as GLuint, 2, gl::FLOAT,
+            gl::VertexAttribPointer(pos_attr as GLuint, 3, gl::FLOAT,
                                     gl::FALSE as GLboolean, 0, ptr::null());
 
             gl::BufferData(gl::ARRAY_BUFFER,
-                           (vertices.len() * mem::size_of::<(GLfloat, GLfloat)>()) as GLsizeiptr,
+                           (vertices.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
                            mem::transmute(&vertices[0]),
                            gl::STATIC_DRAW);
 
@@ -222,7 +243,7 @@ impl OpenGL {
             gl::Enable(gl::BLEND);
             gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
 
-            gl::ClearColor(0.18, 0.31, 0.31, 1.0);
+            gl::ClearColor(0.83, 0.84, 0.94, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
         }
 
@@ -237,20 +258,22 @@ impl OpenGL {
 impl ::ui::Display for OpenGL {
 
     fn clear(&mut self) {
-        self.texture.iter_mut().map(|b| *b = 0 );
+        for b in self.texture.iter_mut() {
+            *b = 0;
+        }
     }
 
     fn set_bg_pixel(&mut self, x: u32, y: u32, color: AlphaColor) {
         let alpha = match color.opaque {
             true => 0xff,
-            false => 0x00,
+            false => 0xff,
         };
 
         let color = match color.color {
             Color::Black     => [0x00, 0x00, 0x00],
-            Color::DarkGrey  => [0x55, 0x55, 0x55],
-            Color::LightGrey => [0xab, 0xab, 0xab],
-            Color::White     => [0xff, 0xff, 0xff],
+            Color::DarkGrey  => [0x55 / 2, 0x55 / 2, 0x55 / 2],
+            Color::LightGrey => [0xab / 2, 0xab / 2, 0xab / 2],
+            Color::White     => [0xff / 2, 0xff / 2, 0xff / 2],
         };
 
         let pos = y * (160 * 4) + x * 4;
@@ -263,17 +286,21 @@ impl ::ui::Display for OpenGL {
     }
 
     fn set_sprite_pixel(&mut self, x: u32, y: u32, color: AlphaColor) {
-        let alpha = match color.opaque {
-            true => 0xff,
-            false => 0x00,
+        let (alpha, color) = match color.opaque {
+            true => {
+                let color = match color.color {
+                    Color::Black     => [0x00, 0x00, 0x00],
+                    Color::DarkGrey  => [0x55, 0x55, 0x55],
+                    Color::LightGrey => [0xab, 0xab, 0xab],
+                    Color::White     => [0xff, 0xff, 0xff],
+                };
+
+                (0xff, color)
+            }
+            false => (0x3f, [0x20, 0x00, 0x7f]),
         };
 
-        let color = match color.color {
-            Color::Black     => [0x00, 0x00, 0x00],
-            Color::DarkGrey  => [0x55, 0x55, 0x55],
-            Color::LightGrey => [0xab, 0xab, 0xab],
-            Color::White     => [0xff, 0xff, 0xff],
-        };
+        
 
         let pos = y * (160 * 4) + x * 4 + (160 * 144 * 4);
         let pos = pos as usize;

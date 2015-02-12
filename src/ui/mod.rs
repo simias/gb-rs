@@ -9,6 +9,7 @@ pub trait Display {
     fn clear(&mut self);
     /// Paint pixel at (x, y) using `color`. (0, 0) is top left.
     fn set_bg_pixel(&mut self, x: u32, y: u32, color: ::gpu::AlphaColor);
+    /// Paint sprite pixel at (x, y) using `color`. (0, 0) is top left.
     fn set_sprite_pixel(&mut self, x: u32, y: u32, color: ::gpu::AlphaColor);
     /// Current frame is done and can be displayed.
     fn flip(&mut self);
