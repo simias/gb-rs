@@ -2,12 +2,12 @@
 use std::cell::Cell;
 
 // Re-export the public interface defined in sub-modules
-pub use ui::sdl2::display::Display;
+//pub use ui::sdl2::display::Display;
 pub use ui::sdl2::controller::Controller;
 pub use ui::sdl2::audio::Audio;
 pub use ui::sdl2::opengl::OpenGL;
 
-mod display;
+//mod display;
 mod audio;
 mod controller;
 mod opengl;
@@ -30,9 +30,9 @@ impl Context {
         }
     }
 
-    pub fn new_display(&self, upscale: u8) -> display::Display {
-        display::Display::new(&self.sdl2, upscale)
-    }
+    // pub fn new_display(&self, upscale: u8) -> display::Display {
+    //     display::Display::new(&self.sdl2, upscale)
+    // }
 
     pub fn opengl_new(&self, xres: u32, yres: u32) -> OpenGL {
         OpenGL::new(&self.sdl2, xres, yres)

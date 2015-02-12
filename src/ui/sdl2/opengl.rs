@@ -11,6 +11,7 @@ use sdl2::video::{gl_set_attribute, gl_get_proc_address};
 use sdl2::sdl::Sdl;
 use std::iter::repeat;
 
+use gpu::AlphaColor;
 use gpu::Color;
 
 /// OpenGL-based rendering
@@ -21,7 +22,7 @@ pub struct OpenGL {
     #[allow(dead_code)]
     context: GLContext,
     /// texture representing the GameBoy framebuffer.
-    texture: [u8; 160 * 144 * 3],
+    texture: [u8; 160 * 144 * 4 * 2],
 }
 
 impl OpenGL {
@@ -78,33 +79,69 @@ impl OpenGL {
                                                                   \n\
                  in  vec2 uv;                                     \n\
                                                                   \n\
-                 out vec3 color;                                  \n\
+                 out vec4 color;                                  \n\
                                                                   \n\
                  uniform sampler2D gb_screen;                     \n\
                                                                   \n\
                  void main(void) {                                \n\
-                     color = texture2D(gb_screen, uv).rgb;        \n\
+                     color = texture2D(gb_screen, uv);            \n\
                  }",
                 gl::FRAGMENT_SHADER);
 
         let program = link_program(vertex_shader, fragment_shader);
 
-        let vertices: [GLfloat; 8] = [
-            -1., -1.,
-            -1.,  1.,
-             1., -1.,
-             1.,  1.,
+        let bg_top_left  = ( -1., 1.);
+        let bg_top_right = ( 1.,  1.);
+        let bg_bot_left  = (-1., -1.);
+        let bg_bot_right = ( 1., -1.);
+
+        let sp_top_left  = ( -1., 1.);
+        let sp_top_right = ( 1.,  1.);
+        let sp_bot_left  = (-1., -1.);
+        let sp_bot_right = ( 1., -1.);
+
+
+        let vertices: [GLfloat; 24] = [
+            bg_top_left.0, bg_top_left.1,
+            bg_top_right.0, bg_top_right.1,
+            bg_bot_right.0, bg_bot_right.1,
+
+            bg_top_left.0, bg_top_left.1,
+            bg_bot_right.0, bg_bot_right.1,
+            bg_bot_left.0, bg_bot_left.1,
+
+            sp_top_left.0, sp_top_left.1,
+            sp_top_right.0, sp_top_right.1,
+            sp_bot_right.0, sp_bot_right.1,
+
+            sp_top_left.0, sp_top_left.1,
+            sp_bot_right.0, sp_bot_right.1,
+            sp_bot_left.0, sp_bot_left.1,
             ];
 
         // We crop the texture to the actual screen resolution
         let u_max = 159. / 255.;
-        let v_max = 143. / 255.;
+        let v_bg_min = 0.;
+        let v_bg_max = (143. / 255.) / 2.;
+        let v_sp_min = v_bg_max;
+        let v_sp_max = (143. / 255.);
 
-        let uv_mapping: [GLfloat; 8] = [
-             0.,    v_max,
-             0.,    0.,
-             u_max, v_max,
-             u_max, 0.,
+        let uv_mapping: [GLfloat; 24] = [
+            0.,    v_bg_min,
+            u_max, v_bg_min,
+            u_max, v_bg_max,
+
+            0.,    v_bg_min,
+            u_max, v_bg_max,
+            0.,    v_bg_max,
+
+            0.,    v_sp_min,
+            u_max, v_sp_min,
+            u_max, v_sp_max,
+
+            0.,    v_sp_min,
+            u_max, v_sp_max,
+            0.,    v_sp_max,
             ];
 
         let mut vertex_array_object  = 0;
@@ -129,7 +166,7 @@ impl OpenGL {
                                     gl::FALSE as GLboolean, 0, ptr::null());
 
             gl::BufferData(gl::ARRAY_BUFFER,
-                           (vertices.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
+                           (vertices.len() * mem::size_of::<(GLfloat, GLfloat)>()) as GLsizeiptr,
                            mem::transmute(&vertices[0]),
                            gl::STATIC_DRAW);
 
@@ -165,11 +202,11 @@ impl OpenGL {
             gl::TexStorage2D(gl::TEXTURE_2D,
                              // Only one layer
                              1,
-                             gl::RGB8,
+                             gl::RGBA8,
                              // I use a 256x256 textures because
                              // apparently power-of-two textures are
                              // potentially faster in openGL.
-                             256, 256);
+                             256, 512);
 
             texture_id = gl::GetUniformLocation(program,
                                                 CString::new("gb_screen").unwrap().as_ptr());
@@ -182,14 +219,17 @@ impl OpenGL {
             gl::BindFragDataLocation(program, 0,
                                      CString::new("color").unwrap().as_ptr());
 
-            gl::ClearColor(0., 0., 0., 1.0);
+            gl::Enable(gl::BLEND);
+            gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+
+            gl::ClearColor(0.18, 0.31, 0.31, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
         }
 
         OpenGL {
             window:  window,
             context: context,
-            texture: [0; 160 * 144 * 3],
+            texture: [0; 160 * 144 * 4 * 2],
         }
     }
 }
@@ -200,20 +240,48 @@ impl ::ui::Display for OpenGL {
         self.texture.iter_mut().map(|b| *b = 0 );
     }
 
-    fn set_pixel(&mut self, x: u32, y: u32, color: Color) {
-        let color = match color {
+    fn set_bg_pixel(&mut self, x: u32, y: u32, color: AlphaColor) {
+        let alpha = match color.opaque {
+            true => 0xff,
+            false => 0x00,
+        };
+
+        let color = match color.color {
             Color::Black     => [0x00, 0x00, 0x00],
             Color::DarkGrey  => [0x55, 0x55, 0x55],
             Color::LightGrey => [0xab, 0xab, 0xab],
             Color::White     => [0xff, 0xff, 0xff],
         };
 
-        let pos = y * (160 * 3) + x * 3;
+        let pos = y * (160 * 4) + x * 4;
         let pos = pos as usize;
 
         self.texture[pos + 0] = color[0];
         self.texture[pos + 1] = color[1];
         self.texture[pos + 2] = color[2];
+        self.texture[pos + 3] = alpha;
+    }
+
+    fn set_sprite_pixel(&mut self, x: u32, y: u32, color: AlphaColor) {
+        let alpha = match color.opaque {
+            true => 0xff,
+            false => 0x00,
+        };
+
+        let color = match color.color {
+            Color::Black     => [0x00, 0x00, 0x00],
+            Color::DarkGrey  => [0x55, 0x55, 0x55],
+            Color::LightGrey => [0xab, 0xab, 0xab],
+            Color::White     => [0xff, 0xff, 0xff],
+        };
+
+        let pos = y * (160 * 4) + x * 4 + (160 * 144 * 4);
+        let pos = pos as usize;
+
+        self.texture[pos + 0] = color[0];
+        self.texture[pos + 1] = color[1];
+        self.texture[pos + 2] = color[2];
+        self.texture[pos + 3] = alpha;
     }
 
     fn flip(&mut self) {
@@ -223,12 +291,14 @@ impl ::ui::Display for OpenGL {
                               // Offset in the texture
                               0, 0,
                               // Dimensions of the updated part
-                              160, 144,
-                              gl::RGB,
+                              160, 144 * 2,
+                              gl::RGBA,
                               gl::UNSIGNED_BYTE,
                               mem::transmute(&self.texture[0]));
 
-            gl::DrawArrays(gl::TRIANGLE_STRIP, 0, 4);
+            gl::Clear(gl::COLOR_BUFFER_BIT);
+
+            gl::DrawArrays(gl::TRIANGLES, 0, 12);
         }
 
         self.window.gl_swap_window();

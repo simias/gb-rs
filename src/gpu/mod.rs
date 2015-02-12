@@ -744,16 +744,18 @@ impl<'a> Gpu<'a> {
                 AlphaColor { color: Color::White, opaque: false }
             };
 
+        self.display.set_bg_pixel(x as u32, y as u32, bg_col);
+
         let col = if self.sprites_enabled {
             self.render_sprite(x, y, bg_col)
         } else {
-            bg_col.color
+            AlphaColor { color: Color::White, opaque: false }
         };
 
-        self.display.set_pixel(x as u32, y as u32, col);
+        self.display.set_sprite_pixel(x as u32, y as u32, col);
     }
 
-    fn render_sprite(&self, x: u8, y: u8, bg_col: AlphaColor) -> Color {
+    fn render_sprite(&self, x: u8, y: u8, bg_col: AlphaColor) -> AlphaColor {
 
         for &entry in self.line_cache[y as usize].iter() {
             match entry {
@@ -816,13 +818,16 @@ impl<'a> Gpu<'a> {
                         };
 
 
-                        return palette.transform(pix);
+                        return AlphaColor {
+                            color: palette.transform(pix),
+                            opaque: true,
+                        }
                     }
                 }
             }
         }
 
-        bg_col.color
+        AlphaColor { color: Color::White, opaque: false }
     }
 
 }
@@ -896,12 +901,13 @@ impl Palette {
 }
 
 /// Struct used to describe colos that can be transparent
-struct AlphaColor {
+#[derive(Clone,Copy)]
+pub struct AlphaColor {
     /// Pixel color
-    color:  Color,
+    pub color:  Color,
     /// If `true` the color is fully opaque, otherwise fully
     /// transparent.
-    opaque: bool,
+    pub opaque: bool,
 }
 
 /// There are two tile maps available on the GameBoy. Each map is
