@@ -650,7 +650,7 @@ impl Mixer {
 
         let mut mixer = Mixer { sounds: [false; 4] };
 
-        for i in 0us..4 {
+        for i in 0..4 {
             mixer.sounds[i] = (field & (1 << i)) != 0;
         }
 
@@ -670,7 +670,7 @@ impl Mixer {
     fn mix(self, sounds: [Sample; 4]) -> Sample {
         let mut r = 0;
 
-        for i in 0us..4 {
+        for i in 0..4 {
             if self.sounds[i] {
                 // Sound is enabled for this output
                 r += sounds[i];

@@ -21,7 +21,7 @@ pub struct Resampler<T> {
 }
 
 impl<T> Resampler<T>
-    where T: Copy + Send + Default + Int + FromPrimitive {
+    where T: Copy + Send + Default + Int + FromPrimitive + 'static {
     pub fn new(source: Receiver<SampleBuffer>, rate: u32) -> Resampler<T> {
         let async = Arc::new(Async::new(rate));
 
@@ -92,7 +92,7 @@ pub struct Async<T> {
 }
 
 impl<T> Async<T>
-    where T: Copy + Send + Default + Int + FromPrimitive {
+    where T: Copy + Send + Default + Int + FromPrimitive + 'static {
     fn new(rate: u32) -> Async<T> {
         // Initial educated guess for the sampling ratio. This is just
         // used while starting up, it'll be replaced by the measured

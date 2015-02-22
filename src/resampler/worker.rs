@@ -19,7 +19,7 @@ pub struct AsyncResampler<T> {
 }
 
 impl<T> AsyncResampler<T>
-    where T: Copy + Send + Default + Int + FromPrimitive {
+    where T: Copy + Send + Default + Int + FromPrimitive + 'static {
 
     pub fn new(source:      Receiver<SampleBuffer>,
                async:      Arc<Async<T>>) -> AsyncResampler<T> {

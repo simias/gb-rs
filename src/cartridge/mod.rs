@@ -157,7 +157,7 @@ impl Cartridge {
     pub fn name(&self) -> Option<String> {
         let mut name = String::with_capacity(16);
 
-        for i in 0us..16 {
+        for i in 0..16 {
             let c =
                 match self.rom[offsets::TITLE + i].to_ascii() {
                     Ok(c) => c,

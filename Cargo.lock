@@ -2,45 +2,56 @@
 name = "gb-rs"
 version = "0.2.0"
 dependencies = [
- "ascii 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "log 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "sdl2 0.0.24 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ascii 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sdl2 0.0.27 (git+https://github.com/simias/rust-sdl2.git)",
 ]
 
 [[package]]
 name = "ascii"
-version = "0.2.4"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "bitflags"
-version = "0.1.0"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "libc"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "log"
-version = "0.2.2"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "pkg-config"
-version = "0.1.7"
+name = "rand"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "sdl2"
-version = "0.0.24"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+version = "0.0.27"
+source = "git+https://github.com/simias/rust-sdl2.git#de1f838228a501ff367f81c6ef73e69201fd1115"
 dependencies = [
- "bitflags 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "sdl2-sys 0.0.23 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sdl2-sys 0.0.26 (git+https://github.com/simias/rust-sdl2.git)",
 ]
 
 [[package]]
 name = "sdl2-sys"
-version = "0.0.23"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+version = "0.0.26"
+source = "git+https://github.com/simias/rust-sdl2.git#de1f838228a501ff367f81c6ef73e69201fd1115"
 dependencies = [
- "pkg-config 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

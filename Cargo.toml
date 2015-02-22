@@ -23,6 +23,9 @@ sgb_bootrom = []
 
 [dependencies]
 
-ascii = "0.2.4"
-log   = "0.2.2"
-sdl2  = "0.0.24"
+ascii = "0.2.5"
+log   = "0.2.4"
+
+[dependencies.sdl2]
+
+git  = "https://github.com/simias/rust-sdl2.git"

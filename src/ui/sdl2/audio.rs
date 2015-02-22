@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use std::sync::mpsc::Receiver;
 use sdl2::audio::{AudioDevice, AudioCallback, AudioSpecDesired};
+use std::marker::PhantomData;
 use resampler::{Resampler, Async};
 
 /// Reader struct used to feed the samples to the SDL callback
@@ -42,6 +43,7 @@ impl Audio {
             channels: 1,
             samples:  ::spu::SAMPLES_PER_BUFFER as u16,
             callback: reader,
+            _marker: PhantomData,
         };
 
         let dev =
