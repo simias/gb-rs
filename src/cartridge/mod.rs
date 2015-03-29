@@ -345,7 +345,7 @@ impl Cartridge {
             ram_wp:     true,
             bank_ram:   false,
             model:      models::from_id(0x00),
-            path:       Path::new("dummy"),
+            path:       PathBuf::from("dummy"),
             save_file:  None,
         }
     }

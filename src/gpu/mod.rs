@@ -990,7 +990,7 @@ mod tests {
     /// as expected
     #[test]
     fn palette_conversion() {
-        for i in range(0us, 0x100) {
+        for i in 0..0x100 {
             let r = i as u8;
 
             let p = super::Palette::from_reg(r);
@@ -1001,7 +1001,7 @@ mod tests {
     /// Make sure color conversion to and from symbolic values works
     #[test]
     fn color_conversion() {
-        for v in range(0, 4) {
+        for v in 0..4 {
             let c = super::Color::from_u8(v);
 
             assert!(c as u8 == v);
@@ -1015,7 +1015,7 @@ mod tests {
         let mut d = ::ui::dummy::DummyDisplay;
         let mut gpu = super::Gpu::new(&mut d);
 
-        for _ in range(0us, 1000) {
+        for _ in 0..1000 {
             gpu.step();
         }
 
@@ -1027,7 +1027,7 @@ mod tests {
         // Enable the LCD
         gpu.set_lcdc(0xff);
 
-        for _ in range(0us, 100000) {
+        for _ in 0..100000 {
             gpu.step();
         }
 
