@@ -7,7 +7,7 @@
 //! Accuracy tests: http://tasvideos.org/EmulatorResources/GBAccuracyTests.html
 
 
-#![feature(io,core,os,path,std_misc,collections)]
+#![feature(old_io,core,io,os,std_misc,collections,convert,file_path)]
 #![cfg_attr(test, feature(test))]
 
 #![warn(missing_docs)]
@@ -23,6 +23,7 @@ extern crate test;
 use std::old_io::Timer;
 use std::time::Duration;
 use ui::{Controller, Audio};
+use std::path::Path;
 
 mod cpu;
 mod io;

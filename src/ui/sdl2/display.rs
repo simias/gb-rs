@@ -13,7 +13,7 @@ pub struct Display {
 
 impl Display {
     pub fn new(upscale: u8) -> Display {
-        ::sdl2::init(::sdl2::INIT_VIDEO);
+        ::sdl2::init(::sdl2::INIT_VIDEO).unwrap();
 
         let up = 1 << (upscale as usize);
 

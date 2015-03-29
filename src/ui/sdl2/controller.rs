@@ -1,5 +1,6 @@
 use std::cell::Cell;
 
+use sdl2::sdl::Sdl;
 use sdl2::event::Event;
 use sdl2::keycode::KeyCode;
 use sdl2::{joystick, controller};
@@ -13,11 +14,12 @@ pub struct Controller {
     controller:   Option<controller::GameController>,
     x_axis_state: Cell<AxisState>,
     y_axis_state: Cell<AxisState>,
+    context:      Sdl,
 }
 
 impl Controller {
     pub fn new() -> Controller {
-        ::sdl2::init(::sdl2::INIT_GAME_CONTROLLER);
+        let context = ::sdl2::init(::sdl2::INIT_GAME_CONTROLLER).unwrap();
 
         // Attempt to add a game controller
 
@@ -61,6 +63,7 @@ impl Controller {
             controller:   controller,
             x_axis_state: Cell::new(AxisState::Neutral),
             y_axis_state: Cell::new(AxisState::Neutral),
+            context:      context,
         }
     }
 
@@ -136,10 +139,10 @@ impl ::ui::Controller for Controller {
     fn update(&self) -> ::ui::Event {
         let mut event = ::ui::Event::None;
 
-        loop {
-            match ::sdl2::event::poll_event() {
-                Event::None =>
-                    break,
+        let mut event_pump = self.context.event_pump();
+
+        for e in event_pump.poll_iter() {
+            match e {
                 Event::KeyDown { keycode: KeyCode::Escape, .. } =>
                     event = ::ui::Event::PowerOff,
                 Event::KeyDown { keycode: key, .. } =>

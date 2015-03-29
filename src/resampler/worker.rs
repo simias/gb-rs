@@ -9,7 +9,7 @@ use std::num::{Int, FromPrimitive};
 use std::default::Default;
 
 /// Asynchronous worker tasked doing the actual adaptative resampling
-pub struct AsyncResampler<T> {
+pub struct AsyncResampler<T: Send> {
     /// Channel used to receive the samples from the emulator
     source: Receiver<SampleBuffer>,
     /// Asynchronous FIFO used to send samples to the backend

@@ -3,7 +3,6 @@
 
 use std::sync::{Arc, Mutex, Condvar};
 use std::sync::mpsc::Receiver;
-use std::thread::Thread;
 use std::num::{Int, FromPrimitive};
 use std::default::Default;
 
@@ -15,7 +14,7 @@ use self::worker::AsyncResampler;
 mod fifo;
 mod worker;
 
-pub struct Resampler<T> {
+pub struct Resampler<T: Send> {
     async:       Arc<Async<T>>,
     last_sample: T,
 }
@@ -29,7 +28,7 @@ impl<T> Resampler<T>
                                                       async.clone());
 
         // Spawn the asynchronous resampler thread
-        Thread::spawn(move || {
+        ::std::thread::spawn(move || {
             async_resampler.resample();
             println!("Resampling thread done");
         });
@@ -68,7 +67,7 @@ impl<T> Resampler<T>
 }
 
 /// Part of the `ASync` state that must be accessed atomically
-struct Atomic<T> {
+struct Atomic<T: Send> {
     fifo:         Fifo<T>,
     /// Number of samples requested by the backend since the last
     /// adjustment (even missed samples in case of empty FIFO
@@ -84,7 +83,7 @@ struct Atomic<T> {
 
 /// State shared between the main thread, the SDL2 callback and the
 /// resampling worker thread.
-pub struct Async<T> {
+pub struct Async<T: Send> {
     /// Atomic access substructure
     atomic: Mutex<Atomic<T>>,
     /// Convar used when waiting on the atomic FIFO

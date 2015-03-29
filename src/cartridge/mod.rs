@@ -2,9 +2,12 @@
 //! different capabilities (bankable ROM/RAM, battery, RTC etc...).
 
 use std::fmt::{Debug, Formatter, Error};
-use std::old_io::{File, Reader, Writer, IoResult, Open, ReadWrite, SeekSet};
+use std::path::{Path, PathBuf};
+use std::fs::{File, OpenOptions};
 use std::iter::repeat;
 use ascii::AsciiCast;
+use std::io::{SeekFrom, Read, Write, Seek};
+use std::io::Result as IoResult;
 
 mod models;
 
@@ -32,7 +35,7 @@ pub struct Cartridge {
     /// struct used to handle model specific functions
     model:      models::Model,
     /// Path to the ROM image for this cartridge
-    path:       Path,
+    path:       PathBuf,
     /// optional save file used to store non-volatile RAM on emulator
     /// shutdown
     save_file:  Option<File>,
@@ -43,8 +46,11 @@ impl Cartridge {
     pub fn from_path(rom_path: &Path) -> IoResult<Cartridge> {
         let mut source = try!(File::open(rom_path));
 
+        let mut rom = Vec::new();
+
         // There must always be at least two ROM banks
-        let rom = try!(source.read_exact(2 * ROM_BANK_SIZE as usize));
+        try!((&mut source).take(2 * ROM_BANK_SIZE as u64)
+             .read_to_end(&mut rom));
 
         let model = models::from_id(rom[offsets::TYPE]);
 
@@ -59,7 +65,7 @@ impl Cartridge {
             ram_wp:     true,
             bank_ram:   false,
             model:      model,
-            path:       rom_path.clone(),
+            path:       PathBuf::from(rom_path),
             save_file:  None,
         };
 
@@ -112,11 +118,10 @@ impl Cartridge {
         let mut savepath = self.path.clone();
         savepath.set_extension("sav");
 
-        let mut save_file = try!(File::open_mode(&savepath,
-                                                Open,
-                                                ReadWrite));
+        let mut save_file = try!(OpenOptions::new().read(true).write(true)
+                                 .open(savepath.clone()));
 
-        let save_size = try!(save_file.stat()).size;
+        let save_size = try!(save_file.metadata()).len();
 
         if save_size == 0 {
             // The file is empty (probably new). initialize
@@ -124,10 +129,10 @@ impl Cartridge {
             self.ram.resize(ramsize, 0);
             // Then fill the file with the right amount of 0s
             // to reserve enough space for saving later.
-            try!(save_file.write_all(self.ram.as_slice()));
+            try!(save_file.write_all(&self.ram));
         } else if save_size == (ramsize as u64) {
             // The file contains a RAM image
-            self.ram = try!(save_file.read_exact(ramsize as usize));
+            try!((&mut save_file).take(ramsize as u64).read_to_end(&mut self.ram));
         } else {
             panic!("Unexpected save file size for {}: expected {} got {}",
                    savepath.display(), ramsize, save_size);
@@ -144,10 +149,13 @@ impl Cartridge {
         if let Some(mut f) = self.save_file.as_mut() {
             // Rewind to the beginning of the file and update its
             // contents
-            println!("Saving to {}", f.path().display());
+            match f.path() {
+                Some(path) => println!("Saving to {}", path.display()),
+                None       => println!("Saving"),
+            }
 
-            try!(f.seek(0, SeekSet));
-            try!(f.write_all(self.ram.as_slice()));
+            try!(f.seek(SeekFrom::Start(0)));
+            try!(f.write_all(&self.ram));
         }
 
         Ok(())

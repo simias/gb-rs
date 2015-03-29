@@ -1,7 +1,6 @@
 use std::sync::Arc;
 use std::sync::mpsc::Receiver;
 use sdl2::audio::{AudioDevice, AudioCallback, AudioSpecDesired};
-use std::marker::PhantomData;
 use resampler::{Resampler, Async};
 
 /// Reader struct used to feed the samples to the SDL callback
@@ -17,7 +16,9 @@ impl Reader {
     }
 }
 
-impl AudioCallback<Sample> for Reader {
+impl AudioCallback for Reader {
+    type Channel = Sample;
+
     fn callback(&mut self, buf: &mut [Sample]) {
         self.resampler.fill_buf(buf);
     }
@@ -30,7 +31,7 @@ pub struct Audio {
 
 impl Audio {
     pub fn new(channel: Receiver<::spu::SampleBuffer>) -> Audio {
-        ::sdl2::init(::sdl2::INIT_AUDIO);
+        ::sdl2::init(::sdl2::INIT_AUDIO).unwrap();
 
         let resampler = Resampler::new(channel, SAMPLE_RATE);
 
@@ -43,7 +44,6 @@ impl Audio {
             channels: 1,
             samples:  ::spu::SAMPLES_PER_BUFFER as u16,
             callback: reader,
-            _marker: PhantomData,
         };
 
         let dev =
