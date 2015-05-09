@@ -31,7 +31,6 @@ pub struct Audio {
 
 impl Audio {
     pub fn new(channel: Receiver<::spu::SampleBuffer>) -> Audio {
-        ::sdl2::init(::sdl2::INIT_AUDIO).unwrap();
 
         let resampler = Resampler::new(channel, SAMPLE_RATE);
 
@@ -40,14 +39,15 @@ impl Audio {
         let reader = Reader::new(resampler);
 
         let spec = AudioSpecDesired {
-            freq:     SAMPLE_RATE as i32,
-            channels: 1,
-            samples:  ::spu::SAMPLES_PER_BUFFER as u16,
-            callback: reader,
+            freq:     Some(SAMPLE_RATE as i32),
+            channels: Some(1),
+            samples:  Some(::spu::SAMPLES_PER_BUFFER as u16),
         };
 
-        let dev =
-            match spec.open_audio_device(None, false) {
+        let dev = 
+            match AudioDevice::open_playback(None,
+                                             spec,
+                                             |_| reader) {
                 Ok(d)  => d,
                 Err(e) => panic!("{}", e),
             };

@@ -72,7 +72,7 @@ pub struct Gpu<'a> {
 }
 
 /// Current GPU mode
-#[derive(Debug,PartialEq,Copy)]
+#[derive(Clone,Copy,Debug,PartialEq)]
 pub enum Mode {
     /// In horizontal blanking
     HBlank = 0,
@@ -574,9 +574,11 @@ impl<'a> Gpu<'a> {
     /// Get pixel in the window. Assumes (`x`, `y`) is inside the
     /// window.
     fn window_color(&mut self, x: u8, y: u8) -> AlphaColor {
-        // Window X value is offset by 7 for some reason
-        let px = x - self.wx + 7;
-        let py = y - self.wy;
+        // Window X value is always offset by 7 (only X, not Y)
+        let wx = self.wx.wrapping_sub(7);
+
+        let px = x.wrapping_sub(wx);
+        let py = y.wrapping_sub(self.wy);
 
         let map = self.window_tile_map;
         let set = self.bg_win_tile_set;
@@ -585,8 +587,8 @@ impl<'a> Gpu<'a> {
     }
 
     fn background_color(&mut self, x: u8, y: u8) -> AlphaColor {
-        let px = x + self.scx;
-        let py = y + self.scy;
+        let px = x.wrapping_add(self.scx);
+        let py = y.wrapping_add(self.scy);
 
         let map = self.bg_tile_map;
         let set = self.bg_win_tile_set;
@@ -826,7 +828,7 @@ impl<'a> Gpu<'a> {
 }
 
 /// All possible color values on the original game boy
-#[derive(PartialEq,Eq,Copy)]
+#[derive(Clone,Copy,PartialEq,Eq)]
 pub enum Color {
     White     = 0,
     LightGrey = 1,
@@ -848,7 +850,7 @@ impl Color {
 }
 
 /// Palette description
-#[derive(Copy)]
+#[derive(Clone,Copy)]
 struct Palette {
     /// Each color can be mapped to an other one independently of the
     /// others
@@ -905,7 +907,7 @@ struct AlphaColor {
 /// There are two tile maps available on the GameBoy. Each map is
 /// 32x32x8bits large and contain index values into the tile set for
 /// each map.
-#[derive(Copy)]
+#[derive(Clone,Copy)]
 enum TileMap {
     /// Low map at addresse range [0x9800, 0x9bff]
     Low,
@@ -925,7 +927,7 @@ impl TileMap {
 
 /// There are two overlapping tile sets on the Game Boy. Tile sets are
 /// 256x16byte large, entries are indexed into the `TileMap`.
-#[derive(Copy)]
+#[derive(Clone,Copy)]
 enum TileSet {
     /// Tile set #0 in [0x8800, 0x9bff], index is signed [-128, 127]
     Set0,
@@ -948,7 +950,7 @@ impl TileSet {
 
 /// Sprites can be 8x8 pixels or 8x16 pixels (a pair of 8x8
 /// tiles). The setting is global for all sprites.
-#[derive(PartialEq,Eq,Copy)]
+#[derive(Clone,Copy,PartialEq,Eq)]
 enum SpriteSize {
     /// Sprites resolution is 8x8 (i.e. single tile)
     Sz8x8,

@@ -2,25 +2,24 @@ use sdl2::video::Window;
 use sdl2::render::Renderer;
 use sdl2::pixels::Color::RGB;
 use sdl2::rect::{Point, Rect};
+use sdl2::sdl::Sdl;
 
 use gpu::Color;
 
 pub struct Display {
-    renderer: Renderer,
+    renderer: Renderer<'static>,
     /// Upscaling factor, log2.
     upscale:  u8,
 }
 
 impl Display {
-    pub fn new(upscale: u8) -> Display {
-        ::sdl2::init(::sdl2::INIT_VIDEO).unwrap();
-
+    pub fn new(sdl2: &Sdl, upscale: u8) -> Display {
         let up = 1 << (upscale as usize);
 
         let xres = 160 * up;
         let yres = 144 * up;
 
-        let window = match Window::new("gb-rs",
+        let window = match Window::new(sdl2, "gb-rs",
                                        ::sdl2::video::WindowPos::PosCentered,
                                        ::sdl2::video::WindowPos::PosCentered,
                                        xres, yres, ::sdl2::video::OPENGL) {

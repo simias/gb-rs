@@ -591,7 +591,7 @@ impl Spu {
 }
 
 /// Sound can be continuous or stop based on a counter
-#[derive(PartialEq,Eq,Copy)]
+#[derive(Clone,Copy,PartialEq,Eq)]
 enum Mode {
     Continuous = 0,
     Counter    = 1,
@@ -637,7 +637,7 @@ impl SoundOutput {
 
 /// Each of the 4 sounds can be enabled or disabled
 /// independantly for each sound output.
-#[derive(Copy)]
+#[derive(Clone,Copy)]
 struct Mixer {
     /// The mixer config, says which of the 4 sounds are
     /// selected.
@@ -682,7 +682,7 @@ impl Mixer {
 }
 
 /// Sound output volume configuration
-#[derive(Copy)]
+#[derive(Clone,Copy)]
 struct OutputVolume {
     /// Not used for now
     vin:  bool,

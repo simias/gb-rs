@@ -126,7 +126,7 @@ impl Cartridge {
         if save_size == 0 {
             // The file is empty (probably new). initialize
             // the RAM with 0s.
-            self.ram.resize(ramsize, 0);
+            self.ram = vec![0; ramsize];
             // Then fill the file with the right amount of 0s
             // to reserve enough space for saving later.
             try!(save_file.write_all(&self.ram));
@@ -149,10 +149,7 @@ impl Cartridge {
         if let Some(mut f) = self.save_file.as_mut() {
             // Rewind to the beginning of the file and update its
             // contents
-            match f.path() {
-                Some(path) => println!("Saving to {}", path.display()),
-                None       => println!("Saving"),
-            }
+            println!("Saving non-volatile memory");
 
             try!(f.seek(SeekFrom::Start(0)));
             try!(f.write_all(&self.ram));

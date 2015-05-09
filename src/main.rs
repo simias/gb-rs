@@ -6,8 +6,6 @@
 //! Lots of info about GC quircks: http://www.devrs.com/gb/files/faqs.html
 //! Accuracy tests: http://tasvideos.org/EmulatorResources/GBAccuracyTests.html
 
-
-#![feature(old_io,core,io,os,std_misc,collections,convert,file_path)]
 #![cfg_attr(test, feature(test))]
 
 #![warn(missing_docs)]
@@ -16,13 +14,13 @@
 extern crate log;
 extern crate sdl2;
 extern crate ascii;
+extern crate num;
 
 #[cfg(test)]
 extern crate test;
 
-use std::old_io::Timer;
-use std::time::Duration;
-use ui::{Controller, Audio};
+use std::sync::mpsc::channel;
+use ui::Audio;
 use std::path::Path;
 
 mod cpu;
@@ -35,7 +33,7 @@ mod resampler;
 
 #[allow(dead_code)]
 fn main() {
-    let argv = std::os::args();
+    let argv: Vec<_> = std::env::args().collect();
 
     if argv.len() < 2 {
         println!("Usage: {} <rom-file>", argv[0]);
@@ -51,8 +49,9 @@ fn main() {
 
     println!("Loaded ROM {:?}", cart);
 
-    let mut display = ui::sdl2::Display::new(1);
-    let controller = ui::sdl2::Controller::new();
+    let sdl2 = ui::sdl2::Context::new();
+
+    let mut display = sdl2.new_display(1);
 
     let gpu = gpu::Gpu::new(&mut display);
 
@@ -62,7 +61,7 @@ fn main() {
 
     audio.start();
 
-    let inter = io::Interconnect::new(cart, gpu, spu, controller.buttons());
+    let inter = io::Interconnect::new(cart, gpu, spu, sdl2.buttons());
 
     let mut cpu = cpu::Cpu::new(inter);
 
@@ -74,15 +73,26 @@ fn main() {
     // for a while. If the GRANULARITY value is too low we'll go to
     // sleep very often which will have poor performance. If it's too
     // high it might look like the emulation is stuttering.
-    let mut timer = match Timer::new() {
-        Ok(t)  => t,
-        Err(e) => panic!("Couldn't create timer: {}", e),
-    };
 
-    let batch_duration = Duration::nanoseconds(GRANULARITY * (1_000_000_000 /
-                                                              SYSCLK_FREQ));
+    let batch_duration_ns = GRANULARITY * (1_000_000_000 /
+                                           SYSCLK_FREQ);
 
-    let tick = timer.periodic(batch_duration);
+    // No sub-ms precision in stable rust sleep for now...
+    let batch_duration_ms = (batch_duration_ns / 1_000_000) as u32;
+
+    let (tick_tx, tick_rx) = channel();
+
+    // Spawn a thread that will send periodic ticks that we'll use to
+    // synchronize ourselves
+    ::std::thread::spawn(move || {
+        loop {
+            std::thread::sleep_ms(batch_duration_ms);
+            if let Err(_) = tick_tx.send(()) {
+                // End thread
+                return;
+            }
+        }
+    });
 
     let mut audio_adjust_count = 0;
 
@@ -97,14 +107,14 @@ fn main() {
         cycles -= GRANULARITY;
 
         // Update controller status
-        match controller.update() {
+        match sdl2.update_buttons() {
             ui::Event::PowerOff => break,
             ui::Event::None     => (),
         }
 
         // Sleep until next batch cycle
-        if let Err(e) = tick.recv() {
-            panic!("Timer died: {:?}", e);
+        if let Err(e) = tick_rx.recv() {
+             panic!("Timer died: {:?}", e);
         }
 
         audio_adjust_count += GRANULARITY;
@@ -135,9 +145,8 @@ const AUDIO_ADJUST_SEC: i64 = 1;
 #[cfg(test)]
 mod benchmark {
     use test::Bencher;
-    use ui::Controller;
 
-    use std::thread::Thread;
+    use std::thread::spawn;
 
     #[bench]
     fn bench_rom(b: &mut Bencher) {
@@ -149,9 +158,10 @@ mod benchmark {
 
         let (spu, audio_channel) = ::spu::Spu::new();
 
-        Thread::spawn(move|| {
+        spawn(move|| {
             // Dummy consumer
-            audio_channel.recv().unwrap();
+            while let Ok(_) = audio_channel.recv() {
+            }
         });
 
         let gpu = ::gpu::Gpu::new(&mut display);

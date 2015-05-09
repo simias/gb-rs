@@ -41,7 +41,7 @@ impl Timer {
 
         if self.counter_16k & mask == 0 {
             // Divided clock ticked, increment counter
-            self.counter += 1;
+            self.counter = self.counter.wrapping_add(1);
 
             if self.counter == 0 {
                 // Timer overflowed.
@@ -122,7 +122,7 @@ impl Timer {
 }
 
 /// Possible divider values usable as timer clock source.
-#[derive(Copy, Debug)]
+#[derive(Clone,Copy,Debug)]
 enum Divider {
     /// Divide sysclk by 16. Timer clock is 262.144kHz
     Div16   = 4,

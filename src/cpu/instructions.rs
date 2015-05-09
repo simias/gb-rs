@@ -10,7 +10,7 @@ pub fn next_instruction(cpu: &mut Cpu) -> fn (&mut Cpu) {
 
     let op = cpu.fetch_byte(pc);
 
-    cpu.set_pc(pc + 1);
+    cpu.set_pc(pc.wrapping_add(1));
 
     let (instruction, _) =
         if op != 0xcb {
@@ -316,7 +316,7 @@ pub static OPCODES: [(fn (&mut Cpu), &'static str); 0x100] = [
 fn next_byte(cpu: &mut Cpu) -> u8 {
     let pc = cpu.pc();
 
-    cpu.set_pc(pc + 1);
+    cpu.set_pc(pc.wrapping_add(1));
 
     let b = cpu.fetch_byte(pc);
 
@@ -338,7 +338,7 @@ fn nop(_: &mut Cpu) {
 
 /// Undefined opcode. Stall the CPU.
 fn undefined(cpu: &mut Cpu) {
-    let pc = cpu.pc() - 1;
+    let pc = cpu.pc().wrapping_sub(1);
 
     println!("Invalid instruction called at 0x{:04x}. CPU stalled.", pc);
 
@@ -437,7 +437,7 @@ fn daa(cpu: &mut Cpu) {
             // If the operation was a substraction we're done since we
             // can never end up in the A-F range by substracting
             // without generating a (half)carry.
-            a - adjust
+            a.wrapping_sub(adjust)
         } else {
             // Additions are a bit more tricky because we might have
             // to adjust even if we haven't overflowed (and no carry
@@ -450,7 +450,7 @@ fn daa(cpu: &mut Cpu) {
                 adjust |= 0x60;
             }
 
-	    a + adjust
+	    a.wrapping_add(adjust)
         };
 
     cpu.set_a(res);
@@ -814,7 +814,7 @@ fn ld_mnn_sp(cpu: &mut Cpu) {
     let n = next_word(cpu);
 
     cpu.store_byte(n, sp as u8);
-    cpu.store_byte(n + 1, (sp >> 8) as u8);
+    cpu.store_byte(n.wrapping_add(1), (sp >> 8) as u8);
 }
 
 /// Load 16bits immediate value into `BC`
@@ -845,7 +845,7 @@ fn ld_hl_sp_sn(cpu: &mut Cpu) {
 
     let nn = n as i32;
 
-    let r = sp + nn;
+    let r = sp.wrapping_add(nn);
 
     cpu.set_substract(false);
     cpu.set_carry((sp ^ nn ^ r) & 0x100 != 0);
@@ -1206,7 +1206,7 @@ fn jr_sn(cpu: &mut Cpu) {
 
     let mut pc = cpu.pc() as i16;
 
-    pc += off as i16;
+    pc = pc.wrapping_add(off as i16);
 
     cpu.load_pc(pc as u16);
 }
@@ -1218,7 +1218,7 @@ fn jr_nz_sn(cpu: &mut Cpu) {
     if !cpu.zero() {
         let mut pc = cpu.pc() as i16;
 
-        pc += off as i16;
+        pc = pc.wrapping_add(off as i16);
 
         cpu.load_pc(pc as u16);
     }
@@ -1231,7 +1231,7 @@ fn jr_z_sn(cpu: &mut Cpu) {
     if cpu.zero() {
         let mut pc = cpu.pc() as i16;
 
-        pc += off as i16;
+        pc = pc.wrapping_add(off as i16);
 
         cpu.load_pc(pc as u16);
     }
@@ -1244,7 +1244,7 @@ fn jr_nc_sn(cpu: &mut Cpu) {
     if !cpu.carry() {
         let mut pc = cpu.pc() as i16;
 
-        pc += off as i16;
+        pc = pc.wrapping_add(off as i16);
 
         cpu.load_pc(pc as u16);
     }
@@ -1257,7 +1257,7 @@ fn jr_c_sn(cpu: &mut Cpu) {
     if cpu.carry() {
         let mut pc = cpu.pc() as i16;
 
-        pc += off as i16;
+        pc = pc.wrapping_add(off as i16);
 
         cpu.load_pc(pc as u16);
     }
@@ -1442,7 +1442,7 @@ fn ldd_mhl_a(cpu: &mut Cpu) {
 
     cpu.store_byte(hl, a);
 
-    cpu.set_hl(hl - 1);
+    cpu.set_hl(hl.wrapping_sub(1));
 }
 
 /// Load `[HL]` into `A` and decrement `HL`
@@ -1452,7 +1452,7 @@ fn ldd_a_mhl(cpu: &mut Cpu) {
     let a = cpu.fetch_byte(hl);
 
     cpu.set_a(a);
-    cpu.set_hl(hl - 1);
+    cpu.set_hl(hl.wrapping_sub(1));
 }
 
 /// Store `A` into `[HL]` and increment `HL`
@@ -1462,7 +1462,7 @@ fn ldi_mhl_a(cpu: &mut Cpu) {
 
     cpu.store_byte(hl, a);
 
-    cpu.set_hl(hl + 1);
+    cpu.set_hl(hl.wrapping_add(1));
 }
 
 /// Load `[HL]` into `A` and increment `HL`
@@ -1472,7 +1472,7 @@ fn ldi_a_mhl(cpu: &mut Cpu) {
     let a = cpu.fetch_byte(hl);
 
     cpu.set_a(a);
-    cpu.set_hl(hl + 1);
+    cpu.set_hl(hl.wrapping_add(1));
 }
 
 /// Store `A` into `[0xff00 + N]`
@@ -1515,7 +1515,7 @@ fn dec_a(cpu: &mut Cpu) {
     // bit will carry over if the low nibble is 0
     cpu.set_halfcarry(a & 0xf == 0);
 
-    a -= 1;
+    a = a.wrapping_sub(1);
 
     cpu.set_a(a);
 
@@ -1530,7 +1530,7 @@ fn dec_b(cpu: &mut Cpu) {
     // bit will carry over if the low nibble is 0
     cpu.set_halfcarry(b & 0xf == 0);
 
-    b -= 1;
+    b = b.wrapping_sub(1);
 
     cpu.set_b(b);
 
@@ -1545,7 +1545,7 @@ fn dec_c(cpu: &mut Cpu) {
     // bit will carry over if the low nibble is 0
     cpu.set_halfcarry(c & 0xf == 0);
 
-    c -= 1;
+    c = c.wrapping_sub(1);
 
     cpu.set_c(c);
 
@@ -1560,7 +1560,7 @@ fn dec_d(cpu: &mut Cpu) {
     // bit will carry over if the low nibble is 0
     cpu.set_halfcarry(d & 0xf == 0);
 
-    d -= 1;
+    d = d.wrapping_sub(1);
 
     cpu.set_d(d);
 
@@ -1575,7 +1575,7 @@ fn dec_e(cpu: &mut Cpu) {
     // bit will carry over if the low nibble is 0
     cpu.set_halfcarry(e & 0xf == 0);
 
-    e -= 1;
+    e = e.wrapping_sub(1);
 
     cpu.set_e(e);
 
@@ -1590,7 +1590,7 @@ fn dec_h(cpu: &mut Cpu) {
     // bit will carry over if the low nibble is 0
     cpu.set_halfcarry(h & 0xf == 0);
 
-    h -= 1;
+    h = h.wrapping_sub(1);
 
     cpu.set_h(h);
 
@@ -1605,7 +1605,7 @@ fn dec_l(cpu: &mut Cpu) {
     // bit will carry over if the low nibble is 0
     cpu.set_halfcarry(l & 0xf == 0);
 
-    l -= 1;
+    l = l.wrapping_sub(1);
 
     cpu.set_l(l);
 
@@ -1621,7 +1621,7 @@ fn dec_mhl(cpu: &mut Cpu) {
     // bit will carry over if the low nibble is 0
     cpu.set_halfcarry(n & 0xf == 0);
 
-    n -= 1;
+    n = n.wrapping_sub(1);
 
     cpu.store_byte(hl, n);
 
@@ -1633,7 +1633,7 @@ fn dec_mhl(cpu: &mut Cpu) {
 fn inc_a(cpu: &mut Cpu) {
     let a = cpu.a();
 
-    let r = a + 1;
+    let r = a.wrapping_add(1);
 
     cpu.set_substract(false);
     cpu.set_zero(r == 0);
@@ -1646,7 +1646,7 @@ fn inc_a(cpu: &mut Cpu) {
 fn inc_b(cpu: &mut Cpu) {
     let b = cpu.b();
 
-    let r = b + 1;
+    let r = b.wrapping_add(1);
 
     cpu.set_substract(false);
     cpu.set_zero(r == 0);
@@ -1659,7 +1659,7 @@ fn inc_b(cpu: &mut Cpu) {
 fn inc_c(cpu: &mut Cpu) {
     let c = cpu.c();
 
-    let r = c + 1;
+    let r = c.wrapping_add(1);
 
     cpu.set_substract(false);
     cpu.set_zero(r == 0);
@@ -1672,7 +1672,7 @@ fn inc_c(cpu: &mut Cpu) {
 fn inc_d(cpu: &mut Cpu) {
     let d = cpu.d();
 
-    let r = d + 1;
+    let r = d.wrapping_add(1);
 
     cpu.set_substract(false);
     cpu.set_zero(r == 0);
@@ -1685,7 +1685,7 @@ fn inc_d(cpu: &mut Cpu) {
 fn inc_e(cpu: &mut Cpu) {
     let e = cpu.e();
 
-    let r = e + 1;
+    let r = e.wrapping_add(1);
 
     cpu.set_substract(false);
     cpu.set_zero(r == 0);
@@ -1698,7 +1698,7 @@ fn inc_e(cpu: &mut Cpu) {
 fn inc_h(cpu: &mut Cpu) {
     let h = cpu.h();
 
-    let r = h + 1;
+    let r = h.wrapping_add(1);
 
     cpu.set_substract(false);
     cpu.set_zero(r == 0);
@@ -1711,7 +1711,7 @@ fn inc_h(cpu: &mut Cpu) {
 fn inc_l(cpu: &mut Cpu) {
     let l = cpu.l();
 
-    let r = l + 1;
+    let r = l.wrapping_add(1);
 
     cpu.set_substract(false);
     cpu.set_zero(r == 0);
@@ -1726,7 +1726,7 @@ fn inc_mhl(cpu: &mut Cpu) {
 
     let n = cpu.fetch_byte(hl);
 
-    let r = n + 1;
+    let r = n.wrapping_add(1);
 
     cpu.set_substract(false);
     cpu.set_zero(r == 0);
@@ -1739,7 +1739,7 @@ fn inc_mhl(cpu: &mut Cpu) {
 fn inc_bc(cpu: &mut Cpu) {
     let bc = cpu.bc();
 
-    cpu.set_bc(bc + 1);
+    cpu.set_bc(bc.wrapping_add(1));
 
     cpu.delay(1);
 }
@@ -1748,7 +1748,7 @@ fn inc_bc(cpu: &mut Cpu) {
 fn inc_de(cpu: &mut Cpu) {
     let de = cpu.de();
 
-    cpu.set_de(de + 1);
+    cpu.set_de(de.wrapping_add(1));
 
     cpu.delay(1);
 }
@@ -1757,7 +1757,7 @@ fn inc_de(cpu: &mut Cpu) {
 fn inc_hl(cpu: &mut Cpu) {
     let hl = cpu.hl();
 
-    cpu.set_hl(hl + 1);
+    cpu.set_hl(hl.wrapping_add(1));
 
     cpu.delay(1);
 }
@@ -1766,7 +1766,7 @@ fn inc_hl(cpu: &mut Cpu) {
 fn inc_sp(cpu: &mut Cpu) {
     let sp = cpu.sp();
 
-    cpu.set_sp(sp + 1);
+    cpu.set_sp(sp.wrapping_add(1));
 
     cpu.delay(1);
 }
@@ -1775,7 +1775,7 @@ fn inc_sp(cpu: &mut Cpu) {
 fn dec_bc(cpu: &mut Cpu) {
     let bc = cpu.bc();
 
-    cpu.set_bc(bc - 1);
+    cpu.set_bc(bc.wrapping_sub(1));
 
     cpu.delay(1);
 }
@@ -1784,7 +1784,7 @@ fn dec_bc(cpu: &mut Cpu) {
 fn dec_de(cpu: &mut Cpu) {
     let de = cpu.de();
 
-    cpu.set_de(de - 1);
+    cpu.set_de(de.wrapping_sub(1));
 
     cpu.delay(1);
 }
@@ -1793,7 +1793,7 @@ fn dec_de(cpu: &mut Cpu) {
 fn dec_hl(cpu: &mut Cpu) {
     let hl = cpu.hl();
 
-    cpu.set_hl(hl - 1);
+    cpu.set_hl(hl.wrapping_sub(1));
 
     cpu.delay(1);
 }
@@ -1802,7 +1802,7 @@ fn dec_hl(cpu: &mut Cpu) {
 fn dec_sp(cpu: &mut Cpu) {
     let sp = cpu.sp();
 
-    cpu.set_sp(sp - 1);
+    cpu.set_sp(sp.wrapping_sub(1));
 
     cpu.delay(1);
 }
@@ -1813,7 +1813,7 @@ fn sub_and_set_flags(cpu: &mut Cpu, x: u8, y: u8) -> u8 {
     let x = x as u32;
     let y = y as u32;
 
-    let r = x - y;
+    let r = x.wrapping_sub(y);
 
     let rb = r as u8;
 
@@ -1998,7 +1998,7 @@ fn sub_with_carry_and_set_flags(cpu: &mut Cpu, x: u8, y: u8) -> u8 {
     let y = y as u32;
     let carry = cpu.carry() as u32;
 
-    let r = x - y - carry;
+    let r = x.wrapping_sub(y).wrapping_sub(carry);
 
     let rb = r as u8;
 
@@ -2107,7 +2107,7 @@ fn add_and_set_flags(cpu: &mut Cpu, x: u8, y: u8) -> u8 {
     let x = x as u32;
     let y = y as u32;
 
-    let r = x + y;
+    let r = x.wrapping_add(y);
 
     let rb = r as u8;
 
@@ -2217,7 +2217,7 @@ fn add_with_carry_and_set_flags(cpu: &mut Cpu, x: u8, y: u8) -> u8 {
     let y = y as u32;
     let carry = cpu.carry() as u32;
 
-    let r = x + y + carry;
+    let r = x.wrapping_add(y).wrapping_add(carry);
 
     let rb = r as u8;
 
@@ -2325,7 +2325,7 @@ fn add_word_and_set_flags(cpu: &mut Cpu, x: u16, y: u16) -> u16 {
     // Check for carry using 32bit arithmetics
     let x = x as u32;
     let y = y as u32;
-    let r = x + y;
+    let r = x.wrapping_add(y);
 
     cpu.set_substract(false);
     cpu.set_carry(r & 0x10000 != 0);
@@ -2383,7 +2383,7 @@ fn add_sp_sn(cpu: &mut Cpu) {
 
     let nn = n as i32;
 
-    let r = sp + nn;
+    let r = sp.wrapping_add(nn);
 
     // Carry and halfcarry are for the low byte
     cpu.set_carry((sp ^ nn ^ r) & 0x100 != 0);
@@ -2802,7 +2802,7 @@ mod bitops {
                                                &'static str) {
         let pc = cpu.pc();
 
-        cpu.set_pc(pc + 1);
+        cpu.set_pc(pc.wrapping_add(1));
 
         let op = cpu.fetch_byte(pc);
 

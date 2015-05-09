@@ -5,7 +5,7 @@ use super::Async;
 use std::sync::Arc;
 use spu::{SampleBuffer, SAMPLE_MAX};
 use std::sync::mpsc::Receiver;
-use std::num::{Int, FromPrimitive};
+use num::{Integer, Bounded, FromPrimitive};
 use std::default::Default;
 
 /// Asynchronous worker tasked doing the actual adaptative resampling
@@ -19,9 +19,10 @@ pub struct AsyncResampler<T: Send> {
 }
 
 impl<T> AsyncResampler<T>
-    where T: Copy + Send + Default + Int + FromPrimitive + 'static {
+    where T: Copy + Send + Default + Integer
+             + Bounded + FromPrimitive + 'static {
 
-    pub fn new(source:      Receiver<SampleBuffer>,
+    pub fn new(source:     Receiver<SampleBuffer>,
                async:      Arc<Async<T>>) -> AsyncResampler<T> {
 
         AsyncResampler {
@@ -32,8 +33,8 @@ impl<T> AsyncResampler<T>
     }
 
     pub fn resample(&mut self) {
-        let range: T   = Int::max_value();
-        let sample_max = <T as FromPrimitive>::from_u8(SAMPLE_MAX).unwrap();
+        let range: T   = T::max_value();
+        let sample_max = T::from_u8(SAMPLE_MAX).unwrap();
 
         while let Ok(buf) = self.source.recv() {
             let mut atomic = self.async.atomic.lock().unwrap();
@@ -57,7 +58,7 @@ impl<T> AsyncResampler<T>
 
                 // Convert u8 sample to the target range by
                 // "upscaling" it.
-                let sample = <T as FromPrimitive>::from_u8(sample).unwrap();
+                let sample = T::from_u8(sample).unwrap();
                 let sample = sample * (range / sample_max);
 
                 // Push the sample in the target FIFO

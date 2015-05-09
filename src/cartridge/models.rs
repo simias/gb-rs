@@ -15,6 +15,17 @@ pub struct Model {
     pub read_ram:  fn(cart: &Cartridge, addr: u32) -> u8,
 }
 
+impl ::std::clone::Clone for Model {
+    fn clone(&self) -> Model {
+        Model {
+            name: self.name,
+            write_rom: self.write_rom,
+            write_ram: self.write_ram,
+            read_ram: self.read_ram,
+        }
+    }
+}
+
 /// Default implementation of write_ram, suitable for most cartridges
 fn write_ram(cart: &mut Cartridge, addr: u32, val: u8) {
     if let Some(b) = cart.ram_byte_absolute_mut(addr) {

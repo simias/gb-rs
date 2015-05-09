@@ -174,7 +174,7 @@ impl RectangleWave {
 }
 
 /// Rectangular wave duty cycle.
-#[derive(Copy)]
+#[derive(Clone,Copy)]
 pub enum DutyCycle {
     /// Duty cycle of 12.5% (1/8)
     Duty13 = 1,
@@ -217,7 +217,7 @@ impl DutyCycle {
     }
 }
 
-#[derive(Copy)]
+#[derive(Clone,Copy)]
 pub struct Sweep {
     direction:     SweepDirection,
     shift:         u8,
@@ -299,7 +299,7 @@ impl Sweep {
 }
 
 // Sound envelopes can become louder or quieter
-#[derive(Copy,PartialEq,Eq)]
+#[derive(Clone,Copy,PartialEq,Eq)]
 enum SweepDirection {
     // Frequency increases at each step
     Up   = 0,

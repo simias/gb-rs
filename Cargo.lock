@@ -1,15 +1,16 @@
 [root]
 name = "gb-rs"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
- "ascii 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ascii 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "sdl2 0.0.33 (git+https://github.com/AngryLawyer/rust-sdl2.git)",
+ "num 0.1.24 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sdl2 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "ascii"
-version = "0.2.5"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -19,7 +20,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "libc"
-version = "0.1.4"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -27,34 +28,49 @@ name = "log"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "libc 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "num"
+version = "0.1.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "rand 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "rand"
-version = "0.3.3"
+version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "libc 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
+name = "rustc-serialize"
+version = "0.3.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "sdl2"
-version = "0.0.33"
-source = "git+https://github.com/AngryLawyer/rust-sdl2.git#30923490b83689112be165cc20bc7005e05bcd78"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "rand 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "sdl2-sys 0.0.33 (git+https://github.com/AngryLawyer/rust-sdl2.git)",
+ "libc 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num 0.1.24 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sdl2-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "sdl2-sys"
-version = "0.0.33"
-source = "git+https://github.com/AngryLawyer/rust-sdl2.git#30923490b83689112be165cc20bc7005e05bcd78"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "libc 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num 0.1.24 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

@@ -3,8 +3,8 @@
 
 use std::sync::{Arc, Mutex, Condvar};
 use std::sync::mpsc::Receiver;
-use std::num::{Int, FromPrimitive};
 use std::default::Default;
+use num::{Integer, Bounded, FromPrimitive};
 
 use spu::SampleBuffer;
 
@@ -20,7 +20,8 @@ pub struct Resampler<T: Send> {
 }
 
 impl<T> Resampler<T>
-    where T: Copy + Send + Default + Int + FromPrimitive + 'static {
+    where T: Copy + Send + Default + Integer
+             + Bounded + FromPrimitive + 'static {
     pub fn new(source: Receiver<SampleBuffer>, rate: u32) -> Resampler<T> {
         let async = Arc::new(Async::new(rate));
 
@@ -78,7 +79,7 @@ struct Atomic<T: Send> {
     /// average sample rate
     ratio:        f32,
     /// Resampling ratio estimation state machine
-    training:      Training,
+    training:     Training,
 }
 
 /// State shared between the main thread, the SDL2 callback and the
@@ -91,7 +92,7 @@ pub struct Async<T: Send> {
 }
 
 impl<T> Async<T>
-    where T: Copy + Send + Default + Int + FromPrimitive + 'static {
+    where T: Copy + Send + Default + Integer + FromPrimitive + 'static {
     fn new(rate: u32) -> Async<T> {
         // Initial educated guess for the sampling ratio. This is just
         // used while starting up, it'll be replaced by the measured
@@ -166,7 +167,7 @@ impl<T> Async<T>
 }
 
 /// Sample Rate training
-#[derive(Copy)]
+#[derive(Clone,Copy)]
 enum Training {
     /// We're starting, the measured sample rate is probably not
     /// trustworthy

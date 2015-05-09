@@ -1,10 +1,10 @@
 use std::cell::Cell;
 
-use sdl2::sdl::Sdl;
 use sdl2::event::Event;
 use sdl2::keycode::KeyCode;
 use sdl2::{joystick, controller};
 use sdl2::controller::{GameController, Button, Axis};
+use sdl2::sdl::Sdl;
 
 use ui::ButtonState;
 
@@ -14,13 +14,10 @@ pub struct Controller {
     controller:   Option<controller::GameController>,
     x_axis_state: Cell<AxisState>,
     y_axis_state: Cell<AxisState>,
-    context:      Sdl,
 }
 
 impl Controller {
     pub fn new() -> Controller {
-        let context = ::sdl2::init(::sdl2::INIT_GAME_CONTROLLER).unwrap();
-
         // Attempt to add a game controller
 
         let njoysticks =
@@ -63,8 +60,39 @@ impl Controller {
             controller:   controller,
             x_axis_state: Cell::new(AxisState::Neutral),
             y_axis_state: Cell::new(AxisState::Neutral),
-            context:      context,
         }
+    }
+
+    pub fn update(&self, sdl2: &Sdl) -> ::ui::Event {
+        let mut event = ::ui::Event::None;
+
+        let mut event_pump = sdl2.event_pump();
+
+        for e in event_pump.poll_iter() {
+            match e {
+                Event::KeyDown { keycode: KeyCode::Escape, .. } =>
+                    event = ::ui::Event::PowerOff,
+                Event::KeyDown { keycode: key, .. } =>
+                    self.update_key(key, ButtonState::Down),
+                Event::KeyUp { keycode: key, .. } =>
+                    self.update_key(key, ButtonState::Up),
+                Event::ControllerButtonDown{ button, .. } =>
+                    self.update_button(button, ButtonState::Down),
+                Event::ControllerButtonUp{ button, .. } =>
+                    self.update_button(button, ButtonState::Up),
+                Event::ControllerAxisMotion{ axis, value: val, .. } =>
+                    self.update_axis(axis, val),
+                Event::Quit { .. } =>
+                    event = ::ui::Event::PowerOff,
+                _ => ()
+            }
+        }
+
+        event
+    }
+
+    pub fn buttons(&self) -> &Cell<::ui::Buttons> {
+        &self.buttons
     }
 
     /// Update key state. For now keybindings are hardcoded.
@@ -135,41 +163,7 @@ impl Controller {
     }
 }
 
-impl ::ui::Controller for Controller {
-    fn update(&self) -> ::ui::Event {
-        let mut event = ::ui::Event::None;
-
-        let mut event_pump = self.context.event_pump();
-
-        for e in event_pump.poll_iter() {
-            match e {
-                Event::KeyDown { keycode: KeyCode::Escape, .. } =>
-                    event = ::ui::Event::PowerOff,
-                Event::KeyDown { keycode: key, .. } =>
-                    self.update_key(key, ButtonState::Down),
-                Event::KeyUp { keycode: key, .. } =>
-                    self.update_key(key, ButtonState::Up),
-                Event::ControllerButtonDown{ button, .. } =>
-                    self.update_button(button, ButtonState::Down),
-                Event::ControllerButtonUp{ button, .. } =>
-                    self.update_button(button, ButtonState::Up),
-                Event::ControllerAxisMotion{ axis, value: val, .. } =>
-                    self.update_axis(axis, val),
-                Event::Quit { .. } =>
-                    event = ::ui::Event::PowerOff,
-                _ => ()
-            }
-        }
-
-        event
-    }
-
-    fn buttons(&self) -> &Cell<::ui::Buttons> {
-        &self.buttons
-    }
-}
-
-#[derive(Copy,PartialEq,Eq)]
+#[derive(Clone,Copy,PartialEq,Eq)]
 enum AxisState {
     Neutral,
     Negative,

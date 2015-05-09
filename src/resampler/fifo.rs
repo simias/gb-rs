@@ -62,7 +62,7 @@ impl<T: Default + Copy> Fifo<T> {
     }
 }
 
-#[derive(Copy)]
+#[derive(Clone,Copy)]
 struct Index(usize);
 
 impl Index {

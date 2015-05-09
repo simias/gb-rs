@@ -1,8 +1,6 @@
 //! User Interface. Objects used to display the GB Screen, get user
 //! input etc...
 
-use std::cell::Cell;
-
 pub mod sdl2;
 
 /// GB screen. Screen resolution is always 160x144
@@ -13,15 +11,6 @@ pub trait Display {
     fn set_pixel(&mut self, x: u32, y: u32, color: ::gpu::Color);
     /// Current frame is done and can be displayed.
     fn flip(&mut self);
-}
-
-/// GB controller
-pub trait Controller {
-    /// Sample the controller input and update internal state.
-    fn update(&self) -> Event;
-    /// Return a reference to a Cell containing the button state for
-    /// use by the emulator code
-    fn buttons(&self) -> &Cell<Buttons>;
 }
 
 /// Audio interface
@@ -42,7 +31,7 @@ pub enum Event {
 }
 
 /// Description of a button's state
-#[derive(Debug,Copy)]
+#[derive(Debug,Clone,Copy)]
 pub enum ButtonState {
     /// Key is pushed down
     Down,
@@ -60,7 +49,7 @@ impl ButtonState {
 }
 
 /// State of all the GB buttons
-#[derive(Debug,Copy)]
+#[derive(Debug,Clone,Copy)]
 pub struct Buttons {
     pub up:        ButtonState,
     pub down:      ButtonState,
@@ -121,14 +110,8 @@ pub mod dummy {
                 buttons: Cell::new(super::Buttons::new(super::ButtonState::Up)),
             }
         }
-    }
 
-    impl super::Controller for DummyController {
-        fn update(&self) -> super::Event {
-            super::Event::None
-        }
-
-        fn buttons(&self) -> &Cell<super::Buttons> {
+        pub fn buttons(&self) -> &Cell<super::Buttons> {
             &self.buttons
         }
     }

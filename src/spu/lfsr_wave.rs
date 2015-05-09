@@ -112,7 +112,7 @@ impl LfsrWave {
     }
 }
 
-#[derive(Copy)]
+#[derive(Clone,Copy)]
 pub struct Lfsr {
     register:      u16,
     width:         LfsrWidth,
@@ -121,7 +121,7 @@ pub struct Lfsr {
     reg:           u8,
 }
 
-#[derive(Copy)]
+#[derive(Clone,Copy)]
 enum LfsrWidth {
     Lfsr15bit = 0,
     Lfsr7bit  = 1,

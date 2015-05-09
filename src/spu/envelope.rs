@@ -2,7 +2,7 @@
 
 use spu::{Sample, SOUND_MAX};
 
-#[derive(Copy)]
+#[derive(Clone,Copy)]
 pub struct Envelope {
     direction:     EnvelopeDirection,
     volume:        Volume,
@@ -69,7 +69,7 @@ impl Envelope {
 }
 
 // Sound envelopes can become louder or quieter
-#[derive(Copy,PartialEq,Eq)]
+#[derive(Clone,Copy,PartialEq,Eq)]
 pub enum EnvelopeDirection {
     // Volume increases at each step
     Up   = 1,
@@ -79,7 +79,7 @@ pub enum EnvelopeDirection {
 
 /// The game boy sound uses 4bit DACs and can therefore only output 16
 /// sound levels
-#[derive(Copy)]
+#[derive(Clone,Copy)]
 struct Volume(u8);
 
 impl Volume {

@@ -154,7 +154,7 @@ impl RamWave {
 }
 
 /// The wave data can be didived before being sent out
-#[derive(Copy)]
+#[derive(Clone,Copy)]
 pub enum OutputLevel {
     /// Channel is muted
     Mute      = 0,
