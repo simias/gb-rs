@@ -1,20 +1,21 @@
 language: rust
-os:
-  - linux
+
+rust:
+    - beta
+    - nightly
+
 env:
   global:
     - LD_LIBRARY_PATH: /usr/local/lib
+
 install:
-    - wget http://www.libsdl.org/release/SDL2-2.0.3.tar.gz
-    - tar -zxvf SDL2-2.0.3.tar.gz
-    - cd SDL2-2.0.3
-    - ./configure
-    - make
-    - sudo make install
-    - cd -
+    - sudo add-apt-repository ppa:team-xbmc/ppa -y
+    - sudo apt-get update -q
+    - sudo apt-get install libsdl2-dev
+
 before_script:
   - rustc --version
   - cargo -V
+
 script:
   - cargo build -v
-  - cargo test
