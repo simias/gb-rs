@@ -118,7 +118,10 @@ impl Cartridge {
         let mut savepath = self.path.clone();
         savepath.set_extension("sav");
 
-        let mut save_file = try!(OpenOptions::new().read(true).write(true)
+        let mut save_file = try!(OpenOptions::new()
+                                 .read(true)
+                                 .write(true)
+                                 .create(true)
                                  .open(savepath.clone()));
 
         let save_size = try!(save_file.metadata()).len();
