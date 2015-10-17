@@ -213,7 +213,9 @@ impl<'a> Gpu<'a> {
 
             let y = self.line;
 
-            for x in 0u8..160 {
+            for x in 0u16..256 {
+                let x = x as u8;
+
                 self.render_pixel(x, y);
             }
         }
@@ -587,7 +589,7 @@ impl<'a> Gpu<'a> {
     }
 
     fn background_color(&mut self, x: u8, y: u8) -> AlphaColor {
-        let px = x.wrapping_add(self.scx);
+        let px = x;
         let py = y.wrapping_add(self.scy);
 
         let map = self.bg_tile_map;
@@ -745,7 +747,7 @@ impl<'a> Gpu<'a> {
             };
 
         let col = if self.sprites_enabled {
-            self.render_sprite(x, y, bg_col)
+            self.render_sprite(x.wrapping_sub(self.scx), y, bg_col)
         } else {
             bg_col.color
         };

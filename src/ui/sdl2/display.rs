@@ -16,7 +16,7 @@ impl Display {
     pub fn new(sdl2: &Sdl, upscale: u8) -> Display {
         let up = 1 << (upscale as usize);
 
-        let xres = 160 * up;
+        let xres = 256 * up;
         let yres = 144 * up;
 
         let window = match Window::new(sdl2, "gb-rs",
@@ -48,6 +48,9 @@ impl ::ui::Display for Display {
     }
 
     fn set_pixel(&mut self, x: u32, y: u32, color: Color) {
+
+        let x = (x + 48) % 256;
+
         let color = match color {
             Color::Black     => RGB(0x00, 0x00, 0x00),
             Color::DarkGrey  => RGB(0x55, 0x55, 0x55),
