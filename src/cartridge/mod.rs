@@ -351,16 +351,16 @@ impl Cartridge {
     }
 }
 
-impl Drop for Cartridge {
-    fn drop(&mut self) {
-        // Update save file when Cartridge is dropped
-        if let Err(e) = self.save_ram() {
-            // Display the error but don't panic since we might
-            // already be in the middle of a panic unwinding
-            println!("Couldn't save: {}", e);
-        }
-    }
-}
+// impl Drop for Cartridge {
+//     fn drop(&mut self) {
+//         // Update save file when Cartridge is dropped
+//         if let Err(e) = self.save_ram() {
+//             // Display the error but don't panic since we might
+//             // already be in the middle of a panic unwinding
+//             println!("Couldn't save: {}", e);
+//         }
+//     }
+// }
 
 impl Debug for Cartridge {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {

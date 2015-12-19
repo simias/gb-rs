@@ -12,6 +12,10 @@ description = "GameBoy emulator"
 
 license = "MIT"
 
+[lib]
+name = "gbrs_retro"
+crate-type = ["dylib"]
+
 [features]
 
 # Select the Super Gameboy bootrom instead of the classic one. It
@@ -23,7 +27,7 @@ sgb_bootrom = []
 
 [dependencies]
 
+libc = "0.2.3"
 num   = "0.1.24"
 ascii = "0.5.0"
 log   = "0.3.1"
-sdl2  = "0.2.3"

@@ -1,7 +1,5 @@
 //! Game Boy sound emulation
 
-use std::sync::mpsc::{sync_channel, Receiver, SyncSender, TrySendError};
-
 use spu::rectangle_wave::{RectangleWave, DutyCycle, Sweep};
 use spu::envelope::Envelope;
 use spu::lfsr_wave::{LfsrWave, Lfsr};
@@ -18,9 +16,6 @@ pub struct Spu {
     enabled:  bool,
     /// Counter for the SAMPLER_DIVIDER
     divider:  u32,
-    /// Channel used to send the generated audio samples to the
-    /// backend.
-    output:   SyncSender<SampleBuffer>,
     /// Current sample buffer
     buffer:   SampleBuffer,
     /// Position in the sample buffer
@@ -41,14 +36,11 @@ pub struct Spu {
 }
 
 impl Spu {
-    pub fn new() -> (Spu, Receiver<SampleBuffer>) {
+    pub fn new() -> Spu {
 
-        let (tx, rx) = sync_channel(CHANNEL_DEPTH);
-
-        let spu = Spu {
+        Spu {
             enabled:  false,
             divider:  0,
-            output:   tx,
             buffer:   [0; SAMPLES_PER_BUFFER],
             position: 0,
             sound1:   RectangleWave::new(),
@@ -57,9 +49,7 @@ impl Spu {
             sound4:   LfsrWave::new(),
             so1:      SoundOutput::new(),
             so2:      SoundOutput::new(),
-        };
-
-        (spu , rx)
+        }
     }
 
     pub fn step(&mut self) {
@@ -108,14 +98,8 @@ impl Spu {
 
         if self.position == self.buffer.len() {
             // Buffer filled, send it over and reset the position
-            if let Err(e) = self.output.try_send(self.buffer) {
-                match e {
-                    TrySendError::Full(_) =>
-                        error!("Sound channel is full, dropping {} samples",
-                               self.buffer.len()),
-                    e => panic!("Couldn't send audio buffer: {:?}", e),
-                }
-            }
+
+            // XXX FILL ME
 
             self.position = 0;
         }

@@ -16,7 +16,7 @@ mod bootrom;
 
 /// Interconnect struct used by the CPU and GPU to access the ROM, RAM
 /// and registers
-pub struct Interconnect<'a> {
+pub struct Interconnect {
     /// Cartridge interface
     cartridge:  Cartridge,
     /// internal RAM
@@ -26,7 +26,7 @@ pub struct Interconnect<'a> {
     /// Timer instance
     timer:      timer::Timer,
     /// GPU instance
-    gpu:        Gpu<'a>,
+    gpu:        Gpu,
     /// SPU instance
     spu:        Spu,
     /// Enabled interrupts
@@ -36,19 +36,18 @@ pub struct Interconnect<'a> {
     /// Current DMA index in OAM
     dma_idx:    u16,
     /// Controller interface
-    buttons:    buttons::Buttons<'a>,
+    buttons:    buttons::Buttons,
     /// The game boy starts up mapping the bootrom at address [0,
     /// 0xff]. The last thing the bootrom does is writing 0x01 to
     /// UNMAP_BOOTROM to remove itself from the memory map.
     bootrom:    bool,
 }
 
-impl<'a> Interconnect<'a> {
+impl Interconnect {
     /// Create a new Interconnect
-    pub fn new<'n>(cartridge:  Cartridge,
-                   gpu:        Gpu<'n>,
-                   spu:        Spu,
-                   buttons:    &'n Cell<::ui::Buttons>) -> Interconnect<'n> {
+    pub fn new(cartridge:  Cartridge,
+                   gpu:        Gpu,
+                   spu:        Spu) -> Interconnect {
 
         let iram = ram::Ram::new(0x2000);
         let zpage = ram::Ram::new(0x7f);
@@ -57,7 +56,7 @@ impl<'a> Interconnect<'a> {
 
         let it_enabled = Interrupts::from_register(0);
 
-        let buttons = buttons::Buttons::new(buttons);
+        let buttons = buttons::Buttons::new();
 
         Interconnect { cartridge:  cartridge,
                        iram:       iram,

@@ -1,0 +1,340 @@
+/// This file contains the libretro definitions ported from `libretro.h`
+///
+/// For more details see the original well-commented C header file:
+/// https://github.com/libretro/RetroArch/blob/master/libretro.h
+///
+/// I took the liberty to "rustify" the calling convention: I dropped
+/// the `retro_` prefix (useless when you have namespaces) and
+/// CamelCased the struct names.
+///
+/// Callback typedefs are altered in the same way and suffixed with
+/// `Fn` for clarity.
+
+use std::ptr;
+use std::ffi::CStr;
+use libc::{c_void, c_char, c_uint, c_float, c_double, size_t, int16_t};
+use std::path::Path;
+
+/// Global CPU instance holding our emulator state
+static mut instance: *mut ::cpu::Cpu = 0 as *mut ::cpu::Cpu;
+
+#[repr(C)]
+pub struct SystemInfo {
+   pub library_name: *const c_char,
+   pub library_version: *const c_char,
+   pub valid_extensions: *const c_char,
+   pub need_fullpath: bool,
+   pub block_extract: bool,
+}
+
+#[repr(C)]
+pub struct GameGeometry {
+    pub base_width: c_uint,
+    pub base_height: c_uint,
+    pub max_width: c_uint,
+    pub max_height: c_uint,
+    pub aspect_ratio: c_float,
+}
+
+#[repr(C)]
+pub struct SystemTiming {
+    pub fps: c_double,
+    pub sample_rate: c_double,
+}
+
+#[repr(C)]
+pub struct SystemAvInfo {
+    pub geometry: GameGeometry,
+    pub timing: SystemTiming,
+}
+
+
+pub type EnvironmentFn =
+    unsafe extern "C" fn(cmd: c_uint, data: *mut c_void);
+
+pub type VideoRefreshFn =
+    unsafe extern "C" fn(data: *const c_void,
+                         width: c_uint,
+                         height: c_uint,
+                         pitch: size_t);
+pub type AudioSampleFn =
+    extern "C" fn(left: int16_t, right: int16_t);
+
+pub type AudioSampleBatchFn =
+    unsafe extern "C" fn(data: *const int16_t,
+                         frames: size_t) -> size_t;
+
+pub type InputPollFn = extern "C" fn();
+
+pub type InputStateFn =
+    extern "C" fn(port: c_uint,
+                  device: c_uint,
+                  index: c_uint,
+                  id:c_uint) -> int16_t;
+
+#[repr(C)]
+pub struct GameInfo {
+    path: *const c_char,
+    data: *const c_void,
+    size: size_t,
+    meta: *const c_char,
+}
+
+//*******************************************
+// Libretro callbacks loaded by the frontend.
+//*******************************************
+
+static mut video_refresh: VideoRefreshFn = dummy::video_refresh;
+static mut input_poll: InputPollFn = dummy::input_poll;
+static mut audio_sample_batch: AudioSampleBatchFn = dummy::audio_sample_batch;
+
+//**********************************************
+// Libretro entry points called by the frontend.
+//**********************************************
+
+#[no_mangle]
+pub extern "C" fn retro_api_version() -> c_uint {
+    // We implement the version 1 of the API
+    1
+}
+
+#[no_mangle]
+pub extern "C" fn retro_set_environment(_: EnvironmentFn) {
+}
+
+#[no_mangle]
+pub extern "C" fn retro_set_video_refresh(callback: VideoRefreshFn) {
+    unsafe {
+        video_refresh = callback
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn retro_set_audio_sample(_: AudioSampleFn) {
+}
+
+#[no_mangle]
+pub extern "C" fn retro_set_audio_sample_batch(callback: AudioSampleBatchFn) {
+    unsafe {
+        audio_sample_batch = callback
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn retro_set_input_poll(callback: InputPollFn) {
+    unsafe {
+        input_poll = callback
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn retro_set_input_state(_: InputStateFn) {
+}
+
+#[no_mangle]
+pub extern "C" fn retro_init() {
+    println!("RSX Retro init!");
+}
+
+#[no_mangle]
+pub extern "C" fn retro_deinit() {
+    println!("RSX Retro init!");
+}
+
+#[no_mangle]
+pub extern "C" fn retro_get_system_info(info: *mut SystemInfo) {
+    let info = ptr_as_mut_ref(info).unwrap();
+
+    // Strings must be static and, of course, 0-terminated
+    *info = SystemInfo {
+        library_name: b"gb-rs\0".as_ptr() as *const i8,
+	library_version: b"0.3.0\0".as_ptr() as *const i8,
+	valid_extensions: b"gb\0".as_ptr() as *const i8,
+	need_fullpath: false,
+	block_extract: false,
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn retro_get_system_av_info(info: *mut SystemAvInfo) {
+    let info = ptr_as_mut_ref(info).unwrap();
+
+    println!("AV INFO");
+
+    *info = SystemAvInfo {
+        // XXX Dynamic me
+        geometry: GameGeometry {
+            base_width: 160,
+            base_height: 144,
+            max_width: 160,
+            max_height: 144,
+            aspect_ratio: -1.0,
+        },
+        timing: SystemTiming {
+            fps: (0x400000 as f64) / (456. * 154.),
+            sample_rate: (0x400000 as f64) / 95.,
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn retro_set_controller_port_device(_port: c_uint,
+                                                   _device: c_uint) {
+    println!("port device: {} {}", _port, _device);
+}
+
+#[no_mangle]
+pub extern "C" fn retro_reset() {
+    println!("retro reset");
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn retro_run() {
+    input_poll();
+
+    ::render_frame(ptr_as_mut_ref(instance).unwrap());
+}
+
+pub fn frame_done(frame: [u16; 160*144]) {
+    unsafe {
+        let data = frame.as_ptr() as *const c_void;
+
+        video_refresh(data, 160, 144, 160 * 2);
+    }
+}
+
+pub fn send_audio_sample_batch(samples: &[i16]) {
+    if samples.len() & 1 != 0 {
+        panic!("Received an odd number of audio samples!");
+    }
+
+    let frames = (samples.len() / 2) as size_t;
+
+    let r = unsafe {
+        audio_sample_batch(samples.as_ptr(), frames)
+    };
+
+    if r != frames {
+        panic!("Frontend didn't use all our samples! ({} != {})", r, frames);
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn retro_serialize_size() -> size_t {
+    0
+}
+
+#[no_mangle]
+pub extern "C" fn retro_serialize(_data: *mut c_void,
+                                  _size: size_t) -> bool {
+    false
+}
+
+#[no_mangle]
+pub extern "C" fn retro_unserialize(_data: *const c_void,
+                                    _size: size_t) -> bool {
+    false
+}
+
+#[no_mangle]
+pub extern "C" fn retro_cheat_reset() {
+}
+
+#[no_mangle]
+pub fn retro_cheat_set(_index: c_uint,
+                       _enabled: bool,
+                       _code: *const c_char) {
+}
+
+#[no_mangle]
+pub extern "C" fn retro_load_game(info: *const GameInfo) -> bool {
+    let info = ptr_as_ref(info).unwrap();
+
+    if info.path.is_null() {
+        println!("No path in GameInfo!");
+        return false;
+    }
+
+    let path = unsafe {
+        CStr::from_ptr(info.path)
+    }.to_str().unwrap();
+
+    let mut cpu = Box::new(::load_game(Path::new(path)));
+
+    unsafe {
+        instance = Box::into_raw(cpu);
+    }
+
+    true
+}
+
+#[no_mangle]
+pub extern "C" fn retro_load_game_special(_type: c_uint,
+                                          _info: *const GameInfo,
+                                          _num_info: size_t) -> bool {
+    false
+}
+
+#[no_mangle]
+pub extern "C" fn retro_unload_game()  {
+}
+
+/// Cast a mutable pointer into a mutable reference, return None if
+/// it's NULL.
+pub fn ptr_as_mut_ref<'a, T>(v: *mut T) -> Option<&'a mut T> {
+
+    if v.is_null() {
+        None
+    } else {
+        Some(unsafe { &mut *v })
+    }
+}
+
+/// Cast a const pointer into a reference, return None if it's NULL.
+pub fn ptr_as_ref<'a, T>(v: *const T) -> Option<&'a T> {
+
+    if v.is_null() {
+        None
+    } else {
+        Some(unsafe { &*v })
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn retro_get_region() -> c_uint {
+    0
+}
+
+#[no_mangle]
+pub extern "C" fn retro_get_memory_data(_id: c_uint) -> *mut c_void {
+    ptr::null_mut()
+}
+
+#[no_mangle]
+pub extern "C" fn retro_get_memory_size(_id: c_uint) -> size_t {
+    0
+}
+
+pub mod dummy {
+    //! Placeholder implementation for the libretro callback in order
+    //! to catch calls to those function in the function pointer has
+    //! not yet been loaded.
+
+    use libc::{c_void, c_uint, size_t, int16_t};
+
+    pub unsafe extern "C" fn video_refresh(_: *const c_void,
+                                       _: c_uint,
+                                       _: c_uint,
+                                       _: size_t) {
+        panic!("Called missing video_refresh callback");
+    }
+
+    pub extern "C" fn input_poll() {
+        panic!("Called missing input_poll callback");
+    }
+
+    pub unsafe extern "C" fn audio_sample_batch(_: *const int16_t,
+                                                _: size_t) -> size_t {
+        panic!("Called missing audio_sample_batch callback");
+    }
+}

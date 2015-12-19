@@ -9,28 +9,28 @@
 
 use std::cell::Cell;
 
-pub struct Buttons<'a> {
+pub struct Buttons {
     /// `true` if the "directions" line is active
     directions_selected: bool,
     /// `true` if the "buttons" line is active
     /// Controller interface
     buttons_selected:    bool,
     /// Abstract interface to the actual UI
-    buttons:             &'a Cell<::ui::Buttons>,
+    buttons:             ::ui::Buttons,
 }
 
-impl<'a> Buttons<'a> {
-    pub fn new<'n>(buttons: &'n Cell<::ui::Buttons>) -> Buttons<'n> {
+impl Buttons {
+    pub fn new() -> Buttons {
         Buttons { directions_selected: false,
                   buttons_selected:    false,
-                  buttons:             buttons,
+                  buttons:             ::ui::Buttons::new(::ui::ButtonState::Up),
         }
     }
 
     /// Return the value of the INPUT register. Lines are to 1 when
     /// inactive.
     pub fn input(&self) -> u8 {
-        let buttons = self.buttons.get();
+        let buttons = &self.buttons;
 
         // For simplicity we'll mark the active lines with 1 and
         // invert the value at the end

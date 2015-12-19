@@ -8,7 +8,7 @@ use cpu::instructions::next_instruction;
 mod instructions;
 
 /// CPU state.
-pub struct Cpu<'a> {
+pub struct Cpu {
     /// CPU registers (except for `F` register)
     regs:                Registers,
     /// CPU flags (`F` register)
@@ -20,7 +20,7 @@ pub struct Cpu<'a> {
     /// CPU halted flag
     halted:              bool,
     /// Interconnect to access external ressources (RAM, ROM, peripherals...)
-    inter:               Interconnect<'a>,
+    inter:               Interconnect,
     /// Number of cycles elapsed running the current instruction
     instruction_cycles:  u8,
 }
@@ -65,9 +65,9 @@ struct Flags {
     c: bool,
 }
 
-impl<'a> Cpu<'a> {
+impl Cpu {
     /// Create a new Cpu instance and reset it
-    pub fn new<'n>(inter: Interconnect<'n>) -> Cpu<'n> {
+    pub fn new(inter: Interconnect) -> Cpu {
         // Default register values at startup. Taken from the
         // unofficial Game Boy CPU manual.
         let regs = Registers {
@@ -497,7 +497,7 @@ impl<'a> Cpu<'a> {
     }
 }
 
-impl<'a> Debug for Cpu<'a> {
+impl Debug for Cpu {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         try!(writeln!(f, "Registers:"));
 

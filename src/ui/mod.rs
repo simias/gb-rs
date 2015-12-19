@@ -1,8 +1,6 @@
 //! User Interface. Objects used to display the GB Screen, get user
 //! input etc...
 
-pub mod sdl2;
-
 /// GB screen. Screen resolution is always 160x144
 pub trait Display {
     /// Clear the display

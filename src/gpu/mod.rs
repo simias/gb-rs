@@ -1,14 +1,11 @@
 //! Game Boy GPU emulation
 
-use ui::Display;
 use gpu::sprite::Sprite;
 
 mod sprite;
 
 /// GPU state.
-pub struct Gpu<'a> {
-    /// Emulator Display
-    display: &'a mut (Display + 'a),
+pub struct Gpu {
     /// Current line. [0,143] is active video, [144,153] is blanking.
     line: u8,
     /// Counter for the horizontal period
@@ -69,6 +66,7 @@ pub struct Gpu<'a> {
     /// None. There can't be more than 10 sprites displayed on each
     /// line.
     line_cache: [[Option<u8>; 10]; 144],
+    framebuffer: [u16; 160 * 144],
 }
 
 /// Current GPU mode
@@ -114,16 +112,15 @@ enum LcdItStatus {
     Acked,
 }
 
-impl<'a> Gpu<'a> {
+impl Gpu {
     /// Create a new Gpu instance.
-    pub fn new<'n>(display: &'n mut Display) -> Gpu<'n> {
+    pub fn new() -> Gpu {
 
         Gpu { line:                   0,
               htick:                  0,
               mode:                   Mode::Prelude,
               oam:                    [Sprite::new(); 40],
               vram:                   [0xca; 0x2000],
-              display:                display,
               enabled:                false,
               window_tile_map:        TileMap::Low,
               window_enabled:         false,
@@ -147,6 +144,7 @@ impl<'a> Gpu<'a> {
               wx:                     0,
               wy:                     0,
               line_cache:             [[None; 10]; 144],
+              framebuffer:            [0x1234; 160 * 144],
         }
     }
 
@@ -184,7 +182,9 @@ impl<'a> Gpu<'a> {
                             // We're entering vertical blanking, we're
                             // done drawing the current frame
                             self.it_vblank = true;
-                            self.display.flip();
+
+                            ::libretro::frame_done(self.framebuffer);
+
                             Mode::VBlank
                         } else {
                             Mode::Prelude
@@ -677,7 +677,7 @@ impl<'a> Gpu<'a> {
         let start  = sprite.top_line();
         let end    = start + (height as i32);
 
-        for y in (start..end) {
+        for y in start..end {
             if y < 0 || y >= 144 {
                 // Sprite line is not displayed
                 continue;
@@ -696,7 +696,7 @@ impl<'a> Gpu<'a> {
             // Insert sprite into the cache for this line. We order
             // the sprites from left to right and from highest to
             // lowest priority.
-            for i in (0..l) {
+            for i in 0..l {
                 match self.line_cache[y][i] {
                     None => {
                         // This cache entry is empty, use it to hold
@@ -750,7 +750,20 @@ impl<'a> Gpu<'a> {
             bg_col.color
         };
 
-        self.display.set_pixel(x as u32, y as u32, col);
+        self.set_pixel(x, y, col);
+    }
+
+    fn set_pixel(&mut self, x: u8, y: u8, color: Color) {
+        let y = y as usize;
+        let x = x as usize;
+
+        self.framebuffer[y * 160 + x] =
+            match color {
+                Color::Black => 0x0000,
+                Color::DarkGrey => 0x294a,
+                Color::LightGrey => 0x56b5,
+                Color::White => 0x7fff,
+            };
     }
 
     fn render_sprite(&self, x: u8, y: u8, bg_col: AlphaColor) -> Color {
@@ -871,7 +884,7 @@ impl Palette {
                    Color::White, ]
         };
 
-        for i in (0..p.map.len()) {
+        for i in 0..p.map.len() {
             p.map[i] = Color::from_u8((r >> (i * 2)) & 0x3)
         }
 
@@ -882,7 +895,7 @@ impl Palette {
     fn into_reg(&self) -> u8 {
         let mut p = 0u8;
 
-        for i in (0..self.map.len()) {
+        for i in 0..self.map.len() {
             p |= (self.map[i] as u8) << (i * 2);
         }
 
