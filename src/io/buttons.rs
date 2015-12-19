@@ -6,9 +6,6 @@
 //! one of those two lines with a pin of the gameboy and sets one bit
 //! in the INPUT register (if the line is selected).
 
-
-use std::cell::Cell;
-
 pub struct Buttons {
     /// `true` if the "directions" line is active
     directions_selected: bool,
@@ -62,5 +59,9 @@ impl Buttons {
         // We select the lines by setting the bit to 0
         self.directions_selected = val & 0x10 == 0;
         self.buttons_selected    = val & 0x20 == 0;
+    }
+
+    pub fn set_buttons(&mut self, buttons: ::ui::Buttons) {
+        self.buttons = buttons;
     }
 }

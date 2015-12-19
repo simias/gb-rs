@@ -57,9 +57,6 @@ pub struct Buttons {
     pub b:         ButtonState,
     pub start:     ButtonState,
     pub select:    ButtonState,
-    /// State of the interrupt that occurs at the moment a button is
-    /// pressed
-    pub interrupt: bool,
 }
 
 impl Buttons {
@@ -73,7 +70,6 @@ impl Buttons {
             down:      default_state,
             left:      default_state,
             right:     default_state,
-            interrupt: false,
         }
     }
 }

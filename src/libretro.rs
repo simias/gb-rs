@@ -80,16 +80,86 @@ pub struct GameInfo {
     meta: *const c_char,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum InputDevice {
+    None = 0,
+    JoyPad = 1,
+    Mouse = 2,
+    Keyboard = 3,
+    LightGun = 4,
+    Analog = 5,
+    Pointer = 6,
+}
+
+/// RETRO_DEVICE_ID_JOYPAD_* constants
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum JoyPadButton {
+    B = 0,
+    Y = 1,
+    Select = 2,
+    Start = 3,
+    Up = 4,
+    Down = 5,
+    Left = 6,
+    Right = 7,
+    A = 8,
+    X = 9,
+    L = 10,
+    R = 11,
+    L2 = 12,
+    R2 = 13,
+    L3 = 14,
+    R3 = 15,
+}
+
 //*******************************************
-// Libretro callbacks loaded by the frontend.
+// Libretro callbacks loaded by the frontend
 //*******************************************
 
 static mut video_refresh: VideoRefreshFn = dummy::video_refresh;
 static mut input_poll: InputPollFn = dummy::input_poll;
+static mut input_state: InputStateFn = dummy::input_state;
 static mut audio_sample_batch: AudioSampleBatchFn = dummy::audio_sample_batch;
 
+//*******************************
+// Higher level helper functions
+//*******************************
+
+pub fn frame_done(frame: [u16; 160*144]) {
+    unsafe {
+        let data = frame.as_ptr() as *const c_void;
+
+        video_refresh(data, 160, 144, 160 * 2);
+    }
+}
+
+pub fn send_audio_samples(samples: &[i16]) {
+    if samples.len() & 1 != 0 {
+        panic!("Received an odd number of audio samples!");
+    }
+
+    let frames = (samples.len() / 2) as size_t;
+
+    let r = unsafe {
+        audio_sample_batch(samples.as_ptr(), frames)
+    };
+
+    if r != frames {
+        panic!("Frontend didn't use all our samples! ({} != {})", r, frames);
+    }
+}
+
+pub fn button_pressed(b: JoyPadButton) -> bool {
+    unsafe {
+        input_state(0,
+                    InputDevice::JoyPad as c_uint,
+                    0,
+                    b as c_uint) != 0
+    }
+}
+
 //**********************************************
-// Libretro entry points called by the frontend.
+// Libretro entry points called by the frontend
 //**********************************************
 
 #[no_mangle]
@@ -128,17 +198,18 @@ pub extern "C" fn retro_set_input_poll(callback: InputPollFn) {
 }
 
 #[no_mangle]
-pub extern "C" fn retro_set_input_state(_: InputStateFn) {
+pub extern "C" fn retro_set_input_state(callback: InputStateFn) {
+    unsafe {
+        input_state = callback
+    }
 }
 
 #[no_mangle]
 pub extern "C" fn retro_init() {
-    println!("RSX Retro init!");
 }
 
 #[no_mangle]
 pub extern "C" fn retro_deinit() {
-    println!("RSX Retro init!");
 }
 
 #[no_mangle]
@@ -195,30 +266,6 @@ pub unsafe extern "C" fn retro_run() {
     ::render_frame(ptr_as_mut_ref(instance).unwrap());
 }
 
-pub fn frame_done(frame: [u16; 160*144]) {
-    unsafe {
-        let data = frame.as_ptr() as *const c_void;
-
-        video_refresh(data, 160, 144, 160 * 2);
-    }
-}
-
-pub fn send_audio_samples(samples: &[i16]) {
-    if samples.len() & 1 != 0 {
-        panic!("Received an odd number of audio samples!");
-    }
-
-    let frames = (samples.len() / 2) as size_t;
-
-    let r = unsafe {
-        audio_sample_batch(samples.as_ptr(), frames)
-    };
-
-    if r != frames {
-        panic!("Frontend didn't use all our samples! ({} != {})", r, frames);
-    }
-}
-
 #[no_mangle]
 pub extern "C" fn retro_serialize_size() -> size_t {
     0
@@ -259,7 +306,7 @@ pub extern "C" fn retro_load_game(info: *const GameInfo) -> bool {
         CStr::from_ptr(info.path)
     }.to_str().unwrap();
 
-    let mut cpu = Box::new(::load_game(Path::new(path)));
+    let cpu = Box::new(::load_game(Path::new(path)));
 
     unsafe {
         instance = Box::into_raw(cpu);
@@ -276,7 +323,12 @@ pub extern "C" fn retro_load_game_special(_type: c_uint,
 }
 
 #[no_mangle]
-pub extern "C" fn retro_unload_game()  {
+pub unsafe extern "C" fn retro_unload_game()  {
+    if !instance.is_null() {
+        // Rebuild the Box to free the instance
+        Box::from_raw(instance);
+        instance = ptr::null_mut();
+    }
 }
 
 /// Cast a mutable pointer into a mutable reference, return None if
@@ -336,5 +388,12 @@ pub mod dummy {
     pub unsafe extern "C" fn audio_sample_batch(_: *const int16_t,
                                                 _: size_t) -> size_t {
         panic!("Called missing audio_sample_batch callback");
+    }
+
+    pub extern "C" fn input_state(_: c_uint,
+                                  _: c_uint,
+                                  _: c_uint,
+                                  _: c_uint) -> int16_t {
+        panic!("Called missing input_state callback");
     }
 }

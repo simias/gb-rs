@@ -3,7 +3,6 @@
 use gpu::Gpu;
 use spu::Spu;
 
-use std::cell::Cell;
 use cartridge::Cartridge;
 
 use self::io_map::{NR3_RAM_START, NR3_RAM_END};
@@ -70,6 +69,10 @@ impl Interconnect {
                        buttons:    buttons,
                        bootrom:    true,
         }
+    }
+
+    pub fn set_buttons(&mut self, buttons: ::ui::Buttons) {
+        self.buttons.set_buttons(buttons);
     }
 
     pub fn step(&mut self) {

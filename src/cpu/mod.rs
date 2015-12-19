@@ -96,6 +96,10 @@ impl Cpu {
         }
     }
 
+    pub fn set_buttons(&mut self, buttons: ::ui::Buttons) {
+        self.inter.set_buttons(buttons);
+    }
+
     /// Execute an instruction or wait for an interrupt if the system
     /// is halted. The rest of the emulator state will be advanced
     /// indirectly by the `advance` method below. The function returns

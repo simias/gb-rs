@@ -20,8 +20,6 @@ extern crate test;
 pub mod libretro;
 
 use std::path::Path;
-use std::cell::Cell;
-use std::boxed::Box;
 
 use cpu::Cpu;
 
@@ -30,7 +28,6 @@ mod io;
 mod gpu;
 mod cartridge;
 mod spu;
-mod resampler;
 mod ui;
 
 fn load_game(rompath: &Path) -> Cpu {
@@ -49,7 +46,28 @@ fn load_game(rompath: &Path) -> Cpu {
     Cpu::new(inter)
 }
 
+fn button_state(b: libretro::JoyPadButton) -> ui::ButtonState {
+    if libretro::button_pressed(b) {
+        ui::ButtonState::Down
+    } else {
+        ui::ButtonState::Up
+    }
+}
+
 fn render_frame(cpu: &mut Cpu) {
+    let buttons = ui::Buttons {
+        up: button_state(libretro::JoyPadButton::Up),
+        down: button_state(libretro::JoyPadButton::Down),
+        left: button_state(libretro::JoyPadButton::Left),
+        right: button_state(libretro::JoyPadButton::Right),
+        a: button_state(libretro::JoyPadButton::A),
+        b: button_state(libretro::JoyPadButton::B),
+        start: button_state(libretro::JoyPadButton::Start),
+        select: button_state(libretro::JoyPadButton::Select),
+    };
+
+    cpu.set_buttons(buttons);
+
     for _ in 0..(456 * 154) {
         cpu.run_next_instruction();
     }
