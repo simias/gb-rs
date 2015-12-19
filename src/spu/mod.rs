@@ -17,7 +17,7 @@ pub struct Spu {
     /// Counter for the SAMPLER_DIVIDER
     divider:  u32,
     /// Current sample buffer
-    buffer:   SampleBuffer,
+    buffer:   [i16; 1024],
     /// Position in the sample buffer
     position: usize,
     /// Sound 1, rectangular wave with envelope function and
@@ -41,7 +41,7 @@ impl Spu {
         Spu {
             enabled:  false,
             divider:  0,
-            buffer:   [0; SAMPLES_PER_BUFFER],
+            buffer:   [0; 1024],
             position: 0,
             sound1:   RectangleWave::new(),
             sound2:   RectangleWave::new(),
@@ -79,30 +79,31 @@ impl Spu {
                  self.sound3.sample(),
                  self.sound4.sample()];
 
-        // For now let's just add both outputs
-        let sample =
-            self.so1.sample(sounds) +
-            self.so2.sample(sounds);
+        let left = self.so1.sample(sounds);
+        let right = self.so2.sample(sounds);
 
-        self.output_sample(sample);
-
+        self.output_sample(left, right);
     }
 
     /// Handle sample buffering and sending them through the
     /// asynchronous channel.
-    fn output_sample(&mut self, sample: Sample) {
+    fn output_sample(&mut self, l: Sample, r: Sample) {
 
-        self.buffer[self.position] = sample;
-
-        self.position += 1;
-
-        if self.position == self.buffer.len() {
+        if self.buffer.len() - self.position < 2 {
             // Buffer filled, send it over and reset the position
 
-            // XXX FILL ME
+            ::libretro::send_audio_samples(&self.buffer);
 
             self.position = 0;
         }
+
+        let l = l as i16;
+        let r = r as i16;
+
+        self.buffer[self.position] = l << 7;
+        self.buffer[self.position + 1] = r << 7;
+
+        self.position += 2;
     }
 
     /// Retreive sound 1 sweep function

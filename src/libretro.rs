@@ -203,7 +203,7 @@ pub fn frame_done(frame: [u16; 160*144]) {
     }
 }
 
-pub fn send_audio_sample_batch(samples: &[i16]) {
+pub fn send_audio_samples(samples: &[i16]) {
     if samples.len() & 1 != 0 {
         panic!("Received an odd number of audio samples!");
     }
