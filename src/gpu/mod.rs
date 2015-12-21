@@ -66,7 +66,7 @@ pub struct Gpu {
     /// None. There can't be more than 10 sprites displayed on each
     /// line.
     line_cache: [[Option<u8>; 10]; 144],
-    framebuffer: [u16; 160 * 144],
+    framebuffer: [u16; 256 * 144],
 }
 
 /// Current GPU mode
@@ -144,7 +144,7 @@ impl Gpu {
               wx:                     0,
               wy:                     0,
               line_cache:             [[None; 10]; 144],
-              framebuffer:            [0x1234; 160 * 144],
+              framebuffer:            [0x1234; 256 * 144],
         }
     }
 
@@ -213,7 +213,10 @@ impl Gpu {
 
             let y = self.line;
 
-            for x in 0u8..160 {
+            for x in 0u16..256 {
+
+                let x = x as u8;
+
                 self.render_pixel(x, y);
             }
         }
@@ -587,7 +590,7 @@ impl Gpu {
     }
 
     fn background_color(&mut self, x: u8, y: u8) -> AlphaColor {
-        let px = x.wrapping_add(self.scx);
+        let px = x.wrapping_add(self.scx.wrapping_sub(::libretro::get_ws_shift()));
         let py = y.wrapping_add(self.scy);
 
         let map = self.bg_tile_map;
@@ -745,7 +748,7 @@ impl Gpu {
             };
 
         let col = if self.sprites_enabled {
-            self.render_sprite(x, y, bg_col)
+            self.render_sprite(x.wrapping_sub(::libretro::get_ws_shift()), y, bg_col)
         } else {
             bg_col.color
         };
@@ -757,7 +760,7 @@ impl Gpu {
         let y = y as usize;
         let x = x as usize;
 
-        self.framebuffer[y * 160 + x] =
+        self.framebuffer[y * 256 + x] =
             match color {
                 Color::Black => 0x0000,
                 Color::DarkGrey => 0x294a,

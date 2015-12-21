@@ -11,9 +11,11 @@
 /// `Fn` for clarity.
 
 use std::ptr;
-use std::ffi::CStr;
-use libc::{c_void, c_char, c_uint, c_float, c_double, size_t, int16_t};
+use std::ffi::{CString, CStr};
 use std::path::Path;
+use std::str::FromStr;
+
+use libc::{c_void, c_char, c_uint, c_float, c_double, size_t, int16_t};
 
 /// Global CPU instance holding our emulator state
 static mut instance: *mut ::cpu::Cpu = 0 as *mut ::cpu::Cpu;
@@ -80,6 +82,19 @@ pub struct GameInfo {
     meta: *const c_char,
 }
 
+#[repr(C)]
+pub struct Variable {
+    key: *const c_char,
+    value: *const c_char,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Environment {
+    GetVariable = 15,
+    SetVariables = 16,
+    GetVariableUpdate = 17,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum InputDevice {
     None = 0,
@@ -120,16 +135,17 @@ static mut video_refresh: VideoRefreshFn = dummy::video_refresh;
 static mut input_poll: InputPollFn = dummy::input_poll;
 static mut input_state: InputStateFn = dummy::input_state;
 static mut audio_sample_batch: AudioSampleBatchFn = dummy::audio_sample_batch;
+static mut environment: EnvironmentFn = dummy::environment;
 
 //*******************************
 // Higher level helper functions
 //*******************************
 
-pub fn frame_done(frame: [u16; 160*144]) {
+pub fn frame_done(frame: [u16; 256*144]) {
     unsafe {
         let data = frame.as_ptr() as *const c_void;
 
-        video_refresh(data, 160, 144, 160 * 2);
+        video_refresh(data, 256, 144, 256 * 2);
     }
 }
 
@@ -169,7 +185,20 @@ pub extern "C" fn retro_api_version() -> c_uint {
 }
 
 #[no_mangle]
-pub extern "C" fn retro_set_environment(_: EnvironmentFn) {
+pub extern "C" fn retro_set_environment(callback: EnvironmentFn) {
+    unsafe {
+        environment = callback;
+
+        let variables = [
+            Variable { key: b"gbrs-ws_shift\0".as_ptr() as *const i8,
+                       value: b"Widescreen shift (pixels); 0|8|16|24|32|40|48|56|64|72|80|88|96|104|112|120|128|136|144|152|160\0"
+                       .as_ptr() as *const i8 },
+            Variable { key: ptr::null() as *const i8, value: ptr::null() as *const i8 },
+            ];
+
+        environment(Environment::SetVariables as c_uint,
+                        variables.as_ptr() as *mut c_void);
+    }
 }
 
 #[no_mangle]
@@ -235,9 +264,9 @@ pub extern "C" fn retro_get_system_av_info(info: *mut SystemAvInfo) {
     *info = SystemAvInfo {
         // XXX Dynamic me
         geometry: GameGeometry {
-            base_width: 160,
+            base_width: 256,
             base_height: 144,
-            max_width: 160,
+            max_width: 256,
             max_height: 144,
             aspect_ratio: -1.0,
         },
@@ -259,9 +288,57 @@ pub extern "C" fn retro_reset() {
     println!("retro reset");
 }
 
+static mut ws_shift: u8 = 0;
+
+pub fn get_ws_shift() -> u8 {
+    unsafe {
+        ws_shift
+    }
+}
+
+pub fn get_variable<T: FromStr>(var: &str) -> T {
+
+    let cstr = CString::new(var).unwrap();
+
+    let mut v = Variable {
+        key: cstr.as_ptr(),
+        value: ptr::null(),
+    };
+
+    let value =
+        unsafe {
+            environment(Environment::GetVariable as c_uint,
+                        (&mut v) as *mut _ as *mut c_void);
+
+            if v.value.is_null() {
+                panic!("Couldn't get variable {}", var);
+            }
+
+            CStr::from_ptr(v.value).to_str().unwrap()
+        };
+
+    FromStr::from_str(value).ok().unwrap()
+}
+
+pub fn variables_need_update() -> bool {
+    let mut needs_update = false;
+
+    unsafe {
+        environment(Environment::GetVariableUpdate as c_uint,
+                    (&mut needs_update) as *mut _ as *mut c_void);
+    }
+
+    needs_update
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn retro_run() {
     input_poll();
+
+    // Update variables if needed
+    if variables_need_update() {
+        ws_shift = get_variable("gbrs-ws_shift");
+    }
 
     ::render_frame(ptr_as_mut_ref(instance).unwrap());
 }
@@ -395,5 +472,9 @@ pub mod dummy {
                                   _: c_uint,
                                   _: c_uint) -> int16_t {
         panic!("Called missing input_state callback");
+    }
+
+    pub unsafe extern "C" fn environment(_: c_uint, _: *mut c_void) {
+        panic!("Called missing environment callback");
     }
 }
