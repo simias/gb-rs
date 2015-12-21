@@ -193,6 +193,9 @@ pub extern "C" fn retro_set_environment(callback: EnvironmentFn) {
             Variable { key: b"gbrs-ws_shift\0".as_ptr() as *const i8,
                        value: b"Widescreen shift (pixels); 0|8|16|24|32|40|48|56|64|72|80|88|96|104|112|120|128|136|144|152|160\0"
                        .as_ptr() as *const i8 },
+            Variable { key: b"gbrs-scroll_lock\0".as_ptr() as *const i8,
+                       value: b"Lock horizontal background scroll; false|true\0"
+                       .as_ptr() as *const i8 },
             Variable { key: ptr::null() as *const i8, value: ptr::null() as *const i8 },
             ];
 
@@ -296,6 +299,14 @@ pub fn get_ws_shift() -> u8 {
     }
 }
 
+static mut scroll_lock: bool = false;
+
+pub fn get_scroll_lock() -> bool {
+    unsafe {
+        scroll_lock
+    }
+}
+
 pub fn get_variable<T: FromStr>(var: &str) -> T {
 
     let cstr = CString::new(var).unwrap();
@@ -331,13 +342,19 @@ pub fn variables_need_update() -> bool {
     needs_update
 }
 
+fn update_variables() {
+    unsafe {
+        ws_shift = get_variable("gbrs-ws_shift");
+        scroll_lock = get_variable("gbrs-scroll_lock");
+    }
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn retro_run() {
     input_poll();
 
-    // Update variables if needed
     if variables_need_update() {
-        ws_shift = get_variable("gbrs-ws_shift");
+        update_variables()
     }
 
     ::render_frame(ptr_as_mut_ref(instance).unwrap());
@@ -388,6 +405,8 @@ pub extern "C" fn retro_load_game(info: *const GameInfo) -> bool {
     unsafe {
         instance = Box::into_raw(cpu);
     }
+
+    update_variables();
 
     true
 }

@@ -590,7 +590,12 @@ impl Gpu {
     }
 
     fn background_color(&mut self, x: u8, y: u8) -> AlphaColor {
-        let px = x.wrapping_add(self.scx.wrapping_sub(::libretro::get_ws_shift()));
+        let px =
+            if ::libretro::get_scroll_lock() {
+                x
+            } else {
+                x.wrapping_add(self.scx.wrapping_sub(::libretro::get_ws_shift()))
+            };
         let py = y.wrapping_add(self.scy);
 
         let map = self.bg_tile_map;
@@ -748,7 +753,11 @@ impl Gpu {
             };
 
         let col = if self.sprites_enabled {
-            self.render_sprite(x.wrapping_sub(::libretro::get_ws_shift()), y, bg_col)
+            if ::libretro::get_scroll_lock() {
+                self.render_sprite(x.wrapping_sub(self.scx), y, bg_col)
+            } else {
+                self.render_sprite(x.wrapping_sub(::libretro::get_ws_shift()), y, bg_col)
+            }
         } else {
             bg_col.color
         };
