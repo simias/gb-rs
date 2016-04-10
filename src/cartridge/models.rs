@@ -217,17 +217,13 @@ mod camera {
                 // Writing a low nibble 0xa to anywhere in that
                 // address range removes RAM write protect, All other
                 // values enable it.
-                //println!("set ram_wp {:02x}", val);
                 cart.set_ram_wp(false);
-                //cart.set_ram_wp(val & 0xf != 0xa);
             }
             0x2000...0x3fff => {
                 // Select a new ROM bank
-                //println!("set rom bank {:02x}", val);
                 super::set_rom_bank(cart, val & 0x7f);
             }
             0x4000...0x5fff => {
-                //println!("set ram bank {:02x}", val);
                 // Select a new RAM bank
                 cart.set_ram_bank(val);
             }
@@ -243,15 +239,15 @@ mod camera {
         }
     }
 
-    /// Default implementation of read_ram, suitable for most cartridges
     fn read_ram(cart: &Cartridge, addr: u32) -> u8 {
-        let img = include_bytes!("img.gbcam");
+        // let img = include_bytes!("img.gbcam");
 
-        if addr >= 0x100 && addr < 0x1000 {
-            *img.get(addr as usize - 0x100).unwrap_or(&0xff)
-        } else {
-            cart.ram_byte_absolute(addr)
-        }
+        // if addr >= 0x100 && addr < 0x1000 {
+        //     *img.get(addr as usize - 0x100).unwrap_or(&0xff)
+        // } else {
+        //     cart.ram_byte_absolute(addr)
+        // }
+        0
     }
 
     pub static MODEL: Model =

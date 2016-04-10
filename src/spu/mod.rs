@@ -577,7 +577,7 @@ impl Spu {
 
 /// Sound can be continuous or stop based on a counter
 #[derive(Clone,Copy,PartialEq,Eq)]
-enum Mode {
+pub enum Mode {
     Continuous = 0,
     Counter    = 1,
 }
@@ -696,23 +696,10 @@ impl OutputVolume {
     }
 }
 
-/// Return the number of sound samples that are generated during a
-/// period of `steps` SysClk ticks.
-pub fn samples_per_steps(steps: u32) -> u32 {
-    steps / SAMPLER_DIVIDER
-}
-
 /// Each sound uses a 4bit DAC which means it they can only output
 /// 16 sound levels each. There are 4 channels in total which means
 /// that the sum is in the range [0, 60], so a u8 is plenty enough.
 pub type Sample = u8;
-
-pub type SampleBuffer = [Sample; SAMPLES_PER_BUFFER];
-
-/// We buffer the sound samples before we send them to the next
-/// stage. Bigger buffers will reduce the contention on the channel
-/// but it will also increase latency.
-pub const SAMPLES_PER_BUFFER: usize = 0x200;
 
 /// This variable says how many SysClk cycles to wait between each
 /// sound sample. In other words, SYSCLK_FREQ / SAMPLER_DIVIDER gives
@@ -725,23 +712,8 @@ pub const SAMPLES_PER_BUFFER: usize = 0x200;
 /// frequency.
 const SAMPLER_DIVIDER: u32 = 95;
 
-pub const SAMPLE_RATE: u32 = ::SYSCLK_FREQ as u32 / SAMPLER_DIVIDER;
-
-/// Depth of the channel between the Spu and the audio
-/// backend. Ideally the channel should be empty most of the time and
-/// no more than one sample should be queued at any moment but this
-/// buffer can be used to absorb a momentary slowdown of the
-/// backend. If the channel is ever full it'll prevent the SPU from
-/// queuing new samples which will will cause the audio samples to be
-/// dropped.
-const CHANNEL_DEPTH: usize = 4;
-
 /// Maximum possible volume for a single sound
 const SOUND_MAX: Sample = 15;
-
-/// Maximum possible value for a sample. There are 4 sounds on two
-/// channels.
-pub const SAMPLE_MAX: Sample = SOUND_MAX * 4 * 2;
 
 #[cfg(test)]
 mod tests {

@@ -72,6 +72,3 @@ fn render_frame(cpu: &mut Cpu) {
         cpu.run_next_instruction();
     }
 }
-
-/// Gameboy sysclk frequency: 4.19Mhz
-const SYSCLK_FREQ:      i64 = 0x400000;

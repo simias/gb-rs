@@ -19,15 +19,6 @@ pub trait Audio {
     fn adjust_resampling(&mut self, in_samples: u32);
 }
 
-/// Special events that need to be handled synchronously (instead of
-/// waiting for the GB program to come check the INPUT register)
-pub enum Event {
-    /// No event
-    None,
-    /// Shutdown the emulator
-    PowerOff,
-}
-
 /// Description of a button's state
 #[derive(Debug,Clone,Copy)]
 pub enum ButtonState {
